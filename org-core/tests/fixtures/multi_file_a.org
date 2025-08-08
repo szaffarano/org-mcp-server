@@ -1,0 +1,13 @@
+* Project Alpha
+:PROPERTIES:
+:ID: project-alpha-001
+:END:
+
+This is project alpha in file A.
+
+* Shared ID Test
+:PROPERTIES:
+:ID: shared-id-test
+:END:
+
+This ID exists in multiple files to test precedence.

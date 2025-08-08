@@ -1,0 +1,30 @@
+* Heading with Empty ID
+:PROPERTIES:
+:ID:
+:END:
+
+This heading has an empty ID property.
+
+* Heading with Whitespace ID
+:PROPERTIES:
+:ID:   spaces-around
+:END:
+
+This heading has whitespace around the ID.
+
+* Case Sensitive ID Test
+:PROPERTIES:
+:ID: CaseSensitiveID
+:END:
+
+Testing case sensitivity.
+
+* Heading with Special Characters
+:PROPERTIES:
+:ID: special-chars!@#$%
+:END:
+
+ID with special characters.
+
+* No Properties Block
+Just a regular heading with no properties at all.

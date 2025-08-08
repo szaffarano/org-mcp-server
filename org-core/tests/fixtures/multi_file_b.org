@@ -1,0 +1,13 @@
+* Project Beta
+:PROPERTIES:
+:ID: project-beta-002
+:END:
+
+This is project beta in file B.
+
+* Shared ID Test
+:PROPERTIES:
+:ID: shared-id-test
+:END:
+
+This same ID exists in file A - testing which one gets found first.

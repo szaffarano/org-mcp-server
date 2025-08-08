@@ -1,0 +1,13 @@
+:PROPERTIES:
+:ID: document-level-id-456
+:TITLE: Document with ID
+:AUTHOR: Test User
+:END:
+
+This is a document with a document-level ID property.
+
+* Some Heading
+Regular heading content.
+
+* Another Heading
+More content without IDs.

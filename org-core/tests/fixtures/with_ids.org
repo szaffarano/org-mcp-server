@@ -1,0 +1,38 @@
+* First Heading
+Regular heading without ID.
+
+* Heading with Simple ID
+:PROPERTIES:
+:ID: simple-123
+:END:
+
+This heading has a simple ID for testing.
+
+** Subheading
+Some nested content.
+
+* Heading with UUID
+:PROPERTIES:
+:ID: 550e8400-e29b-41d4-a716-446655440000
+:END:
+
+This heading has a UUID-style ID.
+
+* Multiple Properties Heading
+:PROPERTIES:
+:ID: multi-prop-id
+:CREATED: [2023-01-01 Mon]
+:CATEGORY: test
+:END:
+
+This heading has multiple properties including an ID.
+
+** Nested Heading with ID
+:PROPERTIES:
+:ID: nested-abc
+:END:
+
+This is a nested heading with an ID.
+
+* Final Heading
+No ID here, just regular content.

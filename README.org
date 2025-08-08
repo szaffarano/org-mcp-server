@@ -1,0 +1,160 @@
+#+TITLE: org-mcp-server
+#+AUTHOR: Sebastián Zaffarano
+#+EMAIL: sebas@zaffarano.com
+
+*🚧 Work in Progress*: This project is under active development.
+
+A [[https://modelcontextprotocol.io/][Model Context Protocol (MCP)]] server for
+org-mode knowledge management. Provides search, content access, and note
+linking capabilities for your org-mode files through the MCP protocol.
+
+* Features
+
+** Current MCP Resources
+
+- =org-files://= — List all org-mode files in configured directories
+- =org://{file}= — Access raw content of org files
+- =org-outline://{file}= — Get hierarchical structure as JSON
+- =org-heading://{file}#{heading}= — Access specific headings by path
+- =org-id://{id}= — Find content by org-mode ID properties
+
+** MCP Tools
+
+- =org-file-list= — List all org files in configured directories
+
+** CLI Tool
+
+- =org-cli list= — List available org files
+- =org-cli element-by-id <id>= — Extract content by ID
+- =org-cli init= — Initialize configuration
+
+* Architecture
+
+Multi-crate Rust workspace:
+
+- *org-core* — Business logic and org-mode parsing
+- *mcp-server* — MCP protocol implementation
+- *org-cli* — CLI interface for testing and direct usage
+
+Built with:
+
+- [[https://crates.io/crates/orgize][orgize]] for org-mode parsing
+- [[https://crates.io/crates/rmcp][rmcp]] for MCP protocol
+- [[https://crates.io/crates/tokio][tokio]] for async runtime
+
+* Installation
+
+** Using Nix Flakes
+
+#+begin_src bash
+# Run directly with nix
+nix run github:szaffarano/org-mcp-server
+
+# Install to profile
+nix profile install github:szaffarano/org-mcp-server
+
+# Development environment
+nix develop github:szaffarano/org-mcp-server
+#+end_src
+
+** From Source
+
+#+begin_src bash
+# Clone and build
+git clone https://github.com/szaffarano/org-mcp-server
+cd org-mcp-server
+cargo build --release
+
+# Run MCP server
+cargo run --bin mcp-server
+
+# Test with CLI
+cargo run --bin org-cli -- list
+#+end_src
+
+* Configuration
+
+** AI Agent integration
+
+Add the following to your agent configuration (e.g.,
+   =~/.config/opencode/opencode.json=, =~/.claude.json=, etc.):
+
+#+begin_src json
+{
+  "mcpServers": {
+    "org-mode": {
+      "command": "/path/to/org-mcp-server",
+      "args": ["--root", "/path/to/your/org/files"],
+      "env": {}
+    }
+  }
+}
+#+end_src
+
+Or if installed via Nix:
+
+#+begin_src json
+{
+  "mcpServers": {
+    "org-mode": {
+      "command": "nix",
+      "args": ["run", "github:szaffarano/org-mcp-server", "--", "--root", "/path/to/your/org/files"],
+      "env": {}
+    }
+  }
+}
+#+end_src
+
+** Server Configuration
+
+The server scans configured directories for =.org= files. Configuration is
+   handled through command-line arguments or environment variables
+   (implementation pending).
+
+* Development
+
+#+begin_src bash
+# Run all tests
+cargo test
+
+# Run specific crate tests
+cargo test -p org-core
+
+# Format and lint
+cargo fmt
+cargo clippy
+
+# Run examples
+cargo run --example <name>
+#+end_src
+
+* Roadmap
+
+** Phase 1: Core Functionality ✅
+
+- [X] File discovery and listing
+- [X] Basic content access via MCP resources
+- [X] Org-mode parsing with orgize
+- [X] ID-based element lookup
+- [X] CLI tool for testing
+
+** Phase 2: Advanced Features 🚧
+
+- [ ] Full-text search across org files
+- [ ] Tag-based filtering and querying
+- [ ] Link following and backlink discovery (org-roam support)
+- [ ] Metadata caching for performance
+- [ ] Configuration file support
+- [ ] Agenda-related Functionality
+
+** Phase 3: Extended Capabilities 📋
+
+- [ ] Content creation and modification tools
+- [ ] Media file reference handling
+- [ ] Integration with org-roam databases
+- [ ] Real-time file watching and updates
+- [ ] Advanced query language
+
+* License
+
+[[file:LICENSE][MIT License]] - see LICENSE file for details.
