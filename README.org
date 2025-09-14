@@ -131,6 +131,34 @@ cargo clippy
 cargo run --example <name>
 #+end_src
 
+** Code Coverage
+
+The project includes comprehensive code coverage analysis using =cargo-llvm-cov=:
+
+#+begin_src bash
+# Quick coverage summary
+make coverage-summary
+
+# Generate HTML coverage report
+make coverage-html
+
+# Generate CI-compatible LCOV format
+make coverage-ci
+
+# Generate all coverage formats
+make coverage
+
+# Development workflow (format, lint, test, coverage)
+make dev
+#+end_src
+
+Coverage reports are generated in the =coverage/= directory:
+- =coverage/html/index.html= — Interactive HTML report
+- =coverage/lcov.info= — LCOV format for CI integration
+- =coverage/coverage.json= — JSON format for programmatic analysis
+
+*CI Integration*: Coverage is automatically calculated and reported on pull requests via GitHub Actions.
+
 * Roadmap
 
 ** Phase 1: Core Functionality ✅

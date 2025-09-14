@@ -78,4 +78,3 @@ jobs:
 
       - name: Run cargo check
         run: cargo check --all-targets --all-features
-
