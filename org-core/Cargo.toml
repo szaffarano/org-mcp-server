@@ -14,3 +14,4 @@ walkdir = "2.4"
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.19", features = ["fmt"] }
+tempfile = "3.12"

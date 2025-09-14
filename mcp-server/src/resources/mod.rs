@@ -5,6 +5,9 @@ mod org_id;
 mod org_outline;
 mod utils;
 
+#[cfg(test)]
+mod resource_tests;
+
 use rmcp::model::{
     Implementation, InitializeRequestParam, InitializeResult, ListResourceTemplatesResult,
     ListResourcesResult, PaginatedRequestParam, ReadResourceRequestParam, ReadResourceResult,
