@@ -2,6 +2,13 @@
 #+AUTHOR: Sebastián Zaffarano
 #+EMAIL: sebas@zaffarano.com
 
+[[https://github.com/szaffarano/org-mcp-server/actions/workflows/ci.yml][https://github.com/szaffarano/org-mcp-server/actions/workflows/ci.yml/badge.svg]]
+[[https://github.com/szaffarano/org-mcp-server/actions/workflows/coverage.yml][https://github.com/szaffarano/org-mcp-server/actions/workflows/coverage.yml/badge.svg]]
+[[https://codecov.io/gh/szaffarano/org-mcp-server][https://codecov.io/gh/szaffarano/org-mcp-server/branch/master/graph/badge.svg]]
+[[https://github.com/szaffarano/org-mcp-server/blob/master/LICENSE][https://img.shields.io/badge/license-MIT-blue.svg]]
+[[https://github.com/szaffarano/org-mcp-server][https://img.shields.io/badge/rust-2024%2B-orange.svg]]
+[[https://deps.rs/repo/github/szaffarano/org-mcp-server][https://deps.rs/repo/github/szaffarano/org-mcp-server/status.svg]]
+
 *🚧 Work in Progress*: This project is under active development.
 
 A [[https://modelcontextprotocol.io/][Model Context Protocol (MCP)]] server for
