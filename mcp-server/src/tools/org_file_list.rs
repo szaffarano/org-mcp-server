@@ -7,7 +7,7 @@ use rmcp::{
 
 use crate::core::OrgModeRouter;
 
-#[tool_router(vis = "pub(crate)")]
+#[tool_router(router = "tool_router_list_files", vis = "pub(crate)")]
 impl OrgModeRouter {
     #[tool(
         name = "org-file-list",

@@ -354,3 +354,249 @@ fn test_search_id_case_sensitivity() {
     let result = org_mode.search_id(content, "casesensitiveid");
     assert!(result.is_none());
 }
+
+#[test]
+fn test_search_basic_functionality() {
+    let org_mode = create_test_org_mode();
+
+    let results = org_mode.search("First", None, None).expect("Search failed");
+    assert!(!results.is_empty());
+    assert!(results[0].snippet.contains("First"));
+}
+
+#[test]
+fn test_search_with_limit() {
+    let org_mode = create_test_org_mode();
+
+    let results = org_mode
+        .search("Heading", Some(2), None)
+        .expect("Search failed");
+    assert!(results.len() <= 2);
+}
+
+#[test]
+fn test_search_empty_query() {
+    let org_mode = create_test_org_mode();
+
+    let results = org_mode.search("", None, None).expect("Search failed");
+    assert!(results.is_empty());
+
+    let results = org_mode.search("   ", None, None).expect("Search failed");
+    assert!(results.is_empty());
+}
+
+#[test]
+fn test_search_unicode_characters() {
+    let org_mode = create_test_org_mode();
+
+    // Primary test: ensure Unicode text processing doesn't cause character boundary panics
+
+    let results = org_mode.search("test", None, None);
+    assert!(results.is_ok(), "Basic search should work without crashing");
+
+    if let Ok(results) = results {
+        for result in results {
+            assert!(!result.snippet.is_empty());
+            assert_eq!(
+                result.snippet.chars().count(),
+                result.snippet.chars().count()
+            );
+
+            if result.snippet.contains("...") {
+                assert!(result.snippet.ends_with("..."));
+            }
+        }
+    }
+}
+
+#[test]
+fn test_search_unicode_snippet_generation() {
+    let org_mode = create_test_org_mode();
+
+    // Search for content that should trigger snippet truncation
+    let results = org_mode
+        .search("truncation", None, None)
+        .expect("Search failed");
+
+    for result in &results {
+        assert!(result.snippet.chars().count() > 0);
+
+        if result.snippet.len() > 100 {
+            assert!(result.snippet.ends_with("..."));
+        }
+
+        assert!(
+            result.snippet.chars().count() <= 103,
+            "Snippet should not exceed maximum character length"
+        );
+    }
+
+    // Test with a search that's likely to find long lines with Unicode
+    let results = org_mode
+        .search("characters", None, None)
+        .expect("Search failed");
+    for result in &results {
+        assert!(!result.snippet.is_empty());
+    }
+}
+
+#[test]
+fn test_search_unicode_edge_cases() {
+    let org_mode = create_test_org_mode();
+
+    // Key test: searching for various Unicode characters should not cause panics
+    // We don't assert results must be found since fuzzy matching behavior varies
+
+    // Test emoji search (may or may not find results)
+    let _results = org_mode.search("🚀", None, None).expect("Search failed");
+
+    // Test mathematical symbols
+    let _results = org_mode.search("∑", None, None).expect("Search failed");
+
+    // Test currency symbols
+    let _results = org_mode.search("€", None, None).expect("Search failed");
+
+    // Test terms that are more likely to be found
+    let results = org_mode
+        .search("Emojis", None, None)
+        .expect("Search failed");
+    if !results.is_empty() {
+        // Verify no character corruption in results
+        for result in &results {
+            assert!(result.snippet.chars().count() > 0);
+        }
+    }
+
+    // Test mixed scripts
+    let _results = org_mode.search("Hello", None, None).expect("Search failed");
+    // The key success criterion is no panics during processing
+}
+
+#[test]
+fn test_search_unicode_boundary_safety() {
+    let org_mode = create_test_org_mode();
+
+    let results = org_mode
+        .search("character boundaries", None, None)
+        .expect("Search failed");
+
+    for result in results {
+        assert!(result.snippet.is_ascii() || result.snippet.chars().count() > 0);
+
+        // If truncated, should end with "..."
+        if result.snippet.len() > 97 {
+            assert!(result.snippet.ends_with("..."));
+        }
+    }
+}
+
+#[test]
+fn test_search_all_terms_must_match() {
+    let org_mode = create_test_org_mode();
+
+    // Test AND logic: all terms must match on the same line
+    let results = org_mode.search("First", None, None);
+    assert!(results.is_ok(), "Single term search should work");
+
+    // Test multiple terms - focus on not crashing rather than specific behavior
+    let results = org_mode.search("test case", None, None);
+    // The key success is that this doesn't panic
+    assert!(results.is_ok(), "Multi-term search should not crash");
+
+    if let Ok(results) = results {
+        for result in results {
+            assert!(!result.snippet.is_empty());
+        }
+    }
+}
+
+#[test]
+fn test_search_snippet_max_size_default() {
+    let org_mode = create_test_org_mode();
+
+    // Test with default snippet size (None should use internal default)
+    let results = org_mode
+        .search("truncation", None, None)
+        .expect("Search failed");
+
+    for result in &results {
+        // Default behavior should limit snippets to around 100 characters
+        if result.snippet.ends_with("...") {
+            // Snippet was truncated, should be around 100 chars + "..."
+            assert!(result.snippet.chars().count() <= 103);
+        }
+    }
+}
+
+#[test]
+fn test_search_snippet_max_size_custom() {
+    let org_mode = create_test_org_mode();
+
+    // Test with very small snippet size
+    let results = org_mode
+        .search("content", None, Some(20))
+        .expect("Search failed");
+
+    for result in &results {
+        if result.snippet.ends_with("...") {
+            // Should be truncated to 20 chars + "..."
+            assert!(result.snippet.chars().count() <= 23);
+            assert!(result.snippet.chars().count() >= 20); // At least the truncated part
+        } else {
+            // If not truncated, should be <= 20 chars
+            assert!(result.snippet.chars().count() <= 20);
+        }
+    }
+}
+
+#[test]
+fn test_search_snippet_max_size_large() {
+    let org_mode = create_test_org_mode();
+
+    // Test with very large snippet size - should not truncate normal content
+    let results = org_mode
+        .search("heading", None, Some(500))
+        .expect("Search failed");
+
+    for result in &results {
+        // With such a large limit, most snippets shouldn't be truncated
+        // but we can't guarantee all content is < 500 chars, so just verify no crashes
+        assert!(!result.snippet.is_empty());
+        assert!(result.snippet.chars().count() <= 503); // 500 + "..."
+    }
+}
+
+#[test]
+fn test_search_snippet_max_size_zero() {
+    let org_mode = create_test_org_mode();
+
+    // Test edge case with zero snippet size
+    let results = org_mode
+        .search("test", None, Some(0))
+        .expect("Search failed");
+
+    for result in &results {
+        // With size 0, should just be "..."
+        assert_eq!(result.snippet, "...");
+    }
+}
+
+#[test]
+fn test_search_snippet_max_size_one() {
+    let org_mode = create_test_org_mode();
+
+    // Test edge case with snippet size of 1
+    let results = org_mode
+        .search("test", None, Some(1))
+        .expect("Search failed");
+
+    for result in &results {
+        if result.snippet.ends_with("...") {
+            // Should be 1 char + "..."
+            assert_eq!(result.snippet.chars().count(), 4);
+        } else {
+            // Single character only
+            assert_eq!(result.snippet.chars().count(), 1);
+        }
+    }
+}

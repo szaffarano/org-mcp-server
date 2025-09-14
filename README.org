@@ -28,6 +28,7 @@ linking capabilities for your org-mode files through the MCP protocol.
 ** MCP Tools
 
 - =org-file-list= — List all org files in configured directories
+- =org-search= — Search for text content across all org files using fuzzy matching
 
 ** CLI Tool
 
@@ -37,6 +38,74 @@ linking capabilities for your org-mode files through the MCP protocol.
 - =org-cli outline= — Get the outline (headings) of an org file
 - =org-cli heading= — Extract content from a specific heading in an org file
 - =org-cli element-by-id= — Extract content from an element by ID across all org files
+- =org-cli search= — Search for text content across all org files using fuzzy matching
+
+* Usage Examples
+
+** Search Commands
+
+#+begin_src bash
+# Basic search
+org-cli search "project planning"
+
+# Limit results and use JSON output
+org-cli search "TODO" --limit 5 --format json
+
+# Search in specific directory with custom snippet size
+org-cli search "meeting notes" --dir ~/documents/org --snippet-size 50
+
+# Full parameter example
+org-cli search "bug fix" -d ~/projects/notes -l 10 -s 75 -f json
+#+end_src
+
+** Search Output Examples
+
+Plain text output:
+#+begin_example
+Found 3 results for query 'test' in org-core/tests/fixtures:
+nested.org: *** Testing (score: 114)
+nested.org: Testing procedures and results. (score: 114)
+doc_with_id.org: :AUTHOR: Test User (score: 114)
+#+end_example
+
+JSON output (=--format json=):
+#+begin_src json
+{
+  "count": 3,
+  "directory": "org-core/tests/fixtures",
+  "query": "test",
+  "results": [
+    {
+      "file_path": "nested.org",
+      "score": 114,
+      "snippet": "*** Testing"
+    },
+    {
+      "file_path": "nested.org",
+      "score": 114,
+      "snippet": "Testing procedures and results."
+    },
+    {
+      "file_path": "doc_with_id.org",
+      "score": 114,
+      "snippet": ":AUTHOR: Test User"
+    }
+  ]
+}
+#+end_src
+
+** Search Parameters
+
+- =--dir/-d= — Directory to search for org files (default: =~/org/=)
+- =--limit/-l= — Maximum number of results to return
+- =--format/-f= — Output format: =plain= or =json= (default: =plain=)
+- =--snippet-size/-s= — Maximum snippet size in characters (default: =100=)
+
+The search uses fuzzy matching with:
+- AND logic for multiple terms (all terms must match on the same line)
+- Unicode-safe text processing
+- Ranked results by relevance score
+- Configurable snippet truncation with "..." indicator
 
 * Architecture
 
@@ -51,6 +120,7 @@ Built with:
 - [[https://crates.io/crates/orgize][orgize]] for org-mode parsing
 - [[https://crates.io/crates/rmcp][rmcp]] for MCP protocol
 - [[https://crates.io/crates/tokio][tokio]] for async runtime
+- [[https://crates.io/crates/nucleo-matcher][nucleo-matcher]] for fuzzy text search
 
 * Installation
 
@@ -175,10 +245,9 @@ Coverage reports are generated in the =coverage/= directory:
 - [X] Org-mode parsing with orgize
 - [X] ID-based element lookup
 - [X] CLI tool for testing
+- [X] Full-text search across org files
 
 ** Phase 2: Advanced Features 🚧
-
-- [ ] Full-text search across org files
 - [ ] Tag-based filtering and querying
 - [ ] Link following and backlink discovery (org-roam support)
 - [ ] Metadata caching for performance
