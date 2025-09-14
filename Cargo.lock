@@ -556,6 +556,7 @@ dependencies = [
 name = "mcp-server"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "org-core",
  "rmcp",
  "serde_json",
