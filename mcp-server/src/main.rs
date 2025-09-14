@@ -7,7 +7,7 @@ use std::error;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[command(name = "mcp-server")]
+#[command(name = "org-mcp-server")]
 #[command(about = "MCP server for org-mode knowledge management")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 struct Cli {

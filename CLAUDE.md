@@ -22,6 +22,7 @@ references for org-mode files.
 - `cargo fmt` — Format code
 - `cargo run --example <name>` — Run playground examples
 - `cargo run --bin org-cli` — Run CLI tool
+- `cargo run --bin org-mcp-server` — Run MCP server
 
 ## Code Style & Preferences
 

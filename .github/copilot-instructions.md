@@ -26,7 +26,7 @@ that does not match the info here.
 ### Development Commands
 
 - Run CLI tool: `cargo run --bin org-cli -- --help`
-- Run MCP server: `cargo run --bin mcp-server` (needs valid org directory)
+- Run MCP server: `cargo run --bin org-mcp-server` (needs valid org directory)
 - Run examples: `cargo run --example <name>` (examples in `org-core/examples/`)
 - Test specific crate: `cargo test -p <crate-name>`
 - Build specific crate: `cargo build -p <crate-name>`
