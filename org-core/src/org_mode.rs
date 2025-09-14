@@ -8,6 +8,10 @@ use walkdir::WalkDir;
 
 use crate::OrgModeError;
 
+#[cfg(test)]
+#[path = "org_mode_tests.rs"]
+mod org_mode_tests;
+
 #[derive(Debug)]
 pub struct OrgMode {
     org_dir: PathBuf,
@@ -270,7 +274,3 @@ impl OrgMode {
         found
     }
 }
-
-#[cfg(test)]
-#[path = "org_mode_tests.rs"]
-mod tests;
