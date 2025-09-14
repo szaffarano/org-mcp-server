@@ -24,9 +24,12 @@ linking capabilities for your org-mode files through the MCP protocol.
 
 ** CLI Tool
 
-- =org-cli list= — List available org files
-- =org-cli element-by-id <id>= — Extract content by ID
-- =org-cli init= — Initialize configuration
+- =org-cli list= — List all .org files in a directory
+- =org-cli init= — Initialize or validate an org directory
+- =org-cli read= — Read the contents of an org file
+- =org-cli outline= — Get the outline (headings) of an org file
+- =org-cli heading= — Extract content from a specific heading in an org file
+- =org-cli element-by-id= — Extract content from an element by ID across all org files
 
 * Architecture
 
