@@ -6,6 +6,7 @@ use urlencoding::decode;
 use crate::core::OrgModeRouter;
 
 impl OrgModeRouter {
+    #[allow(unused)]
     pub fn resource_template(
         uri_template: impl Into<String>,
         name: impl Into<String>,
@@ -16,13 +17,13 @@ impl OrgModeRouter {
         RawResourceTemplate {
             uri_template: uri_template.into(),
             name: name.into(),
-            title,
             description,
             mime_type,
         }
         .no_annotation()
     }
 
+    #[allow(unused)]
     pub fn resource(
         uri: impl Into<String>,
         name: impl Into<String>,
@@ -33,11 +34,9 @@ impl OrgModeRouter {
         RawResource {
             uri: uri.into(),
             name: name.into(),
-            title,
             description,
             size: None,
             mime_type,
-            icons: None,
         }
         .no_annotation()
     }
