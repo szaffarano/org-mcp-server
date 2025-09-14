@@ -794,7 +794,6 @@ name = "org-core"
 version = "0.1.0"
 dependencies = [
  "orgize",
- "rowan",
  "serde",
  "serde_json",
  "shellexpand",
