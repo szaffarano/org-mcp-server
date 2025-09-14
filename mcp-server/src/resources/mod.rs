@@ -40,6 +40,7 @@ impl ServerHandler for OrgModeRouter {
             "Tools:\n",
             "- org-file-list\n",
             "Resources:\n",
+            "- org:// (List all org-mode files in the configured directory tree)\n",
             "- org://{file} (Access the raw content of an allowed Org file)\n",
             "- org-outline://{file} (Get the hierarchical structure of an Org file)\n",
             "- org-heading://{file}#{heading} (Access the content of a specific headline by its path)\n",
@@ -65,8 +66,8 @@ impl ServerHandler for OrgModeRouter {
     ) -> Result<ListResourcesResult, McpError> {
         Ok(ListResourcesResult {
             resources: vec![OrgModeRouter::resource(
-                "org-files://",
-                "org-files",
+                "org://",
+                "org",
                 Some("Org Files Directory Listing".to_string()),
                 Some("List all org-mode files in the configured directory tree".to_string()),
                 Some("application/json".to_string()),
@@ -158,7 +159,7 @@ impl OrgModeRouter {
     fn parse_resource(uri: String) -> Option<OrgResource> {
         let uri = Self::decode_uri_path(&uri);
 
-        if uri == "org-files://" {
+        if uri == "org://" {
             Some(OrgResource::OrgFiles)
         } else if let Some(path) = uri.strip_prefix("org://")
             && !path.is_empty()
@@ -197,8 +198,8 @@ mod tests {
     use crate::{core::OrgModeRouter, resources::OrgResource};
 
     #[test]
-    fn test_org_files_resource() {
-        let result = OrgModeRouter::parse_resource("org-files://".to_string());
+    fn test_org_files_list_resource() {
+        let result = OrgModeRouter::parse_resource("org://".to_string());
         assert!(matches!(result, Some(OrgResource::OrgFiles)));
     }
 
@@ -352,7 +353,6 @@ mod tests {
         let invalid_cases = vec![
             ("", "empty string"),
             ("invalid://path", "invalid scheme"),
-            ("org://", "empty org path"),
             ("org-outline://", "empty outline path"),
             ("org-heading://", "empty heading URI"),
             ("org-heading://path", "missing heading separator"),

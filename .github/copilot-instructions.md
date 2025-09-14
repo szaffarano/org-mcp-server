@@ -195,7 +195,7 @@ Found 8 .org files in org-core/tests/fixtures:
 ### MCP Server Limitations
 
 - Current MCP server implementation needs directory configuration improvements
-- Server provides resources: `org-files://`, `org://`, `org-outline://`, `org-he
+- Server provides resources: `org://`, `org://file`, `org-outline://`, `org-he
 - Tools available: `org-file-list`
 
 ## Nix Development Environment
