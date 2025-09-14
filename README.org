@@ -19,7 +19,7 @@ linking capabilities for your org-mode files through the MCP protocol.
 
 ** Current MCP Resources
 
-- =org-files://= — List all org-mode files in configured directories
+- =org://= — List all org-mode files in configured directories
 - =org://{file}= — Access raw content of org files
 - =org-outline://{file}= — Get hierarchical structure as JSON
 - =org-heading://{file}#{heading}= — Access specific headings by path
