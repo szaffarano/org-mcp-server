@@ -45,6 +45,7 @@
           extensions = [
             "rust-src"
             "rust-analyzer"
+            "llvm-tools-preview"
           ];
         };
       in {
@@ -158,6 +159,7 @@
               rustToolchain
               cargo-bloat
               cargo-edit
+              cargo-llvm-cov
               cargo-outdated
               cargo-udeps
               cargo-watch

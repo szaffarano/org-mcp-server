@@ -1,3 +1,6 @@
 /target
 .direnv
 .pre-commit-config.yaml
+
+# Coverage reports
+/coverage
