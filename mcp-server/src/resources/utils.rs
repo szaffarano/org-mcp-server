@@ -9,12 +9,14 @@ impl OrgModeRouter {
     pub fn resource_template(
         uri_template: impl Into<String>,
         name: impl Into<String>,
+        title: Option<String>,
         description: Option<String>,
         mime_type: Option<String>,
     ) -> ResourceTemplate {
         RawResourceTemplate {
             uri_template: uri_template.into(),
             name: name.into(),
+            title,
             description,
             mime_type,
         }
@@ -24,15 +26,18 @@ impl OrgModeRouter {
     pub fn resource(
         uri: impl Into<String>,
         name: impl Into<String>,
+        title: Option<String>,
         description: Option<String>,
         mime_type: Option<String>,
     ) -> Resource {
         RawResource {
             uri: uri.into(),
             name: name.into(),
+            title,
             description,
             size: None,
             mime_type,
+            icons: None,
         }
         .no_annotation()
     }

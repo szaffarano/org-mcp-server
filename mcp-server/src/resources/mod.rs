@@ -64,6 +64,7 @@ impl ServerHandler for OrgModeRouter {
             resources: vec![OrgModeRouter::resource(
                 "org-files://",
                 "org-files",
+                Some("Org Files Directory Listing".to_string()),
                 Some("List all org-mode files in the configured directory tree".to_string()),
                 Some("application/json".to_string()),
             )],
@@ -82,12 +83,14 @@ impl ServerHandler for OrgModeRouter {
                 OrgModeRouter::resource_template(
                     "org://{file}",
                     "org-file",
+                    Some("Org File Content".to_string()),
                     Some("Access the raw content of an org-mode file by its path".to_string()),
                     Some("text/org".to_string()),
                 ),
                 OrgModeRouter::resource_template(
                     "org-outline://{file}",
                     "org-outline-file",
+                    Some("Org File Outline".to_string()),
                     Some(
                         "Get the hierarchical outline structure of an org-mode file as JSON"
                             .to_string(),
@@ -97,8 +100,19 @@ impl ServerHandler for OrgModeRouter {
                 OrgModeRouter::resource_template(
                     "org-heading://{file}#{heading}",
                     "org-heading-file",
+                    Some("Org Heading Content".to_string()),
                     Some(
                         "Access the content of a specific heading within an org-mode file"
+                            .to_string(),
+                    ),
+                    Some("text/org".to_string()),
+                ),
+                OrgModeRouter::resource_template(
+                    "org-id://{id}",
+                    "org-element-by-id",
+                    Some("Org Element by ID".to_string()),
+                    Some(
+                        "Access the content of any org-mode element by its unique ID property"
                             .to_string(),
                     ),
                     Some("text/org".to_string()),
