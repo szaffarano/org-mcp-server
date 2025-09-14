@@ -76,7 +76,7 @@ cd org-mcp-server
 cargo build --release
 
 # Run MCP server
-cargo run --bin mcp-server
+cargo run --bin org-mcp-server
 
 # Test with CLI
 cargo run --bin org-cli -- list
