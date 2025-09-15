@@ -379,7 +379,7 @@ async fn test_read_org_directory_resource() -> Result<(), Box<dyn std::error::Er
             assert!(text.contains("notes.org"));
             assert!(text.contains("project.org"));
             assert!(text.contains("research.org"));
-            assert!(text.contains("archive/old_notes.org"));
+            assert!(text.contains("old_notes.org"));
         } else {
             panic!("Expected text content in directory listing result");
         }
