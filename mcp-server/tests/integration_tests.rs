@@ -14,7 +14,6 @@ use tokio::process::Command;
 use tracing::{error, info};
 use tracing_test::traced_test;
 
-#[macro_export]
 macro_rules! create_mcp_service {
     ($temp_dir:expr) => {{
         use rmcp::{
