@@ -1,46 +1,8 @@
-use rmcp::model::{AnnotateAble, RawResource, Resource};
-use rmcp::model::{RawResourceTemplate, ResourceTemplate};
-
 use urlencoding::decode;
 
 use crate::core::OrgModeRouter;
 
 impl OrgModeRouter {
-    #[allow(unused)]
-    pub fn resource_template(
-        uri_template: impl Into<String>,
-        name: impl Into<String>,
-        title: Option<String>,
-        description: Option<String>,
-        mime_type: Option<String>,
-    ) -> ResourceTemplate {
-        RawResourceTemplate {
-            uri_template: uri_template.into(),
-            name: name.into(),
-            description,
-            mime_type,
-        }
-        .no_annotation()
-    }
-
-    #[allow(unused)]
-    pub fn resource(
-        uri: impl Into<String>,
-        name: impl Into<String>,
-        title: Option<String>,
-        description: Option<String>,
-        mime_type: Option<String>,
-    ) -> Resource {
-        RawResource {
-            uri: uri.into(),
-            name: name.into(),
-            description,
-            size: None,
-            mime_type,
-        }
-        .no_annotation()
-    }
-
     pub fn decode_uri_path(path: &str) -> String {
         decode(path)
             .map(|cow| cow.into_owned())
