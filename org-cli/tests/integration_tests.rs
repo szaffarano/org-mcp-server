@@ -39,6 +39,28 @@ Regular heading content.
 "#,
     )?;
 
+    // Create an org file with searchable content
+    fs::write(
+        temp_path.join("search_test.org"),
+        r#"* Project Planning
+This document contains project planning information.
+
+** TODO Meeting Notes
+Meeting scheduled for next week.
+
+** DONE Task Completion
+Task was completed successfully.
+
+* Bug Reports
+Found several bugs in the system:
+- Critical bug in authentication
+- Minor UI bug in dashboard
+
+* Long Content Test
+This is a very long line of text that should be truncated when using a small snippet size parameter to test the snippet truncation functionality properly.
+"#,
+    )?;
+
     // Create an empty org file
     fs::write(temp_path.join("empty.org"), "")?;
 
@@ -56,9 +78,10 @@ fn test_list_command_basic() {
         .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .success()
-        .stdout(predicate::str::contains("Found 3 .org files"))
+        .stdout(predicate::str::contains("Found 4 .org files"))
         .stdout(predicate::str::contains("basic.org"))
         .stdout(predicate::str::contains("with_doc_id.org"))
+        .stdout(predicate::str::contains("search_test.org"))
         .stdout(predicate::str::contains("empty.org"));
 }
 
@@ -75,7 +98,7 @@ fn test_list_command_json_format() {
         .arg("json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"count\": 3"))
+        .stdout(predicate::str::contains("\"count\": 4"))
         .stdout(predicate::str::contains("\"files\""))
         .stdout(predicate::str::contains("{"))
         .stdout(predicate::str::contains("}"));
@@ -310,7 +333,8 @@ fn test_help_command() {
         ))
         .stdout(predicate::str::contains("list"))
         .stdout(predicate::str::contains("element-by-id"))
-        .stdout(predicate::str::contains("heading"));
+        .stdout(predicate::str::contains("heading"))
+        .stdout(predicate::str::contains("search"));
 }
 
 #[test]
@@ -329,4 +353,159 @@ fn test_invalid_command() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("unrecognized subcommand"));
+}
+
+#[test]
+fn test_search_command_basic() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("project")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Found"))
+        .stdout(predicate::str::contains("search_test.org"))
+        .stdout(predicate::str::contains("Project Planning"));
+}
+
+#[test]
+fn test_search_command_with_limit() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("bug")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("--limit")
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Found 1 results"));
+}
+
+#[test]
+fn test_search_command_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("heading")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("}"))
+        .stdout(predicate::str::contains("\"count\""))
+        .stdout(predicate::str::contains("\"results\""))
+        .stdout(predicate::str::contains("\"file_path\""))
+        .stdout(predicate::str::contains("\"snippet\""))
+        .stdout(predicate::str::contains("\"score\""));
+}
+
+#[test]
+fn test_search_command_custom_snippet_size() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("truncated")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("--snippet-size")
+        .arg("20")
+        .assert()
+        .success();
+
+    // If results are found and truncated, they should end with "..."
+    // We don't assert specific content as fuzzy matching behavior may vary
+}
+
+#[test]
+fn test_search_command_no_results() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("nonexistentquerythatwillnotmatch")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No results found"));
+}
+
+#[test]
+fn test_search_command_empty_query() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No results found"));
+}
+
+#[test]
+fn test_search_command_invalid_directory() {
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("test")
+        .arg("--dir")
+        .arg("/nonexistent/directory")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Directory does not exist"));
+}
+
+#[test]
+fn test_search_command_all_parameters() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("content")
+        .arg("--dir")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("--limit")
+        .arg("2")
+        .arg("--format")
+        .arg("json")
+        .arg("--snippet-size")
+        .arg("30")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"count\""))
+        .stdout(predicate::str::contains("\"results\""));
+}
+
+#[test]
+fn test_search_command_help() {
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("search")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Search for text content"))
+        .stdout(predicate::str::contains("--dir"))
+        .stdout(predicate::str::contains("--limit"))
+        .stdout(predicate::str::contains("--format"))
+        .stdout(predicate::str::contains("--snippet-size"));
 }
