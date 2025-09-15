@@ -23,8 +23,8 @@ macro_rules! create_mcp_service {
         };
         use tracing::error;
 
-        let mut command = tokio::process::Command::new(get_binary_path("org-mcp-server"))
-            .configure(|cmd| {
+        let command =
+            tokio::process::Command::new(get_binary_path("org-mcp-server")).configure(|cmd| {
                 cmd.args(["--root", $temp_dir.path().to_str().unwrap()]);
             });
 
