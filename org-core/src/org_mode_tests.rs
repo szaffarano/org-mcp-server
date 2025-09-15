@@ -397,7 +397,7 @@ fn test_search_unicode_characters() {
     if let Ok(results) = results {
         for result in results {
             assert!(!result.snippet.is_empty());
-            assert_eq!(
+            assert!(
                 result.snippet.chars().count() > 0,
                 "Snippet should have at least one character"
             );
