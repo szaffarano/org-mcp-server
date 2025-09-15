@@ -356,7 +356,6 @@ async fn test_list_resources() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 #[traced_test]
-#[cfg(not(windows))]
 async fn test_read_org_directory_resource() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting MCP client to test org directory resource reading");
 
