@@ -28,8 +28,6 @@ macro_rules! create_mcp_service {
                 cmd.args(["--root", $temp_dir.path().to_str().unwrap()]);
             });
 
-        with_coverage_env(&mut command);
-
         ().serve(TokioChildProcess::new(command)?)
             .await
             .map_err(|e| {
@@ -44,14 +42,6 @@ pub fn get_binary_path(name: &str) -> PathBuf {
     env::var_os(env_var)
         .map(|p| p.into())
         .unwrap_or_else(|| target_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX)))
-}
-
-pub fn with_coverage_env(cmd: &mut Command) {
-    for (key, value) in std::env::vars() {
-        if key.contains("LLVM") {
-            cmd.env(&key, &value);
-        }
-    }
 }
 
 fn target_dir() -> path::PathBuf {
@@ -248,7 +238,6 @@ async fn test_graceful_close_mcp_server() -> Result<(), Box<dyn std::error::Erro
     let mut command = Command::new(binary).configure(|cmd| {
         cmd.args(["--root", org_dir.path().to_str().unwrap()]);
     });
-    with_coverage_env(&mut command);
 
     let mut child = command.stdin(std::process::Stdio::piped()).spawn()?;
 
