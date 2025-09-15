@@ -17,7 +17,7 @@ linking capabilities for your org-mode files through the MCP protocol.
 
 * Features
 
-** Current MCP Resources
+** MCP Resources
 
 - =org://= — List all org-mode files in configured directories
 - =org://{file}= — Access raw content of org files
@@ -58,42 +58,6 @@ org-cli search "meeting notes" --dir ~/documents/org --snippet-size 50
 org-cli search "bug fix" -d ~/projects/notes -l 10 -s 75 -f json
 #+end_src
 
-** Search Output Examples
-
-Plain text output:
-#+begin_example
-Found 3 results for query 'test' in org-core/tests/fixtures:
-nested.org: *** Testing (score: 114)
-nested.org: Testing procedures and results. (score: 114)
-doc_with_id.org: :AUTHOR: Test User (score: 114)
-#+end_example
-
-JSON output (=--format json=):
-#+begin_src json
-{
-  "count": 3,
-  "directory": "org-core/tests/fixtures",
-  "query": "test",
-  "results": [
-    {
-      "file_path": "nested.org",
-      "score": 114,
-      "snippet": "*** Testing"
-    },
-    {
-      "file_path": "nested.org",
-      "score": 114,
-      "snippet": "Testing procedures and results."
-    },
-    {
-      "file_path": "doc_with_id.org",
-      "score": 114,
-      "snippet": ":AUTHOR: Test User"
-    }
-  ]
-}
-#+end_src
-
 ** Search Parameters
 
 - =--dir/-d= — Directory to search for org files (default: =~/org/=)
@@ -105,7 +69,7 @@ The search uses fuzzy matching with:
 - AND logic for multiple terms (all terms must match on the same line)
 - Unicode-safe text processing
 - Ranked results by relevance score
-- Configurable snippet truncation with "..." indicator
+- Configurable snippet truncation with "…" indicator
 
 * Architecture
 
