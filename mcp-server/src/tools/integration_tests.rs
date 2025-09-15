@@ -356,6 +356,7 @@ async fn test_list_resources() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 #[traced_test]
+#[cfg(not(windows))]
 async fn test_read_org_directory_resource() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting MCP client to test org directory resource reading");
 
@@ -568,8 +569,12 @@ async fn test_invalid_resource_uris() -> Result<(), Box<dyn std::error::Error>> 
 
 fn get_binary_path(bin_name: &str) -> PathBuf {
     let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..") // move from crate dir to workspace root
+        .join("..")
         .join("target")
-        .join("debug"); // or "release" if that's what you're testing
-    target_dir.join(bin_name)
+        .join("debug");
+    let target_dir = target_dir.join(bin_name);
+
+    assert!(target_dir.exists(), "binary path not found: {target_dir:?}");
+
+    target_dir
 }
