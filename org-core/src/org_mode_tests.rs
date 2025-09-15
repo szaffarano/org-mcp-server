@@ -398,8 +398,8 @@ fn test_search_unicode_characters() {
         for result in results {
             assert!(!result.snippet.is_empty());
             assert_eq!(
-                result.snippet.chars().count(),
-                result.snippet.chars().count()
+                result.snippet.chars().count() > 0,
+                "Snippet should have at least one character"
             );
 
             if result.snippet.contains("...") {
