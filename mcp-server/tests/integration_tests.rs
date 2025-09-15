@@ -1,3 +1,8 @@
+use std::{
+    env,
+    path::{self, PathBuf},
+};
+
 use rmcp::{
     model::{CallToolRequestParam, ReadResourceRequestParam},
     transport::ConfigureCommandExt,
@@ -9,8 +14,47 @@ use tokio::process::Command;
 use tracing::{error, info};
 use tracing_test::traced_test;
 
-use super::test_helpers::{get_binary_path, with_coverage_env};
-use crate::create_mcp_service;
+macro_rules! create_mcp_service {
+    ($temp_dir:expr) => {{
+        use rmcp::{
+            ServiceExt,
+            transport::{ConfigureCommandExt, TokioChildProcess},
+        };
+        use tracing::error;
+
+        let command =
+            tokio::process::Command::new(get_binary_path("org-mcp-server")).configure(|cmd| {
+                cmd.args(["--root", $temp_dir.path().to_str().unwrap()]);
+            });
+
+        ().serve(TokioChildProcess::new(command)?)
+            .await
+            .map_err(|e| {
+                error!("Failed to connect to server: {}", e);
+                e
+            })?
+    }};
+}
+
+pub fn get_binary_path(name: &str) -> PathBuf {
+    let env_var = format!("CARGO_BIN_EXE_{name}");
+    env::var_os(env_var)
+        .map(|p| p.into())
+        .unwrap_or_else(|| target_dir().join(format!("{}{}", name, env::consts::EXE_SUFFIX)))
+}
+
+fn target_dir() -> path::PathBuf {
+    env::current_exe()
+        .ok()
+        .map(|mut path| {
+            path.pop();
+            if path.ends_with("deps") {
+                path.pop();
+            }
+            path
+        })
+        .expect("this should only be used where a `current_exe` can be set")
+}
 
 fn setup_test_org_files() -> Result<TempDir, Box<dyn std::error::Error>> {
     let temp_dir = TempDir::new()?;
@@ -193,7 +237,6 @@ async fn test_graceful_close_mcp_server() -> Result<(), Box<dyn std::error::Erro
     let mut command = Command::new(binary).configure(|cmd| {
         cmd.args(["--root", org_dir.path().to_str().unwrap()]);
     });
-    with_coverage_env(&mut command);
 
     let mut child = command.stdin(std::process::Stdio::piped()).spawn()?;
 
@@ -271,8 +314,46 @@ async fn test_list_tools() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 #[traced_test]
+async fn test_org_file_list_tool() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-file-list tool");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-file-list".into(),
+            arguments: None,
+        })
+        .await?;
+
+    info!("org-file-list result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            // Should contain our test files
+            assert!(text.text.contains("notes.org"));
+            assert!(text.text.contains("project.org"));
+            assert!(text.text.contains("research.org"));
+            assert!(text.text.contains("old_notes.org"));
+        } else {
+            panic!("Expected text content in org-file-list result");
+        }
+    } else {
+        panic!("No content in org-file-list result");
+    }
+
+    service.cancel().await?;
+    info!("org-file-list tool test completed successfully");
+
+    Ok(())
+}
+
+#[tokio::test]
+#[traced_test]
 async fn test_org_search_tool() -> Result<(), Box<dyn std::error::Error>> {
-    info!("Starting MCP client to test org-mcp-server");
+    info!("Starting MCP client to test org-search tool");
 
     let temp_dir = setup_test_org_files()?;
     let service = create_mcp_service!(&temp_dir);
@@ -286,7 +367,7 @@ async fn test_org_search_tool() -> Result<(), Box<dyn std::error::Error>> {
         })
         .await?;
 
-    info!("List buffers result: {:#?}", result);
+    info!("org-search result: {:#?}", result);
     assert!(!result.content.is_empty());
 
     if let Some(content) = result.content.first() {
@@ -295,14 +376,66 @@ async fn test_org_search_tool() -> Result<(), Box<dyn std::error::Error>> {
             assert!(text.text.contains("\"snippet\""));
             assert!(text.text.contains("\"score\""));
         } else {
-            panic!("Expected text content in list buffers result");
+            panic!("Expected text content in org-search result");
         }
     } else {
-        panic!("No content in list buffers result");
+        panic!("No content in org-search result");
     }
 
     service.cancel().await?;
-    info!("List buffers tool test completed successfully");
+    info!("org-search tool test completed successfully");
+
+    Ok(())
+}
+
+#[tokio::test]
+#[traced_test]
+async fn test_org_search_tool_with_parameters() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-search tool with parameters");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("query".to_string(), Value::String("TODO".into()));
+    args.insert("limit".to_string(), Value::Number(2.into()));
+    args.insert("snippet_max_size".to_string(), Value::Number(50.into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-search".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-search with parameters result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            // Parse as JSON to verify structure
+            let search_results: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Search results should be valid JSON");
+
+            if let Some(results_array) = search_results.as_array() {
+                // Should respect the limit parameter
+                assert!(results_array.len() <= 2, "Should respect limit parameter");
+
+                if let Some(first_result) = results_array.first() {
+                    assert!(first_result["file_path"].is_string());
+                    assert!(first_result["snippet"].is_string());
+                    assert!(first_result["score"].is_number());
+                }
+            }
+        } else {
+            panic!("Expected text content in org-search result");
+        }
+    } else {
+        panic!("No content in org-search result");
+    }
+
+    service.cancel().await?;
+    info!("org-search tool with parameters test completed successfully");
 
     Ok(())
 }
@@ -502,6 +635,82 @@ async fn test_read_org_heading_resource() -> Result<(), Box<dyn std::error::Erro
 
     service.cancel().await?;
     info!("Heading resource test completed successfully");
+
+    Ok(())
+}
+
+#[tokio::test]
+#[traced_test]
+async fn test_read_org_id_resource() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org ID resource reading");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    // Read content by ID property
+    let result = service
+        .read_resource(ReadResourceRequestParam {
+            uri: "org-id://daily-tasks-123".to_string(),
+        })
+        .await?;
+
+    info!("ID resource result: {:#?}", result);
+    assert!(!result.contents.is_empty());
+
+    // Verify the response contains the content with the specified ID
+    if let Some(content) = result.contents.first() {
+        if let rmcp::model::ResourceContents::TextResourceContents { text, .. } = content {
+            // Should contain content from the element with ID daily-tasks-123
+            assert!(text.contains("Daily Tasks"));
+            assert!(text.contains(":ID: daily-tasks-123"));
+        } else {
+            panic!("Expected text content in ID reading result");
+        }
+    } else {
+        panic!("No content in ID reading result");
+    }
+
+    service.cancel().await?;
+    info!("ID resource test completed successfully");
+
+    Ok(())
+}
+
+#[tokio::test]
+#[traced_test]
+async fn test_list_resource_templates() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test resource templates listing");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    // List available resource templates
+    let templates = service.list_resource_templates(Default::default()).await?;
+    info!("Available resource templates: {:#?}", templates);
+
+    // Verify we have the expected resource templates
+    assert!(!templates.resource_templates.is_empty());
+
+    let template_uris: Vec<&str> = templates
+        .resource_templates
+        .iter()
+        .map(|t| t.uri_template.as_ref())
+        .collect();
+
+    assert!(template_uris.contains(&"org://{file}"));
+    assert!(template_uris.contains(&"org-outline://{file}"));
+    assert!(template_uris.contains(&"org-heading://{file}#{heading}"));
+    assert!(template_uris.contains(&"org-id://{id}"));
+
+    // Verify each template has required fields
+    for template in &templates.resource_templates {
+        assert!(!template.name.is_empty());
+        assert!(template.description.is_some());
+        assert!(template.mime_type.is_some());
+    }
+
+    service.cancel().await?;
+    info!("Resource templates test completed successfully");
 
     Ok(())
 }
