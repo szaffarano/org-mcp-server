@@ -1,0 +1,32 @@
+* UTF-8 Character Testing
+
+This file contains various Unicode characters for testing search functionality.
+
+** Spanish Characters
+The phrase "que aún me hace falta" contains accented characters.
+También tenemos ñoño y otros caracteres especiales.
+
+** French Characters
+Café, naïve, résumé, être, français
+
+** German Characters
+Größe, Weiß, Straße, Müller, Ärger
+
+** Other Languages
+漢字 (Japanese/Chinese characters)
+Москва (Cyrillic)
+العربية (Arabic)
+
+** Symbols and Emojis
+Mathematical: ∑, ∞, π, √
+Currency: €, £, ¥, $
+Emojis: 🚀, 🎉, 💻, 🌟
+
+** Very Long Line with Unicode Characters
+This is a very long line that contains many Unicode characters and should test the snippet generation logic to ensure it doesn't break on character boundaries: café, naïve, résumé, être, français, größe, weiß, straße, müller, ärger, 漢字, москва, العربية, 🚀, 🎉, 💻, 🌟, and many more characters that should make this line exceed the maximum snippet length to test truncation.
+
+** Edge Cases
+Empty lines with unicode context:
+
+Single unicode character: ñ
+Mixed: Hello世界🌍

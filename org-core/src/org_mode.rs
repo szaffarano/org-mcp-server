@@ -1,5 +1,7 @@
 use std::{fs, io, path::PathBuf};
 
+use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
+use nucleo_matcher::{Config, Matcher};
 use orgize::Org;
 use orgize::ast::PropertyDrawer;
 use orgize::export::{Container, Event, from_fn, from_fn_with_ctx};
@@ -29,6 +31,13 @@ pub struct TreeNode {
     pub level: usize,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub children: Vec<TreeNode>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SearchResult {
+    pub file_path: String,
+    pub snippet: String,
+    pub score: u32,
 }
 
 impl TreeNode {
@@ -130,6 +139,54 @@ impl OrgMode {
                 Err(e) => Some(Err(OrgModeError::WalkDirError(e))),
             })
             .collect::<Result<Vec<String>, OrgModeError>>()
+    }
+
+    pub fn search(
+        &self,
+        query: &str,
+        limit: Option<usize>,
+        snippet_max_size: Option<usize>,
+    ) -> Result<Vec<SearchResult>, OrgModeError> {
+        if query.trim().is_empty() {
+            return Ok(vec![]);
+        }
+
+        let mut matcher = Matcher::new(Config::DEFAULT);
+        let pattern = Pattern::new(
+            query,
+            CaseMatching::Ignore,
+            Normalization::Smart,
+            AtomKind::Fuzzy,
+        );
+
+        let files = self.list_files()?;
+        let mut all_results = Vec::new();
+
+        for file in files {
+            let content = match self.read_file(&file) {
+                Ok(content) => content,
+                Err(_) => continue, // Skip files that can't be read
+            };
+
+            let matches = pattern.match_list(
+                content.lines().map(|s| s.to_owned()).collect::<Vec<_>>(),
+                &mut matcher,
+            );
+
+            for (snippet, score) in matches {
+                let snippet = Self::snippet(&snippet, snippet_max_size.unwrap_or(100));
+                all_results.push(SearchResult {
+                    file_path: file.clone(),
+                    snippet,
+                    score,
+                });
+            }
+        }
+
+        all_results.sort_by(|a, b| b.score.cmp(&a.score));
+        all_results.truncate(limit.unwrap_or(all_results.len()));
+
+        Ok(all_results)
     }
 
     pub fn read_file(&self, path: &str) -> Result<String, OrgModeError> {
@@ -272,5 +329,13 @@ impl OrgMode {
         Org::parse(&content).traverse(&mut handler);
 
         found
+    }
+
+    fn snippet(s: &str, max: usize) -> String {
+        if s.chars().count() > max {
+            s.chars().take(max).collect::<String>() + "..."
+        } else {
+            s.to_string()
+        }
     }
 }

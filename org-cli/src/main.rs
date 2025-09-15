@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 mod commands;
 use commands::{
     ElementByIdCommand, HeadingCommand, InitCommand, ListCommand, OutlineCommand, ReadCommand,
+    SearchCommand,
 };
 
 #[derive(Parser)]
@@ -29,6 +30,8 @@ enum Commands {
     Heading(HeadingCommand),
     /// Extract content from an element by ID across all org files
     ElementById(ElementByIdCommand),
+    /// Search for text content across all org files using fuzzy matching
+    Search(SearchCommand),
 }
 
 fn main() -> Result<()> {
@@ -41,5 +44,6 @@ fn main() -> Result<()> {
         Commands::Outline(cmd) => cmd.execute(),
         Commands::Heading(cmd) => cmd.execute(),
         Commands::ElementById(cmd) => cmd.execute(),
+        Commands::Search(cmd) => cmd.execute(),
     }
 }
