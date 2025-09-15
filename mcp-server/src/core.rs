@@ -10,14 +10,6 @@ pub struct OrgModeRouter {
 }
 
 impl OrgModeRouter {
-    pub fn new() -> Result<Self, Box<dyn error::Error>> {
-        let org_mode = OrgMode::with_defaults()?;
-        Ok(Self {
-            org_mode: Arc::new(Mutex::new(org_mode)),
-            tool_router: Self::tool_router(),
-        })
-    }
-
     pub fn with_directory(org_dir: &str) -> Result<Self, Box<dyn error::Error>> {
         let org_mode = OrgMode::new(org_dir)?;
         Ok(Self {
