@@ -1,7 +1,7 @@
 use std::{error, sync::Arc};
 use tokio::sync::Mutex;
 
-use org_core::OrgMode;
+use org_core::{Config, OrgMode};
 use rmcp::handler::server::tool::ToolRouter;
 
 pub struct OrgModeRouter {
@@ -10,12 +10,19 @@ pub struct OrgModeRouter {
 }
 
 impl OrgModeRouter {
-    pub fn with_directory(org_dir: &str) -> Result<Self, Box<dyn error::Error>> {
-        let org_mode = OrgMode::new(org_dir)?;
+    pub fn with_config(config: Config) -> Result<Self, Box<dyn error::Error>> {
+        let org_mode = OrgMode::new(config)?;
         Ok(Self {
             org_mode: Arc::new(Mutex::new(org_mode)),
             tool_router: Self::tool_router(),
         })
+    }
+
+    pub fn with_directory(org_dir: &str) -> Result<Self, Box<dyn error::Error>> {
+        let mut config = Config::default();
+        config.org.org_directory = org_dir.to_string();
+        let config = config.validate()?;
+        Self::with_config(config)
     }
 
     fn tool_router() -> ToolRouter<Self> {

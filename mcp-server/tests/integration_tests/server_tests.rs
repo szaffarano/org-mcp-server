@@ -25,7 +25,7 @@ async fn test_graceful_close_mcp_server() -> Result<(), Box<dyn std::error::Erro
     let org_dir = setup_test_org_files()?;
     let binary = get_binary_path("org-mcp-server");
     let mut command = Command::new(binary).configure(|cmd| {
-        cmd.args(["--root", org_dir.path().to_str().unwrap()]);
+        cmd.args(["--root-directory", org_dir.path().to_str().unwrap()]);
     });
 
     let mut child = command.stdin(std::process::Stdio::piped()).spawn()?;

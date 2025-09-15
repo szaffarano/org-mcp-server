@@ -45,7 +45,7 @@ macro_rules! create_mcp_service {
 
         let command = tokio::process::Command::new($crate::get_binary_path("org-mcp-server"))
             .configure(|cmd| {
-                cmd.args(["--root", $temp_dir.path().to_str().unwrap()]);
+                cmd.args(["--root-directory", $temp_dir.path().to_str().unwrap()]);
             });
 
         ().serve(TokioChildProcess::new(command)?)

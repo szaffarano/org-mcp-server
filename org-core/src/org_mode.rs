@@ -1,14 +1,13 @@
 use std::{fs, io, path::PathBuf};
 
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
-use nucleo_matcher::{Config, Matcher};
+use nucleo_matcher::{Config as NucleoConfig, Matcher};
 use orgize::Org;
 use orgize::ast::PropertyDrawer;
 use orgize::export::{Container, Event, from_fn, from_fn_with_ctx};
-use shellexpand::tilde;
 use walkdir::WalkDir;
 
-use crate::OrgModeError;
+use crate::{Config, OrgModeError};
 
 #[cfg(test)]
 #[path = "org_mode_tests.rs"]
@@ -16,13 +15,7 @@ mod org_mode_tests;
 
 #[derive(Debug)]
 pub struct OrgMode {
-    org_dir: PathBuf,
-    #[allow(unused)]
-    org_agenda_files: Vec<String>,
-    #[allow(unused)]
-    org_agenda_text_search_extra_files: Vec<String>,
-    #[allow(unused)]
-    org_default_notes_file: String,
+    config: Config,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -76,50 +69,24 @@ impl TreeNode {
 }
 
 impl OrgMode {
-    pub fn new(org_dir: &str) -> Result<Self, OrgModeError> {
-        let expanded_dir = tilde(org_dir);
-        let base_path = PathBuf::from(expanded_dir.as_ref());
+    pub fn new(config: Config) -> Result<Self, OrgModeError> {
+        let config = config.validate()?;
 
-        if !base_path.exists() {
-            return Err(OrgModeError::InvalidDirectory(format!(
-                "Directory does not exist: {expanded_dir}"
-            )));
-        }
-
-        if !base_path.is_dir() {
-            return Err(OrgModeError::InvalidDirectory(format!(
-                "Path is not a directory: {expanded_dir}"
-            )));
-        }
-
-        match fs::read_dir(&base_path) {
-            Ok(_) => {}
-            Err(e) => {
-                if e.kind() == io::ErrorKind::PermissionDenied {
-                    return Err(OrgModeError::InvalidDirectory(format!(
-                        "Permission denied accessing directory: {expanded_dir}"
-                    )));
-                }
-                return Err(OrgModeError::IoError(e));
-            }
-        }
-
-        Ok(OrgMode {
-            org_dir: base_path,
-            org_agenda_files: vec![String::from("agenda.org")],
-            org_default_notes_file: String::from("notes.org"),
-            org_agenda_text_search_extra_files: vec![],
-        })
+        Ok(OrgMode { config })
     }
 
     pub fn with_defaults() -> Result<Self, OrgModeError> {
-        Self::new("~/org/")
+        Self::new(Config::load()?)
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.config
     }
 }
 
 impl OrgMode {
     pub fn list_files(&self) -> Result<Vec<String>, OrgModeError> {
-        WalkDir::new(&self.org_dir)
+        WalkDir::new(&self.config.org.org_directory)
             .into_iter()
             .filter_map(|entry| match entry {
                 Ok(dir_entry) => {
@@ -128,7 +95,7 @@ impl OrgMode {
                     if path.is_file()
                         && let Some(extension) = path.extension()
                         && extension == "org"
-                        && let Ok(relative_path) = path.strip_prefix(&self.org_dir)
+                        && let Ok(relative_path) = path.strip_prefix(&self.config.org.org_directory)
                         && let Some(path_str) = relative_path.to_str()
                     {
                         Some(Ok(path_str.to_string()))
@@ -151,7 +118,7 @@ impl OrgMode {
             return Ok(vec![]);
         }
 
-        let mut matcher = Matcher::new(Config::DEFAULT);
+        let mut matcher = Matcher::new(NucleoConfig::DEFAULT);
         let pattern = Pattern::new(
             query,
             CaseMatching::Ignore,
@@ -190,12 +157,8 @@ impl OrgMode {
     }
 
     pub fn read_file(&self, path: &str) -> Result<String, OrgModeError> {
-        let path_buf = PathBuf::from(path);
-        let full_path = if path_buf.is_absolute() {
-            path_buf
-        } else {
-            self.org_dir.join(path)
-        };
+        let org_dir = PathBuf::from(&self.config.org.org_directory);
+        let full_path = org_dir.join(path);
 
         if !full_path.exists() {
             return Err(OrgModeError::IoError(io::Error::new(

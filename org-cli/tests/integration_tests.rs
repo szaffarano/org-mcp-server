@@ -73,9 +73,9 @@ fn test_list_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
         .assert()
         .success()
         .stdout(predicate::str::contains("Found 4 .org files"))
@@ -91,9 +91,9 @@ fn test_list_command_json_format() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
         .arg("--format")
         .arg("json")
         .assert()
@@ -109,9 +109,9 @@ fn test_list_command_empty_directory() {
     let temp_dir = TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
         .assert()
         .success()
         .stdout(predicate::str::contains("No .org files found"));
@@ -120,12 +120,12 @@ fn test_list_command_empty_directory() {
 #[test]
 fn test_list_command_invalid_directory() {
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg("/nonexistent/directory")
+        .arg("list")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Directory does not exist"));
+        .stderr(predicate::str::contains("Root directory does not exist"));
 }
 
 #[test]
@@ -134,10 +134,10 @@ fn test_read_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("read")
-        .arg("basic.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("read")
+        .arg("basic.org")
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -151,10 +151,10 @@ fn test_read_command_nonexistent_file() {
     let temp_dir = TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("read")
-        .arg("nonexistent.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("read")
+        .arg("nonexistent.org")
         .assert()
         .failure();
 }
@@ -165,10 +165,10 @@ fn test_outline_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("outline")
-        .arg("basic.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("outline")
+        .arg("basic.org")
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -182,10 +182,10 @@ fn test_outline_command_json_format() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("outline")
-        .arg("basic.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("outline")
+        .arg("basic.org")
         .arg("--format")
         .arg("json")
         .assert()
@@ -201,11 +201,11 @@ fn test_heading_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("heading")
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("heading")
         .arg("basic.org")
         .arg("First Heading")
-        .arg("--dir")
-        .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -220,11 +220,11 @@ fn test_heading_command_nested() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("heading")
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("heading")
         .arg("basic.org")
         .arg("First Heading/Sub Heading")
-        .arg("--dir")
-        .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .success()
         .stdout(predicate::str::contains("** Sub Heading"))
@@ -237,11 +237,11 @@ fn test_heading_command_nonexistent() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("heading")
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("heading")
         .arg("basic.org")
         .arg("Nonexistent Heading")
-        .arg("--dir")
-        .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .failure()
         .stderr(predicate::str::contains("Invalid heading"));
@@ -253,10 +253,10 @@ fn test_element_by_id_command_heading() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("element-by-id")
-        .arg("heading-123")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("element-by-id")
+        .arg("heading-123")
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -271,10 +271,10 @@ fn test_element_by_id_command_document_level() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("element-by-id")
-        .arg("doc-id-789")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("element-by-id")
+        .arg("doc-id-789")
         .assert()
         .success()
         .stdout(predicate::str::contains(":ID: doc-id-789"))
@@ -287,10 +287,10 @@ fn test_element_by_id_command_nonexistent() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("element-by-id")
-        .arg("nonexistent-id")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("element-by-id")
+        .arg("nonexistent-id")
         .assert()
         .failure()
         .stderr(predicate::str::contains("Invalid element id"));
@@ -301,6 +301,7 @@ fn test_init_command_basic() {
     let temp_dir = TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap());
     cmd.arg("init")
         .arg(temp_dir.path().to_str().unwrap())
         .assert()
@@ -316,6 +317,7 @@ fn test_init_command_existing_directory() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap());
     cmd.arg("init")
         .arg(temp_dir.path().to_str().unwrap())
         .assert()
@@ -361,10 +363,10 @@ fn test_search_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("project")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("project")
         .assert()
         .success()
         .stdout(predicate::str::contains("Found"))
@@ -378,10 +380,10 @@ fn test_search_command_with_limit() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("bug")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("bug")
         .arg("--limit")
         .arg("1")
         .assert()
@@ -395,10 +397,10 @@ fn test_search_command_json_format() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("heading")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("heading")
         .arg("--format")
         .arg("json")
         .assert()
@@ -418,10 +420,10 @@ fn test_search_command_custom_snippet_size() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("truncated")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("truncated")
         .arg("--snippet-size")
         .arg("20")
         .assert()
@@ -437,10 +439,10 @@ fn test_search_command_no_results() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("nonexistentquerythatwillnotmatch")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("nonexistentquerythatwillnotmatch")
         .assert()
         .success()
         .stdout(predicate::str::contains("No results found"));
@@ -452,10 +454,10 @@ fn test_search_command_empty_query() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("")
         .assert()
         .success()
         .stdout(predicate::str::contains("No results found"));
@@ -464,13 +466,13 @@ fn test_search_command_empty_query() {
 #[test]
 fn test_search_command_invalid_directory() {
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("test")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg("/nonexistent/directory")
+        .arg("search")
+        .arg("test")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Directory does not exist"));
+        .stderr(predicate::str::contains("Root directory does not exist"));
 }
 
 #[test]
@@ -479,10 +481,10 @@ fn test_search_command_all_parameters() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("content")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("content")
         .arg("--limit")
         .arg("2")
         .arg("--format")
@@ -504,7 +506,6 @@ fn test_search_command_help() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Search for text content"))
-        .stdout(predicate::str::contains("--dir"))
         .stdout(predicate::str::contains("--limit"))
         .stdout(predicate::str::contains("--format"))
         .stdout(predicate::str::contains("--snippet-size"));

@@ -1,9 +1,10 @@
 use crate::org_mode::TreeNode;
-use crate::{OrgMode, OrgModeError};
+use crate::{Config, OrgMode, OrgModeError};
 
 fn create_test_org_mode() -> OrgMode {
-    let test_dir = "tests/fixtures";
-    OrgMode::new(test_dir).expect("Failed to create test OrgMode")
+    let mut config = Config::default();
+    config.org.org_directory = "tests/fixtures".to_string();
+    OrgMode::new(config).expect("Failed to create test OrgMode")
 }
 
 #[test]

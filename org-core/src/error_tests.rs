@@ -1,26 +1,30 @@
-use crate::{OrgMode, OrgModeError};
+use crate::{Config, OrgMode, OrgModeError};
 use std::fs;
 use tempfile::TempDir;
 
 #[test]
 fn test_invalid_directory_error() {
-    let result = OrgMode::new("/completely/nonexistent/directory/path");
+    let mut config = Config::default();
+    config.org.org_directory = "/completely/nonexistent/directory/path".to_string();
+    let result = OrgMode::new(config);
 
     assert!(result.is_err());
     let err = result.unwrap_err();
 
     match err {
-        OrgModeError::InvalidDirectory(msg) => {
+        OrgModeError::ConfigError(msg) => {
             assert!(msg.contains("/completely/nonexistent/directory/path"));
         }
-        _ => panic!("Expected InvalidDirectory error, got: {:?}", err),
+        _ => panic!("Root directory does not exist: {:?}", err),
     }
 }
 
 #[test]
 fn test_file_not_found_error() {
     let temp_dir = TempDir::new().unwrap();
-    let org_mode = OrgMode::new(temp_dir.path().to_str().unwrap()).unwrap();
+    let mut config = Config::default();
+    config.org.org_directory = temp_dir.path().to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).unwrap();
 
     let result = org_mode.read_file("nonexistent.org");
     assert!(result.is_err());
@@ -51,7 +55,9 @@ More content.
     )
     .unwrap();
 
-    let org_mode = OrgMode::new(temp_path.to_str().unwrap()).unwrap();
+    let mut config = Config::default();
+    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).unwrap();
 
     // Test invalid heading path
     let result = org_mode.get_heading("test.org", "Nonexistent Heading");
@@ -83,7 +89,9 @@ Some content.
     )
     .unwrap();
 
-    let org_mode = OrgMode::new(temp_path.to_str().unwrap()).unwrap();
+    let mut config = Config::default();
+    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).unwrap();
 
     let result = org_mode.get_element_by_id("nonexistent-id");
     assert!(result.is_err());
@@ -109,7 +117,9 @@ fn test_parsing_error_handling() {
     )
     .unwrap();
 
-    let org_mode = OrgMode::new(temp_path.to_str().unwrap()).unwrap();
+    let mut config = Config::default();
+    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).unwrap();
 
     // Even malformed content should be readable (orgize handles it gracefully)
     let result = org_mode.read_file("malformed.org");
@@ -124,7 +134,9 @@ fn test_empty_file_handling() {
     // Create empty file
     fs::write(temp_path.join("empty.org"), "").unwrap();
 
-    let org_mode = OrgMode::new(temp_path.to_str().unwrap()).unwrap();
+    let mut config = Config::default();
+    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).unwrap();
 
     // Empty file should be readable
     let result = org_mode.read_file("empty.org");
@@ -146,7 +158,9 @@ fn test_io_error_propagation() {
     // Create a file, then make the directory unreadable (if possible)
     fs::write(temp_path.join("test.org"), "* Test\nContent").unwrap();
 
-    let org_mode = OrgMode::new(temp_path.to_str().unwrap()).unwrap();
+    let mut config = Config::default();
+    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).unwrap();
 
     // This should work normally
     let result = org_mode.read_file("test.org");
@@ -166,8 +180,8 @@ fn test_with_defaults_error_handling() {
         Err(err) => {
             // Expected if ~/org/ doesn't exist
             match err {
-                OrgModeError::InvalidDirectory(_) => {
-                    // This is expected
+                OrgModeError::InvalidDirectory(_) | OrgModeError::ConfigError(_) => {
+                    // Either is expected - ConfigError from config validation or InvalidDirectory from OrgMode
                 }
                 _ => panic!("Unexpected error type: {:?}", err),
             }
