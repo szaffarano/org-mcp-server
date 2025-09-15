@@ -9,8 +9,9 @@ mod utils;
 mod resource_tests;
 
 use rmcp::model::{
-    Implementation, InitializeRequestParam, InitializeResult, ListResourceTemplatesResult,
-    ListResourcesResult, PaginatedRequestParam, ReadResourceRequestParam, ReadResourceResult,
+    AnnotateAble, Implementation, InitializeRequestParam, InitializeResult,
+    ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParam, RawResource,
+    RawResourceTemplate, ReadResourceRequestParam, ReadResourceResult,
 };
 use rmcp::service::RequestContext;
 use rmcp::{
@@ -65,13 +66,18 @@ impl ServerHandler for OrgModeRouter {
         _: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         Ok(ListResourcesResult {
-            resources: vec![OrgModeRouter::resource(
-                "org://",
-                "org",
-                Some("Org Files Directory Listing".to_string()),
-                Some("List all org-mode files in the configured directory tree".to_string()),
-                Some("application/json".to_string()),
-            )],
+            resources: vec![
+                RawResource {
+                    uri: "org://".to_string(),
+                    name: "org".to_string(),
+                    description: Some(
+                        "List all org-mode files in the configured directory tree".to_string(),
+                    ),
+                    size: None,
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+            ],
             next_cursor: None,
         })
     }
@@ -84,43 +90,45 @@ impl ServerHandler for OrgModeRouter {
         Ok(ListResourceTemplatesResult {
             next_cursor: None,
             resource_templates: vec![
-                OrgModeRouter::resource_template(
-                    "org://{file}",
-                    "org-file",
-                    Some("Org File Content".to_string()),
-                    Some("Access the raw content of an org-mode file by its path".to_string()),
-                    Some("text/org".to_string()),
-                ),
-                OrgModeRouter::resource_template(
-                    "org-outline://{file}",
-                    "org-outline-file",
-                    Some("Org File Outline".to_string()),
-                    Some(
+                RawResourceTemplate {
+                    uri_template: "org://{file}".to_string(),
+                    name: "org-file".to_string(),
+                    description: Some(
+                        "Access the raw content of an org-mode file by its path".to_string(),
+                    ),
+                    mime_type: Some("text/org".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-outline://{file}".to_string(),
+                    name: "org-outline-file".to_string(),
+                    description: Some(
                         "Get the hierarchical outline structure of an org-mode file as JSON"
                             .to_string(),
                     ),
-                    Some("application/json".to_string()),
-                ),
-                OrgModeRouter::resource_template(
-                    "org-heading://{file}#{heading}",
-                    "org-heading-file",
-                    Some("Org Heading Content".to_string()),
-                    Some(
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-heading://{file}#{heading}".to_string(),
+                    name: "org-heading-file".to_string(),
+                    description: Some(
                         "Access the content of a specific heading within an org-mode file"
                             .to_string(),
                     ),
-                    Some("text/org".to_string()),
-                ),
-                OrgModeRouter::resource_template(
-                    "org-id://{id}",
-                    "org-element-by-id",
-                    Some("Org Element by ID".to_string()),
-                    Some(
+                    mime_type: Some("text/org".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-id://{id}".to_string(),
+                    name: "org-element-by-id".to_string(),
+                    description: Some(
                         "Access the content of any org-mode element by its unique ID property"
                             .to_string(),
                     ),
-                    Some("text/org".to_string()),
-                ),
+                    mime_type: Some("text/org".to_string()),
+                }
+                .no_annotation(),
             ],
         })
     }

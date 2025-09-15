@@ -1,17 +1,16 @@
 use rmcp::{
-    ServiceExt,
     model::{CallToolRequestParam, ReadResourceRequestParam},
+    transport::ConfigureCommandExt,
 };
 use serde_json::{Map, Value};
-use std::path::PathBuf;
-use tracing::info;
-use tracing_test::traced_test;
-
-use rmcp::transport::{ConfigureCommandExt, TokioChildProcess};
 use std::fs;
 use tempfile::TempDir;
 use tokio::process::Command;
-use tracing::error;
+use tracing::{error, info};
+use tracing_test::traced_test;
+
+use super::test_helpers::{get_binary_path, with_coverage_env};
+use crate::create_mcp_service;
 
 fn setup_test_org_files() -> Result<TempDir, Box<dyn std::error::Error>> {
     let temp_dir = TempDir::new()?;
@@ -184,33 +183,19 @@ This is some random text with keywords like productivity, efficiency, and automa
     Ok(temp_dir)
 }
 
-// Macro to create an MCP service using the pre-compiled binary with a temporary directory
-macro_rules! create_mcp_service {
-    ($temp_dir:expr) => {{
-        let command = Command::new(get_binary_path("org-mcp-server")).configure(|cmd| {
-            cmd.args(["--root", $temp_dir.path().to_str().unwrap()]);
-        });
-        ().serve(TokioChildProcess::new(command)?)
-            .await
-            .map_err(|e| {
-                error!("Failed to connect to server: {}", e);
-                e
-            })?
-    }};
-}
-
 #[traced_test]
 #[tokio::test]
 async fn test_graceful_close_mcp_server() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting MCP server using pre-compiled binary");
 
     let org_dir = setup_test_org_files()?;
-    let mut child = Command::new(get_binary_path("org-mcp-server"))
-        .configure(|cmd| {
-            cmd.args(["--root", org_dir.path().to_str().unwrap()]);
-        })
-        .stdin(std::process::Stdio::piped())
-        .spawn()?;
+    let binary = get_binary_path("org-mcp-server");
+    let mut command = Command::new(binary).configure(|cmd| {
+        cmd.args(["--root", org_dir.path().to_str().unwrap()]);
+    });
+    with_coverage_env(&mut command);
+
+    let mut child = command.stdin(std::process::Stdio::piped()).spawn()?;
 
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
@@ -564,18 +549,4 @@ async fn test_invalid_resource_uris() -> Result<(), Box<dyn std::error::Error>> 
     info!("Invalid resource URI test completed successfully");
 
     Ok(())
-}
-
-fn get_binary_path(bin_name: &str) -> PathBuf {
-    let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("target")
-        .join("debug");
-
-    let binary = format!("{bin_name}{}", std::env::consts::EXE_SUFFIX);
-    let target_dir = target_dir.join(binary);
-
-    assert!(target_dir.exists(), "binary path not found: {target_dir:?}");
-
-    target_dir
 }
