@@ -48,7 +48,9 @@ jobs:
         run: cargo build --verbose --all-targets
 
       - name: Run tests
-        run: cargo test --verbose --all-targets
+        run: |
+          cargo build
+          cargo test --verbose --all-targets
 
   check:
     name: Check
