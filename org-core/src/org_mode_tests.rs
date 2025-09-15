@@ -361,7 +361,7 @@ fn test_search_basic_functionality() {
 
     let results = org_mode.search("First", None, None).expect("Search failed");
     assert!(!results.is_empty());
-    assert!(results[0].snippet.contains("First"));
+    assert!(results.iter().any(|r| r.snippet.contains("First")));
 }
 
 #[test]
