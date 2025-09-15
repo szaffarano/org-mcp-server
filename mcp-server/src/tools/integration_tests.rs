@@ -572,7 +572,9 @@ fn get_binary_path(bin_name: &str) -> PathBuf {
         .join("..")
         .join("target")
         .join("debug");
-    let target_dir = target_dir.join(bin_name);
+
+    let binary = format!("{bin_name}{}", std::env::consts::EXE_SUFFIX);
+    let target_dir = target_dir.join(binary);
 
     assert!(target_dir.exists(), "binary path not found: {target_dir:?}");
 
