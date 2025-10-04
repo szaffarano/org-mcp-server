@@ -43,10 +43,10 @@ references for org-mode files.
 ## Development Workflow
 
 1. **Multi-crate changes**: Update workspace dependencies in root Cargo.toml
-2. **New functionality**: Add to `org-core`, expose via `mcp-server` and `org-cli`
-3. **Error handling**: Use custom error types, implement proper chaining
-4. **File operations**: Validate paths at construction, not runtime
-5. **Testing**: Create fixtures for complex org-mode files
+1. **New functionality**: Add to `org-core`, expose via `mcp-server` and `org-cli`
+1. **Error handling**: Use custom error types, implement proper chaining
+1. **File operations**: Validate paths at construction, not runtime
+1. **Testing**: Create fixtures for complex org-mode files
 
 ## Behavioral Guidelines
 

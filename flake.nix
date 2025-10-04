@@ -123,6 +123,7 @@
           programs = {
             alejandra.enable = true;
             deadnix.enable = true;
+            rustfmt.enable = true;
             statix.enable = true;
             jsonfmt.enable = true;
             mdformat.enable = true;
@@ -153,7 +154,7 @@
             shellHook = ''
               ${config.pre-commit.installationScript}
             '';
-            inputsFrom = [self'.packages.org-mcp-server];
+            # inputsFrom = [self'.packages.org-mcp-server];
             inherit (self'.checks) pre-commit;
             packages = with pkgsWithOverlay; [
               rustToolchain

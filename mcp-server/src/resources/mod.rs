@@ -70,6 +70,8 @@ impl ServerHandler for OrgModeRouter {
                 RawResource {
                     uri: "org://".to_string(),
                     name: "org".to_string(),
+                    title: None,
+                    icons: None,
                     description: Some(
                         "List all org-mode files in the configured directory tree".to_string(),
                     ),
@@ -93,6 +95,7 @@ impl ServerHandler for OrgModeRouter {
                 RawResourceTemplate {
                     uri_template: "org://{file}".to_string(),
                     name: "org-file".to_string(),
+                    title: None,
                     description: Some(
                         "Access the raw content of an org-mode file by its path".to_string(),
                     ),
@@ -102,6 +105,7 @@ impl ServerHandler for OrgModeRouter {
                 RawResourceTemplate {
                     uri_template: "org-outline://{file}".to_string(),
                     name: "org-outline-file".to_string(),
+                    title: None,
                     description: Some(
                         "Get the hierarchical outline structure of an org-mode file as JSON"
                             .to_string(),
@@ -112,6 +116,7 @@ impl ServerHandler for OrgModeRouter {
                 RawResourceTemplate {
                     uri_template: "org-heading://{file}#{heading}".to_string(),
                     name: "org-heading-file".to_string(),
+                    title: None,
                     description: Some(
                         "Access the content of a specific heading within an org-mode file"
                             .to_string(),
@@ -122,6 +127,7 @@ impl ServerHandler for OrgModeRouter {
                 RawResourceTemplate {
                     uri_template: "org-id://{id}".to_string(),
                     name: "org-element-by-id".to_string(),
+                    title: None,
                     description: Some(
                         "Access the content of any org-mode element by its unique ID property"
                             .to_string(),

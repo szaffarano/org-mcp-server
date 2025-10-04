@@ -1,12 +1,53 @@
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Sebastián Zaffarano <sebastian.zaffarano@elastic.co>"]
+license = "MIT"
+repository = "https://github.com/szaffarano/org-mcp-server"
+
+
 [workspace]
 resolver = "3"
 members = ["mcp-server", "org-cli", "org-core"]
 
-# Coverage configuration
+[workspace.dependencies]
+nucleo-matcher = "0.3"
+orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.143"
+shellexpand = "3.1.1"
+tracing = "0.1.41"
+walkdir = "2.4"
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+assert_cmd = "2.0"
+predicates = "3.1"
+tempfile = "3.12"
+org-core = { version = "0.1.0", path = "../org-core" }
+rmcp = { version = "0.7.0", features = [
+  "transport-io",
+  "transport-child-process",
+  "transport-streamable-http-server",
+  "transport-worker",
+  "client",
+] }
+tokio = { version = "1", features = [
+  "io-std",
+  "macros",
+  "process",
+  "rt",
+  "rt-multi-thread",
+  "signal",
+] }
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.20", features = [
+  "env-filter",
+  "std",
+  "fmt",
+] }
+urlencoding = "2.1"
+tokio-test = "0.4"
+tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
+
 [workspace.metadata.coverage]
-# Exclude test files and generated code from coverage
-exclude = [
-    "*/tests/*",
-    "*/benches/*",
-    "**/target/**"
-]
+exclude = ["*/tests/*", "*/benches/*", "**/target/**"]

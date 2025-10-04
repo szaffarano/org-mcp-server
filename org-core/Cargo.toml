@@ -1,17 +1,19 @@
-[package]
-name = "org-core"
-version = "0.1.0"
-edition = "2024"
-
 [dependencies]
 nucleo-matcher = "0.3"
-orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.143"
-shellexpand = "3.1.1"
-tracing = "0.1.41"
-walkdir = "2.4"
+orgize = {workspace = true, features = ["tracing"]}
+serde = {workspace = true, features = ["derive"]}
+serde_json = {workspace = true}
+shellexpand = {workspace = true}
+tracing = {workspace = true}
+walkdir = {workspace = true}
 
 [dev-dependencies]
-tracing-subscriber = { version = "0.3.19", features = ["fmt"] }
-tempfile = "3.12"
+tracing-subscriber = {workspace = true, features = ["fmt"]}
+tempfile = {workspace = true}
+
+[package]
+name = "org-core"
+edition = "2024"
+authors.workspace = true
+license.workspace = true
+version.workspace = true
