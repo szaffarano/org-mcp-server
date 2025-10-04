@@ -24,7 +24,7 @@ assert_cmd = "2.0"
 predicates = "3.1"
 tempfile = "3.12"
 org-core = { version = "0.1.0", path = "../org-core" }
-rmcp = { version = "0.7.0", features = [
+rmcp = { version = "0.8.0", features = [
   "transport-io",
   "transport-child-process",
   "transport-streamable-http-server",
