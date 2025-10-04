@@ -1,22 +1,17 @@
-[package]
-name = "mcp-server"
-version = "0.1.0"
-edition = "2024"
-
 [[bin]]
 name = "org-mcp-server"
 path = "src/main.rs"
 
 [dependencies]
 org-core = { version = "0.1.0", path = "../org-core" }
-rmcp = { version = "0.6.3", features = [
+rmcp = { version = "0.8.0", features = [
   "transport-io",
   "transport-child-process",
   "transport-streamable-http-server",
   "transport-worker",
   "client",
 ] }
-tokio = { version = "1", features = [
+tokio = { workspace = true, features = [
   "io-std",
   "macros",
   "process",
@@ -24,19 +19,26 @@ tokio = { version = "1", features = [
   "rt-multi-thread",
   "signal",
 ] }
-serde_json = "1.0.143"
-tracing = "0.1.41"
-tracing-appender = "0.2.3"
-tracing-subscriber = { version = "0.3.20", features = [
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-appender = { workspace = true }
+tracing-subscriber = { workspace = true, features = [
   "env-filter",
   "std",
   "fmt",
 ] }
-urlencoding = "2.1"
-clap = { version = "4.0", features = ["derive"] }
-serde = "1.0.223"
+urlencoding = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 
 [dev-dependencies]
-tokio-test = "0.4"
-tempfile = "3.12"
-tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
+tokio-test = { workspace = true }
+tempfile = { workspace = true }
+tracing-test = { workspace = true, features = ["no-env-filter"] }
+
+[package]
+name = "mcp-server"
+edition = "2024"
+authors.workspace = true
+license.workspace = true
+version.workspace = true

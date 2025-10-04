@@ -20,8 +20,8 @@ that does not match the info here.
 - Run tests: `cargo test` -- takes ~2 seconds, 36 tests. Safe timeout 30+
   seconds.
 - Lint code: `cargo clippy` -- takes ~11 seconds. Safe timeout 30+ seconds.
-- Format code: `cargo fmt` -- takes <1 second. Always run before commits.
-- Check formatting: `cargo fmt --check` -- takes <1 second.
+- Format code: `cargo fmt` -- takes \<1 second. Always run before commits.
+- Check formatting: `cargo fmt --check` -- takes \<1 second.
 
 ### Development Commands
 
@@ -36,8 +36,10 @@ that does not match the info here.
 ### CRITICAL: Always Test These Scenarios After Changes
 
 1. **Build validation**: Run `cargo build` and wait for completion (90+ seconds)
-2. **Test validation**: Run `cargo test` and verify all 36 tests pass
-3. **CLI validation**: Test core CLI functionality:
+
+1. **Test validation**: Run `cargo test` and verify all 36 tests pass
+
+1. **CLI validation**: Test core CLI functionality:
 
    ```bash
    cargo run --bin org-cli -- list --dir org-core/tests/fixtures
@@ -46,7 +48,7 @@ that does not match the info here.
    cargo run --bin org-cli -- element-by-id --dir org-core/tests/fixtures simple-123
    ```
 
-4. **Linting validation**: Run `cargo clippy` and `cargo fmt --check`
+1. **Linting validation**: Run `cargo clippy` and `cargo fmt --check`
 
 ### Manual Testing Requirements
 
@@ -101,11 +103,11 @@ that does not match the info here.
 ### Making Changes
 
 1. **Always** start by running the full validation suite
-2. Make focused, minimal changes
-3. **Build immediately** after changes: `cargo build` (wait 90+ seconds)
-4. **Test immediately** after changes: `cargo test`
-5. **Always** run CLI validation scenarios
-6. **Always** run `cargo clippy` and `cargo fmt` before committing
+1. Make focused, minimal changes
+1. **Build immediately** after changes: `cargo build` (wait 90+ seconds)
+1. **Test immediately** after changes: `cargo test`
+1. **Always** run CLI validation scenarios
+1. **Always** run `cargo clippy` and `cargo fmt` before committing
 
 ### Code Style
 
@@ -182,8 +184,7 @@ Found 8 .org files in org-core/tests/fixtures:
 ### ID-Based Element Lookup
 
 - Use `element-by-id` command to find org elements by ID property
-- Test with: `cargo run --bin org-cli -- element-by-id --dir
-  org-core/tests/fixtures simple-123`
+- Test with: `cargo run --bin org-cli -- element-by-id --dir org-core/tests/fixtures simple-123`
 - IDs are defined in `:PROPERTIES:` blocks in org files
 
 ### File Operations
@@ -195,7 +196,7 @@ Found 8 .org files in org-core/tests/fixtures:
 ### MCP Server Limitations
 
 - Current MCP server implementation needs directory configuration improvements
-- Server provides resources: `org://`, `org://file`, `org-outline://`, `org-he
+- Server provides resources: `org://`, `org://file`, `org-outline://`, \`org-he
 - Tools available: `org-file-list`
 
 ## Nix Development Environment

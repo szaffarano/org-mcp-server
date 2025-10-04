@@ -1,16 +1,18 @@
-[package]
-name = "org-cli"
-version = "0.1.0"
-edition = "2024"
-
 [dependencies]
-org-core = { version = "0.1.0", path = "../org-core" }
-clap = { version = "4.5", features = ["derive"] }
-anyhow = "1.0"
-serde_json = "1.0"
-shellexpand = "3.1"
+org-core = {path = "../org-core"}
+clap = {workspace = true, features = ["derive"]}
+anyhow = {workspace = true}
+serde_json = {workspace = true}
+shellexpand = {workspace = true}
 
 [dev-dependencies]
-assert_cmd = "2.0"
-predicates = "3.1"
-tempfile = "3.12"
+assert_cmd = {workspace = true}
+predicates = {workspace = true}
+tempfile = {workspace = true}
+
+[package]
+name = "org-cli"
+edition = "2024"
+authors.workspace = true
+license.workspace = true
+version.workspace = true
