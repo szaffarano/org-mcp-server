@@ -21,7 +21,7 @@ walkdir = "2.5"
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
 assert_cmd = "2.0"
-dirs = "5"
+dirs = "6"
 toml = "0.8"
 predicates = "3.1"
 tempfile = "3.23"
