@@ -117,6 +117,8 @@ async fn test_mcp_server_with_config_file() -> Result<(), Box<dyn std::error::Er
     let temp_dir = setup_test_org_files()?;
     let config_path = temp_dir.path().join("test-config.toml");
 
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
     let config_content = format!(
         r#"
 [org]
@@ -125,7 +127,7 @@ org_directory = "{}"
 [logging]
 level = "debug"
 "#,
-        temp_dir.path().to_str().unwrap()
+        path_str
     );
     fs::write(&config_path, config_content)?;
 

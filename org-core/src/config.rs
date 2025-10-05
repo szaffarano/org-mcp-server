@@ -320,6 +320,13 @@ mod tests {
 
     #[test]
     fn test_env_var_override() {
+        // Clear any existing values first to ensure clean test environment
+        unsafe {
+            env::remove_var("ORG_ROOT_DIRECTORY");
+            env::remove_var("ORG_DEFAULT_NOTES_FILE");
+            env::remove_var("ORG_AGENDA_FILES");
+        }
+
         unsafe {
             env::set_var("ORG_ROOT_DIRECTORY", "/tmp/test-org");
             env::set_var("ORG_DEFAULT_NOTES_FILE", "test-notes.org");
@@ -436,17 +443,21 @@ default_format = "json"
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
+        // Convert path to forward slashes for TOML compatibility on Windows
+        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
         let test_config = format!(
             r#"
 [org]
 org_directory = "{}"
 "#,
-            temp_dir.path().to_str().unwrap()
+            path_str
         );
 
         std::fs::write(&config_path, test_config).unwrap();
 
         unsafe {
+            // Clear any org-related env vars to prevent interference
+            env::remove_var("ORG_ROOT_DIRECTORY");
             env::set_var("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap());
             env::set_var("HOME", temp_dir.path().to_str().unwrap());
         }
@@ -459,7 +470,7 @@ org_directory = "{}"
             .validate()
             .unwrap();
 
-        assert_eq!(config.org.org_directory, temp_dir.path().to_str().unwrap());
+        assert_eq!(config.org.org_directory, path_str);
 
         unsafe {
             env::remove_var("XDG_CONFIG_HOME");
@@ -472,6 +483,8 @@ org_directory = "{}"
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
 
+        // Convert path to forward slashes for TOML compatibility on Windows
+        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
         let test_config = format!(
             r#"
 [org]
@@ -480,10 +493,15 @@ org_directory = "{}"
 [logging]
 level = "debug"
 "#,
-            temp_dir.path().to_str().unwrap()
+            path_str
         );
 
         std::fs::write(&config_path, test_config).unwrap();
+
+        // Clear any org-related env vars to prevent interference
+        unsafe {
+            env::remove_var("ORG_ROOT_DIRECTORY");
+        }
 
         let config = Config::load_with_overrides(
             Some(config_path.to_str().unwrap().to_string()),
@@ -492,7 +510,7 @@ level = "debug"
         )
         .unwrap();
 
-        assert_eq!(config.org.org_directory, temp_dir.path().to_str().unwrap());
+        assert_eq!(config.org.org_directory, path_str);
         assert_eq!(config.logging.level, "trace");
     }
 

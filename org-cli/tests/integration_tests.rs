@@ -633,6 +633,8 @@ fn test_config_show_with_explicit_path() {
     create_test_org_files(&temp_dir).unwrap();
 
     let config_path = temp_dir.path().join("test-config.toml");
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
     let config_content = format!(
         r#"
 [org]
@@ -644,7 +646,7 @@ level = "debug"
 [cli]
 default_format = "plain"
 "#,
-        temp_dir.path().to_str().unwrap()
+        path_str
     );
     fs::write(&config_path, config_content).unwrap();
 
@@ -681,6 +683,8 @@ fn test_config_file_affects_list_output() {
     create_test_org_files(&temp_dir).unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
     let config_content = format!(
         r#"
 [org]
@@ -689,7 +693,7 @@ org_directory = "{}"
 [cli]
 default_format = "json"
 "#,
-        temp_dir.path().to_str().unwrap()
+        path_str
     );
     fs::write(&config_path, config_content).unwrap();
 
@@ -712,6 +716,8 @@ fn test_config_hierarchy_file_env_cli() {
     let config_dir = TempDir::new().unwrap();
     let config_path = config_dir.path().join("config.toml");
 
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
     let config_content = format!(
         r#"
 [org]
@@ -723,7 +729,7 @@ level = "info"
 [cli]
 default_format = "plain"
 "#,
-        temp_dir.path().to_str().unwrap()
+        path_str
     );
     fs::write(&config_path, config_content).unwrap();
 
@@ -811,6 +817,8 @@ fn test_config_show_with_home_env() {
     fs::create_dir_all(&config_dir).unwrap();
 
     let config_path = config_dir.join("org-mcp-server.toml");
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_org.path().to_str().unwrap().replace('\\', "/");
     let config_content = format!(
         r#"
 [org]
@@ -819,7 +827,7 @@ org_directory = "{}"
 [logging]
 level = "trace"
 "#,
-        temp_org.path().to_str().unwrap()
+        path_str
     );
     fs::write(&config_path, config_content).unwrap();
 
