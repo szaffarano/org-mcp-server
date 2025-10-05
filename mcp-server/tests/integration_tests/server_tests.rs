@@ -25,7 +25,7 @@ async fn test_graceful_close_mcp_server() -> Result<(), Box<dyn std::error::Erro
     let org_dir = setup_test_org_files()?;
     let binary = get_binary_path("org-mcp-server");
     let mut command = Command::new(binary).configure(|cmd| {
-        cmd.args(["--root", org_dir.path().to_str().unwrap()]);
+        cmd.args(["--root-directory", org_dir.path().to_str().unwrap()]);
     });
 
     let mut child = command.stdin(std::process::Stdio::piped()).spawn()?;
@@ -103,6 +103,54 @@ async fn test_mcp_server_connection() -> Result<(), Box<dyn std::error::Error>> 
     // Clean up the connection
     service.cancel().await?;
     info!("MCP server connection test completed successfully");
+
+    Ok(())
+}
+
+#[tokio::test]
+#[traced_test]
+async fn test_mcp_server_with_config_file() -> Result<(), Box<dyn std::error::Error>> {
+    use std::fs;
+
+    info!("Starting MCP server with config file");
+
+    let temp_dir = setup_test_org_files()?;
+    let config_path = temp_dir.path().join("test-config.toml");
+
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "debug"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content)?;
+
+    use rmcp::{
+        ServiceExt,
+        transport::{ConfigureCommandExt, TokioChildProcess},
+    };
+
+    let command =
+        tokio::process::Command::new(crate::get_binary_path("org-mcp-server")).configure(|cmd| {
+            cmd.args(["--config", config_path.to_str().unwrap()]);
+        });
+
+    let service = ().serve(TokioChildProcess::new(command)?).await?;
+
+    let server_info = service.peer_info();
+    assert!(
+        server_info.is_some(),
+        "Server should be connected with config file"
+    );
+
+    service.cancel().await?;
+    info!("MCP server with config file test completed successfully");
 
     Ok(())
 }

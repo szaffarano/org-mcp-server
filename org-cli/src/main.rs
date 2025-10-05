@@ -1,10 +1,11 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use org_core::{Config, OrgMode};
 
 mod commands;
 use commands::{
-    ElementByIdCommand, HeadingCommand, InitCommand, ListCommand, OutlineCommand, ReadCommand,
-    SearchCommand,
+    ConfigCommand, ElementByIdCommand, HeadingCommand, InitCommand, ListCommand, OutlineCommand,
+    ReadCommand, SearchCommand,
 };
 
 #[derive(Parser)]
@@ -12,12 +13,22 @@ use commands::{
 #[command(about = "A CLI tool for org-mode functionality")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 struct Cli {
+    /// Path to configuration file
+    #[arg(short, long)]
+    config: Option<String>,
+
+    /// Root directory containing org-mode files
+    #[arg(short, long)]
+    root_directory: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Configuration management
+    Config(ConfigCommand),
     /// List all .org files in a directory
     List(ListCommand),
     /// Initialize or validate an org directory
@@ -38,12 +49,26 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::List(cmd) => cmd.execute(),
-        Commands::Init(cmd) => cmd.execute(),
-        Commands::Read(cmd) => cmd.execute(),
-        Commands::Outline(cmd) => cmd.execute(),
-        Commands::Heading(cmd) => cmd.execute(),
-        Commands::ElementById(cmd) => cmd.execute(),
-        Commands::Search(cmd) => cmd.execute(),
+        Commands::Config(cmd) => cmd.execute(cli.config),
+        _ => {
+            // Load configuration with CLI overrides for non-config commands
+            let config = Config::load_with_overrides(
+                cli.config,
+                cli.root_directory,
+                None, // log_level not needed for CLI
+            )?;
+
+            let org_mode = OrgMode::new(config)?;
+            match cli.command {
+                Commands::Config(_) => unreachable!(),
+                Commands::List(cmd) => cmd.execute(org_mode),
+                Commands::Init(cmd) => cmd.execute(org_mode),
+                Commands::Read(cmd) => cmd.execute(org_mode),
+                Commands::Outline(cmd) => cmd.execute(org_mode),
+                Commands::Heading(cmd) => cmd.execute(org_mode),
+                Commands::ElementById(cmd) => cmd.execute(org_mode),
+                Commands::Search(cmd) => cmd.execute(org_mode),
+            }
+        }
     }
 }

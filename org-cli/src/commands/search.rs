@@ -7,17 +7,13 @@ pub struct SearchCommand {
     /// Search query
     query: String,
 
-    /// Directory to search for org files
-    #[arg(short, long, default_value = "~/org/")]
-    dir: String,
-
     /// Maximum number of results to return
     #[arg(short, long)]
     limit: Option<usize>,
 
     /// Output format
-    #[arg(short = 'f', long, default_value = "plain")]
-    format: OutputFormat,
+    #[arg(short = 'f', long)]
+    format: Option<OutputFormat>,
 
     /// Maximum snippet size in characters
     #[arg(short = 's', long, default_value = "100")]
@@ -31,23 +27,30 @@ enum OutputFormat {
 }
 
 impl SearchCommand {
-    pub fn execute(&self) -> Result<()> {
-        let org_mode = OrgMode::new(&self.dir)?;
+    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
         let results = org_mode.search(&self.query, self.limit, Some(self.snippet_size))?;
 
-        match self.format {
+        let format = self.format.as_ref().unwrap_or({
+            match org_mode.config().cli.default_format.as_str() {
+                "json" => &OutputFormat::Json,
+                _ => &OutputFormat::Plain,
+            }
+        });
+
+        match format {
             OutputFormat::Plain => {
                 if results.is_empty() {
                     println!(
                         "No results found for query '{}' in {}",
-                        self.query, self.dir
+                        self.query,
+                        org_mode.config().org.org_directory
                     );
                 } else {
                     println!(
                         "Found {} results for query '{}' in {}:",
                         results.len(),
                         self.query,
-                        self.dir
+                        org_mode.config().org.org_directory
                     );
                     for result in results {
                         println!(
@@ -59,7 +62,7 @@ impl SearchCommand {
             }
             OutputFormat::Json => {
                 let json = serde_json::json!({
-                    "directory": self.dir,
+                    "directory": org_mode.config().org.org_directory,
                     "query": self.query,
                     "count": results.len(),
                     "results": results

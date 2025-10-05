@@ -20,8 +20,8 @@ linking capabilities for your org-mode files through the MCP protocol.
 ** MCP Resources
 
 - =org://= — List all org-mode files in configured directories
-- =org://{file}= — Access raw content of org files
-- =org-outline://{file}= — Get hierarchical structure as JSON
+- =org://{file}= — Access raw content of ={file}=
+- =org-outline://{file}= — Get hierarchical structure of ={file}= as JSON
 - =org-heading://{file}#{heading}= — Access specific headings by path
 - =org-id://{id}= — Find content by org-mode ID properties
 
@@ -32,7 +32,10 @@ linking capabilities for your org-mode files through the MCP protocol.
 
 ** CLI Tool
 
-- =org-cli list= — List all .org files in a directory
+- =org-cli config init= — Create default configuration file
+- =org-cli config show= — Display current configuration
+- =org-cli config path= — Show configuration file location
+- =org-cli list= — List all .org files in configured directory
 - =org-cli init= — Initialize or validate an org directory
 - =org-cli read= — Read the contents of an org file
 - =org-cli outline= — Get the outline (headings) of an org file
@@ -40,36 +43,86 @@ linking capabilities for your org-mode files through the MCP protocol.
 - =org-cli element-by-id= — Extract content from an element by ID across all org files
 - =org-cli search= — Search for text content across all org files using fuzzy matching
 
-* Usage Examples
+* Configuration
 
-** Search Commands
+The project uses a TOML configuration file located at
+  =~/.config/org-mcp-server.toml= (or =$XDG_CONFIG_HOME/org-mcp-server.toml=).
 
-#+begin_src bash
-# Basic search
-org-cli search "project planning"
+** Configuration Hierarchy
 
-# Limit results and use JSON output
-org-cli search "TODO" --limit 5 --format json
+Configuration is resolved in the following order (highest priority first):
 
-# Search in specific directory with custom snippet size
-org-cli search "meeting notes" --dir ~/documents/org --snippet-size 50
+1. *CLI flags* — Command-line arguments override everything
+2. *Environment variables* — =ORG_*= prefixed variables
+3. *Configuration file* — TOML file in config directory
+4. *Default values* — Built-in fallbacks
 
-# Full parameter example
-org-cli search "bug fix" -d ~/projects/notes -l 10 -s 75 -f json
+** Configuration File Format
+
+#+begin_src toml
+[org]
+# Root directory containing org-mode files
+root_directory = "~/org/"
+# Default notes file for new notes
+default_notes_file = "notes.org"
+# Agenda files to include
+agenda_files = ["agenda.org", "projects.org"]
+# Extra files for text search beyond regular org files
+agenda_text_search_extra_files = ["archive.org"]
+
+[logging]
+# Log level: trace, debug, info, warn, error
+level = "info"
+# Log file location (MCP server only, CLI logs to stderr)
+file = "~/.local/share/org-mcp-server/logs/server.log"
+
+[cli]
+# Default output format for CLI commands
+default_format = "plain"  # plain | json
 #+end_src
 
-** Search Parameters
+** Environment Variables
 
-- =--dir/-d= — Directory to search for org files (default: =~/org/=)
-- =--limit/-l= — Maximum number of results to return
-- =--format/-f= — Output format: =plain= or =json= (default: =plain=)
-- =--snippet-size/-s= — Maximum snippet size in characters (default: =100=)
+- =ORG_ROOT_DIRECTORY= — Root directory for org files
+- =ORG_DEFAULT_NOTES_FILE= — Default notes file name
+- =ORG_AGENDA_FILES= — Comma-separated list of agenda files
+- =ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES= — Comma-separated extra search files
+- =ORG_LOG_LEVEL= — Log level for server
+- =ORG_LOG_FILE= — Log file location for server
 
-The search uses fuzzy matching with:
-- AND logic for multiple terms (all terms must match on the same line)
-- Unicode-safe text processing
-- Ranked results by relevance score
-- Configurable snippet truncation with "…" indicator
+** Configuration Commands
+
+#+begin_src bash
+# Create default configuration file
+org config init
+
+# Show current resolved configuration
+org config show
+
+# Show configuration file path
+org config path
+#+end_src
+
+* Usage Examples
+
+** Basic Commands
+
+#+begin_src bash
+# List all org files using configuration
+org list
+
+# List with JSON output
+org list --format json
+
+# Search across all configured org files
+org search "project planning"
+
+# Search with custom parameters
+org search "TODO" --limit 5 --format json --snippet-size 75
+
+# Override root directory for a single command
+org --root-directory ~/documents/org search "meeting notes"
+#+end_src
 
 * Architecture
 
@@ -86,7 +139,7 @@ Built with:
 - [[https://crates.io/crates/tokio][tokio]] for async runtime
 - [[https://crates.io/crates/nucleo-matcher][nucleo-matcher]] for fuzzy text search
 
-* Installation
+* Setup
 
 ** Using Nix Flakes
 
@@ -116,9 +169,9 @@ cargo run --bin org-mcp-server
 cargo run --bin org-cli -- list
 #+end_src
 
-* Configuration
+* MCP Server Integration
 
-** AI Agent integration
+** AI Agent Configuration
 
 Add the following to your agent configuration (e.g.,
    =~/.config/opencode/opencode.json=, =~/.claude.json=, etc.):
@@ -128,7 +181,7 @@ Add the following to your agent configuration (e.g.,
   "mcpServers": {
     "org-mode": {
       "command": "/path/to/org-mcp-server",
-      "args": ["--root", "/path/to/your/org/files"],
+      "args": [],
       "env": {}
     }
   }
@@ -142,18 +195,31 @@ Or if installed via Nix:
   "mcpServers": {
     "org-mode": {
       "command": "nix",
-      "args": ["run", "github:szaffarano/org-mcp-server", "--", "--root", "/path/to/your/org/files"],
+      "args": ["run", "github:szaffarano/org-mcp-server"],
       "env": {}
     }
   }
 }
 #+end_src
 
-** Server Configuration
+** Environment Variable Configuration
 
-The server scans configured directories for =.org= files. Configuration is
-   handled through command-line arguments or environment variables
-   (implementation pending).
+You can configure the MCP server through environment variables in your agent configuration:
+
+#+begin_src json
+{
+  "mcpServers": {
+    "org-mode": {
+      "command": "/path/to/org-mcp-server",
+      "args": [],
+      "env": {
+        "ORG_ROOT_DIRECTORY": "/path/to/your/org/files",
+        "ORG_LOG_LEVEL": "info"
+      }
+    }
+  }
+}
+#+end_src
 
 * Development
 
@@ -172,34 +238,6 @@ cargo clippy
 cargo run --example <name>
 #+end_src
 
-** Code Coverage
-
-The project includes comprehensive code coverage analysis using =cargo-llvm-cov=:
-
-#+begin_src bash
-# Quick coverage summary
-make coverage-summary
-
-# Generate HTML coverage report
-make coverage-html
-
-# Generate CI-compatible LCOV format
-make coverage-ci
-
-# Generate all coverage formats
-make coverage
-
-# Development workflow (format, lint, test, coverage)
-make dev
-#+end_src
-
-Coverage reports are generated in the =coverage/= directory:
-- =coverage/html/index.html= — Interactive HTML report
-- =coverage/lcov.info= — LCOV format for CI integration
-- =coverage/coverage.json= — JSON format for programmatic analysis
-
-*CI Integration*: Coverage is automatically calculated and reported on pull requests via GitHub Actions.
-
 * Roadmap
 
 ** Phase 1: Core Functionality ✅
@@ -212,10 +250,12 @@ Coverage reports are generated in the =coverage/= directory:
 - [X] Full-text search across org files
 
 ** Phase 2: Advanced Features 🚧
+- [X] Configuration file support with TOML format
+- [X] Environment variable configuration
+- [X] Unified CLI interface with global configuration
 - [ ] Tag-based filtering and querying
 - [ ] Link following and backlink discovery (org-roam support)
 - [ ] Metadata caching for performance
-- [ ] Configuration file support
 - [ ] Agenda-related Functionality
 
 ** Phase 3: Extended Capabilities 📋

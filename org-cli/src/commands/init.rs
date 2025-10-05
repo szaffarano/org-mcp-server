@@ -5,15 +5,23 @@ use std::path::Path;
 
 #[derive(Args)]
 pub struct InitCommand {
-    /// Directory to initialize as org directory
+    /// Directory to initialize as org directory (overrides config)
     path: Option<String>,
 }
 
 impl InitCommand {
-    pub fn execute(&self) -> Result<()> {
-        let dir = self.path.as_deref().unwrap_or("~/org/");
+    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
+        let dir = self
+            .path
+            .as_deref()
+            .unwrap_or(&org_mode.config().org.org_directory);
 
-        match OrgMode::new(dir) {
+        let mut init_config = org_mode.config().clone();
+        if self.path.is_some() {
+            init_config.org.org_directory = dir.to_string();
+        }
+
+        match OrgMode::new(init_config.clone()) {
             Ok(_) => {
                 println!("✓ Org directory '{dir}' is valid and accessible");
             }
@@ -25,7 +33,7 @@ impl InitCommand {
                         std::fs::create_dir_all(path)?;
                         println!("✓ Created org directory '{dir}'");
 
-                        OrgMode::new(dir)?;
+                        OrgMode::new(init_config)?;
                         println!("✓ Org directory '{dir}' is ready for use");
                     } else {
                         return Err(anyhow::anyhow!("Failed to initialize org directory: {e}"));

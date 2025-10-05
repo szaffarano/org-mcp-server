@@ -7,13 +7,9 @@ pub struct OutlineCommand {
     /// Relative path to the org file to get outline from
     file: String,
 
-    /// Directory containing org files
-    #[arg(short, long, default_value = "~/org/")]
-    dir: String,
-
     /// Output format
-    #[arg(short, long, default_value = "plain")]
-    format: OutputFormat,
+    #[arg(short, long)]
+    format: Option<OutputFormat>,
 }
 
 #[derive(clap::ValueEnum, Clone)]
@@ -23,11 +19,17 @@ enum OutputFormat {
 }
 
 impl OutlineCommand {
-    pub fn execute(&self) -> Result<()> {
-        let org_mode = OrgMode::new(&self.dir)?;
+    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
         let tree = org_mode.get_outline(&self.file)?;
 
-        match self.format {
+        let format = self.format.as_ref().unwrap_or({
+            match org_mode.config().cli.default_format.as_str() {
+                "json" => &OutputFormat::Json,
+                _ => &OutputFormat::Plain,
+            }
+        });
+
+        match format {
             OutputFormat::Plain => {
                 if tree.children.is_empty() {
                     println!("No headings found in {}", self.file);

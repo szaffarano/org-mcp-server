@@ -8,6 +8,7 @@ pub enum OrgModeError {
     WalkDirError(walkdir::Error),
     IoError(std::io::Error),
     ShellExpansionError(String),
+    ConfigError(String),
 }
 
 impl fmt::Display for OrgModeError {
@@ -25,6 +26,7 @@ impl fmt::Display for OrgModeError {
             OrgModeError::WalkDirError(err) => write!(f, "Error walking directory: {err}"),
             OrgModeError::IoError(err) => write!(f, "IO error: {err}"),
             OrgModeError::ShellExpansionError(path) => write!(f, "Failed to expand path: {path}"),
+            OrgModeError::ConfigError(msg) => write!(f, "Configuration error: {msg}"),
         }
     }
 }

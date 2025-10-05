@@ -73,9 +73,9 @@ fn test_list_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
         .assert()
         .success()
         .stdout(predicate::str::contains("Found 4 .org files"))
@@ -91,9 +91,9 @@ fn test_list_command_json_format() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
         .arg("--format")
         .arg("json")
         .assert()
@@ -109,9 +109,9 @@ fn test_list_command_empty_directory() {
     let temp_dir = TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
         .assert()
         .success()
         .stdout(predicate::str::contains("No .org files found"));
@@ -120,12 +120,12 @@ fn test_list_command_empty_directory() {
 #[test]
 fn test_list_command_invalid_directory() {
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("list")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg("/nonexistent/directory")
+        .arg("list")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Directory does not exist"));
+        .stderr(predicate::str::contains("Root directory does not exist"));
 }
 
 #[test]
@@ -134,10 +134,10 @@ fn test_read_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("read")
-        .arg("basic.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("read")
+        .arg("basic.org")
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -151,10 +151,10 @@ fn test_read_command_nonexistent_file() {
     let temp_dir = TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("read")
-        .arg("nonexistent.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("read")
+        .arg("nonexistent.org")
         .assert()
         .failure();
 }
@@ -165,10 +165,10 @@ fn test_outline_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("outline")
-        .arg("basic.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("outline")
+        .arg("basic.org")
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -182,10 +182,10 @@ fn test_outline_command_json_format() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("outline")
-        .arg("basic.org")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("outline")
+        .arg("basic.org")
         .arg("--format")
         .arg("json")
         .assert()
@@ -201,11 +201,11 @@ fn test_heading_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("heading")
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("heading")
         .arg("basic.org")
         .arg("First Heading")
-        .arg("--dir")
-        .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -220,11 +220,11 @@ fn test_heading_command_nested() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("heading")
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("heading")
         .arg("basic.org")
         .arg("First Heading/Sub Heading")
-        .arg("--dir")
-        .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .success()
         .stdout(predicate::str::contains("** Sub Heading"))
@@ -237,11 +237,11 @@ fn test_heading_command_nonexistent() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("heading")
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("heading")
         .arg("basic.org")
         .arg("Nonexistent Heading")
-        .arg("--dir")
-        .arg(temp_dir.path().to_str().unwrap())
         .assert()
         .failure()
         .stderr(predicate::str::contains("Invalid heading"));
@@ -253,10 +253,10 @@ fn test_element_by_id_command_heading() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("element-by-id")
-        .arg("heading-123")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("element-by-id")
+        .arg("heading-123")
         .assert()
         .success()
         .stdout(predicate::str::contains("* First Heading"))
@@ -271,10 +271,10 @@ fn test_element_by_id_command_document_level() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("element-by-id")
-        .arg("doc-id-789")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("element-by-id")
+        .arg("doc-id-789")
         .assert()
         .success()
         .stdout(predicate::str::contains(":ID: doc-id-789"))
@@ -287,10 +287,10 @@ fn test_element_by_id_command_nonexistent() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("element-by-id")
-        .arg("nonexistent-id")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("element-by-id")
+        .arg("nonexistent-id")
         .assert()
         .failure()
         .stderr(predicate::str::contains("Invalid element id"));
@@ -301,6 +301,7 @@ fn test_init_command_basic() {
     let temp_dir = TempDir::new().unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap());
     cmd.arg("init")
         .arg(temp_dir.path().to_str().unwrap())
         .assert()
@@ -316,6 +317,7 @@ fn test_init_command_existing_directory() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap());
     cmd.arg("init")
         .arg(temp_dir.path().to_str().unwrap())
         .assert()
@@ -361,10 +363,10 @@ fn test_search_command_basic() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("project")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("project")
         .assert()
         .success()
         .stdout(predicate::str::contains("Found"))
@@ -378,10 +380,10 @@ fn test_search_command_with_limit() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("bug")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("bug")
         .arg("--limit")
         .arg("1")
         .assert()
@@ -395,10 +397,10 @@ fn test_search_command_json_format() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("heading")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("heading")
         .arg("--format")
         .arg("json")
         .assert()
@@ -418,10 +420,10 @@ fn test_search_command_custom_snippet_size() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("truncated")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("truncated")
         .arg("--snippet-size")
         .arg("20")
         .assert()
@@ -437,10 +439,10 @@ fn test_search_command_no_results() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("nonexistentquerythatwillnotmatch")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("nonexistentquerythatwillnotmatch")
         .assert()
         .success()
         .stdout(predicate::str::contains("No results found"));
@@ -452,10 +454,10 @@ fn test_search_command_empty_query() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("")
         .assert()
         .success()
         .stdout(predicate::str::contains("No results found"));
@@ -464,13 +466,13 @@ fn test_search_command_empty_query() {
 #[test]
 fn test_search_command_invalid_directory() {
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("test")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg("/nonexistent/directory")
+        .arg("search")
+        .arg("test")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Directory does not exist"));
+        .stderr(predicate::str::contains("Root directory does not exist"));
 }
 
 #[test]
@@ -479,10 +481,10 @@ fn test_search_command_all_parameters() {
     create_test_org_files(&temp_dir).unwrap();
 
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("search")
-        .arg("content")
-        .arg("--dir")
+    cmd.arg("--root-directory")
         .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("content")
         .arg("--limit")
         .arg("2")
         .arg("--format")
@@ -504,8 +506,338 @@ fn test_search_command_help() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Search for text content"))
-        .stdout(predicate::str::contains("--dir"))
         .stdout(predicate::str::contains("--limit"))
         .stdout(predicate::str::contains("--format"))
         .stdout(predicate::str::contains("--snippet-size"));
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+fn test_config_init_creates_file() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("org-mcp-server.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(config_path.to_str().unwrap()));
+
+    assert!(config_path.exists());
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+fn test_config_init_file_already_exists() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("org-mcp-server.toml");
+
+    fs::write(&config_path, "[org]\norg_directory = \"/test\"").unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("already exists"))
+        .stdout(predicate::str::contains("Use 'org config show'"));
+}
+
+#[test]
+fn test_config_show_displays_config() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[org]"))
+        .stdout(predicate::str::contains("org_directory"))
+        .stdout(predicate::str::contains("[logging]"))
+        .stdout(predicate::str::contains("[cli]"));
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+fn test_config_show_fallback_to_default() {
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", "/nonexistent/path")
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("~/org/"))
+        .stdout(predicate::str::contains("notes.org"));
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+fn test_config_path_shows_location() {
+    let temp_dir = TempDir::new().unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("org-mcp-server.toml"));
+}
+
+// Cross-platform tests using explicit --config paths
+
+#[test]
+fn test_config_init_creates_file_with_explicit_path() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("custom-config.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(config_path.to_str().unwrap()));
+
+    assert!(config_path.exists());
+}
+
+#[test]
+fn test_config_init_file_already_exists_with_explicit_path() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("existing-config.toml");
+
+    fs::write(&config_path, "[org]\norg_directory = \"/test\"").unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("already exists"))
+        .stdout(predicate::str::contains("Use 'org config show'"));
+}
+
+#[test]
+fn test_config_show_with_explicit_path() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("test-config.toml");
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "debug"
+
+[cli]
+default_format = "plain"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[org]"))
+        .stdout(predicate::str::contains("org_directory"))
+        .stdout(predicate::str::contains("level = \"debug\""));
+}
+
+#[test]
+fn test_config_path_with_explicit_flag() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("my-config.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(config_path.to_str().unwrap()));
+}
+
+#[test]
+fn test_config_file_affects_list_output() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[cli]
+default_format = "json"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"directory\""))
+        .stdout(predicate::str::contains("\"count\""));
+}
+
+#[test]
+fn test_config_hierarchy_file_env_cli() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_dir = TempDir::new().unwrap();
+    let config_path = config_dir.path().join("config.toml");
+
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "info"
+
+[cli]
+default_format = "plain"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_LOG_LEVEL", "debug")
+        .env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap())
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("level = \"debug\""));
+}
+
+// HOME-based tests for macOS and Linux
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_config_respects_home_env() {
+    let temp_home = TempDir::new().unwrap();
+
+    // Create the appropriate config directory for each platform
+    #[cfg(target_os = "macos")]
+    let config_dir = temp_home.path().join("Library/Application Support");
+    #[cfg(target_os = "linux")]
+    let config_dir = temp_home.path().join(".config");
+
+    fs::create_dir_all(&config_dir).unwrap();
+
+    // Test that config path changes when HOME changes
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("HOME", temp_home.path().to_str().unwrap())
+        .env_remove("XDG_CONFIG_HOME") // Remove to test HOME fallback
+        .arg("config")
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(temp_home.path().to_string_lossy()))
+        .stdout(predicate::str::contains("org-mcp-server.toml"));
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_config_init_with_home_env() {
+    let temp_home = TempDir::new().unwrap();
+
+    // Create the appropriate config directory for each platform
+    #[cfg(target_os = "macos")]
+    let config_dir = temp_home.path().join("Library/Application Support");
+    #[cfg(target_os = "linux")]
+    let config_dir = temp_home.path().join(".config");
+
+    fs::create_dir_all(&config_dir).unwrap();
+
+    let expected_config_path = config_dir.join("org-mcp-server.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("HOME", temp_home.path().to_str().unwrap())
+        .env_remove("XDG_CONFIG_HOME")
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            expected_config_path.to_str().unwrap(),
+        ));
+
+    assert!(expected_config_path.exists());
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_config_show_with_home_env() {
+    let temp_home = TempDir::new().unwrap();
+    let temp_org = TempDir::new().unwrap();
+    create_test_org_files(&temp_org).unwrap();
+
+    // Create the appropriate config directory for each platform
+    #[cfg(target_os = "macos")]
+    let config_dir = temp_home.path().join("Library/Application Support");
+    #[cfg(target_os = "linux")]
+    let config_dir = temp_home.path().join(".config");
+
+    fs::create_dir_all(&config_dir).unwrap();
+
+    let config_path = config_dir.join("org-mcp-server.toml");
+    // Convert path to forward slashes for TOML compatibility on Windows
+    let path_str = temp_org.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "trace"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("HOME", temp_home.path().to_str().unwrap())
+        .env_remove("XDG_CONFIG_HOME")
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[org]"))
+        .stdout(predicate::str::contains("level = \"trace\""));
 }

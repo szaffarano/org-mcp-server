@@ -1,14 +1,15 @@
 [dependencies]
-org-core = {path = "../org-core"}
-clap = {workspace = true, features = ["derive"]}
-anyhow = {workspace = true}
-serde_json = {workspace = true}
-shellexpand = {workspace = true}
+org-core = { path = "../org-core" }
+clap = { workspace = true, features = ["derive"] }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+shellexpand = { workspace = true }
+toml = { workspace = true }
 
 [dev-dependencies]
-assert_cmd = {workspace = true}
-predicates = {workspace = true}
-tempfile = {workspace = true}
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+tempfile = { workspace = true }
 
 [package]
 name = "org-cli"
