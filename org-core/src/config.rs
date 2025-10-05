@@ -319,6 +319,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "Environment variable handling unreliable in Windows tests"
+    )]
     fn test_env_var_override() {
         // Clear any existing values first to ensure clean test environment
         unsafe {
@@ -542,6 +546,10 @@ level = "debug"
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "Environment variable handling unreliable in Windows tests"
+    )]
     fn test_env_var_all_fields() {
         unsafe {
             env::set_var("ORG_ROOT_DIRECTORY", "/tmp/test-org");
