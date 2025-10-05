@@ -19,16 +19,20 @@ enum ConfigAction {
 }
 
 impl ConfigCommand {
-    pub fn execute(&self) -> Result<()> {
+    pub fn execute(&self, config_file: Option<String>) -> Result<()> {
         match &self.action {
-            ConfigAction::Init => self.init_config(),
-            ConfigAction::Show => self.show_config(),
-            ConfigAction::Path => self.show_path(),
+            ConfigAction::Init => self.init_config(config_file),
+            ConfigAction::Show => self.show_config(config_file),
+            ConfigAction::Path => self.show_path(config_file),
         }
     }
 
-    fn init_config(&self) -> Result<()> {
-        let config_path = Config::default_config_path()?;
+    fn init_config(&self, config_file: Option<String>) -> Result<()> {
+        let config_path = if let Some(path) = config_file {
+            std::path::PathBuf::from(path)
+        } else {
+            Config::default_config_path()?
+        };
 
         if config_path.exists() {
             println!(
@@ -51,15 +55,20 @@ impl ConfigCommand {
         Ok(())
     }
 
-    fn show_config(&self) -> Result<()> {
-        let config = Config::load().unwrap_or_else(|_| Config::default());
+    fn show_config(&self, config_file: Option<String>) -> Result<()> {
+        let config = Config::load_with_overrides(config_file, None, None)
+            .unwrap_or_else(|_| Config::default());
         let config_toml = toml::to_string_pretty(&config)?;
         println!("{}", config_toml);
         Ok(())
     }
 
-    fn show_path(&self) -> Result<()> {
-        let config_path = Config::default_config_path()?;
+    fn show_path(&self, config_file: Option<String>) -> Result<()> {
+        let config_path = if let Some(path) = config_file {
+            std::path::PathBuf::from(path)
+        } else {
+            Config::default_config_path()?
+        };
         println!("{}", config_path.display());
         Ok(())
     }

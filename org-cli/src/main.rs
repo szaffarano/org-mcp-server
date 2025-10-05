@@ -49,7 +49,7 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Config(cmd) => cmd.execute(),
+        Commands::Config(cmd) => cmd.execute(cli.config),
         _ => {
             // Load configuration with CLI overrides for non-config commands
             let config = Config::load_with_overrides(

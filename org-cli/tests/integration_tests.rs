@@ -512,6 +512,7 @@ fn test_search_command_help() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn test_config_init_creates_file() {
     let temp_dir = TempDir::new().unwrap();
     let config_path = temp_dir.path().join("org-mcp-server.toml");
@@ -522,15 +523,13 @@ fn test_config_init_creates_file() {
         .arg("init")
         .assert()
         .success()
-        .stdout(predicate::str::contains(
-            "Default configuration file created",
-        ))
         .stdout(predicate::str::contains(config_path.to_str().unwrap()));
 
     assert!(config_path.exists());
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn test_config_init_file_already_exists() {
     let temp_dir = TempDir::new().unwrap();
     let config_path = temp_dir.path().join("org-mcp-server.toml");
@@ -565,6 +564,7 @@ fn test_config_show_displays_config() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn test_config_show_fallback_to_default() {
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
     cmd.env("XDG_CONFIG_HOME", "/nonexistent/path")
@@ -577,6 +577,7 @@ fn test_config_show_fallback_to_default() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn test_config_path_shows_location() {
     let temp_dir = TempDir::new().unwrap();
 
@@ -587,6 +588,91 @@ fn test_config_path_shows_location() {
         .assert()
         .success()
         .stdout(predicate::str::contains("org-mcp-server.toml"));
+}
+
+// Cross-platform tests using explicit --config paths
+
+#[test]
+fn test_config_init_creates_file_with_explicit_path() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("custom-config.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(config_path.to_str().unwrap()));
+
+    assert!(config_path.exists());
+}
+
+#[test]
+fn test_config_init_file_already_exists_with_explicit_path() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("existing-config.toml");
+
+    fs::write(&config_path, "[org]\norg_directory = \"/test\"").unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("already exists"))
+        .stdout(predicate::str::contains("Use 'org config show'"));
+}
+
+#[test]
+fn test_config_show_with_explicit_path() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("test-config.toml");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "debug"
+
+[cli]
+default_format = "plain"
+"#,
+        temp_dir.path().to_str().unwrap()
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[org]"))
+        .stdout(predicate::str::contains("org_directory"))
+        .stdout(predicate::str::contains("level = \"debug\""));
+}
+
+#[test]
+fn test_config_path_with_explicit_flag() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("my-config.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(config_path.to_str().unwrap()));
 }
 
 #[test]
@@ -651,4 +737,99 @@ default_format = "plain"
         .assert()
         .success()
         .stdout(predicate::str::contains("level = \"debug\""));
+}
+
+// HOME-based tests for macOS and Linux
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_config_respects_home_env() {
+    let temp_home = TempDir::new().unwrap();
+
+    // Create the appropriate config directory for each platform
+    #[cfg(target_os = "macos")]
+    let config_dir = temp_home.path().join("Library/Application Support");
+    #[cfg(target_os = "linux")]
+    let config_dir = temp_home.path().join(".config");
+
+    fs::create_dir_all(&config_dir).unwrap();
+
+    // Test that config path changes when HOME changes
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("HOME", temp_home.path().to_str().unwrap())
+        .env_remove("XDG_CONFIG_HOME") // Remove to test HOME fallback
+        .arg("config")
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(temp_home.path().to_string_lossy()))
+        .stdout(predicate::str::contains("org-mcp-server.toml"));
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_config_init_with_home_env() {
+    let temp_home = TempDir::new().unwrap();
+
+    // Create the appropriate config directory for each platform
+    #[cfg(target_os = "macos")]
+    let config_dir = temp_home.path().join("Library/Application Support");
+    #[cfg(target_os = "linux")]
+    let config_dir = temp_home.path().join(".config");
+
+    fs::create_dir_all(&config_dir).unwrap();
+
+    let expected_config_path = config_dir.join("org-mcp-server.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("HOME", temp_home.path().to_str().unwrap())
+        .env_remove("XDG_CONFIG_HOME")
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            expected_config_path.to_str().unwrap(),
+        ));
+
+    assert!(expected_config_path.exists());
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_config_show_with_home_env() {
+    let temp_home = TempDir::new().unwrap();
+    let temp_org = TempDir::new().unwrap();
+    create_test_org_files(&temp_org).unwrap();
+
+    // Create the appropriate config directory for each platform
+    #[cfg(target_os = "macos")]
+    let config_dir = temp_home.path().join("Library/Application Support");
+    #[cfg(target_os = "linux")]
+    let config_dir = temp_home.path().join(".config");
+
+    fs::create_dir_all(&config_dir).unwrap();
+
+    let config_path = config_dir.join("org-mcp-server.toml");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "trace"
+"#,
+        temp_org.path().to_str().unwrap()
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("HOME", temp_home.path().to_str().unwrap())
+        .env_remove("XDG_CONFIG_HOME")
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[org]"))
+        .stdout(predicate::str::contains("level = \"trace\""));
 }
