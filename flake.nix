@@ -51,57 +51,25 @@
       in {
         packages = {
           default = self'.packages.org-mcp;
-          org-mcp = pkgsWithOverlay.symlinkJoin {
-            name = "org-mcp";
-            paths = [
-              self'.packages.org-mcp-server
-              self'.packages.org-mcp-cli
+          org-mcp = pkgsWithOverlay.rustPlatform.buildRustPackage rec {
+            pname = "org-mcp";
+            version = let
+              cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+            in
+              cargoToml.workspace.package.version;
+
+            src = pkgs.lib.cleanSource ./.;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+
+            nativeBuildInputs = [
+              rustToolchain
             ];
+            buildInputs = nativeBuildInputs;
             meta = with pkgs.lib; {
               description = "OrgMode MCP Server Full";
               homepage = "https://github.com/szaffarano/org-mcp-server";
-              license = licenses.mit;
-              maintainers = [];
-            };
-          };
-          org-mcp-server = pkgsWithOverlay.rustPlatform.buildRustPackage {
-            pname = "org-mcp-server";
-            version = let
-              cargoToml = builtins.fromTOML (builtins.readFile ./mcp-server/Cargo.toml);
-            in
-              cargoToml.package.version;
-
-            src = pkgs.lib.cleanSource ./.;
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-            };
-
-            nativeBuildInputs = [rustToolchain];
-
-            meta = with pkgs.lib; {
-              description = "OrgMode MCP Server";
-              homepage = "https://github.com/szaffarano/org-mcp-server";
-              license = licenses.mit;
-              maintainers = [];
-            };
-          };
-          org-mcp-cli = pkgsWithOverlay.rustPlatform.buildRustPackage {
-            pname = "org-mcp-cli";
-            version = let
-              cargoToml = builtins.fromTOML (builtins.readFile ./org-cli/Cargo.toml);
-            in
-              cargoToml.package.version;
-
-            src = pkgs.lib.cleanSource ./.;
-            cargoLock = {
-              lockFile = ./Cargo.lock;
-            };
-
-            nativeBuildInputs = [rustToolchain];
-
-            meta = with pkgs.lib; {
-              description = "OrgMode MCP CLI";
-              homepage = "https://github.com/szaffarano/org-mcp-cli";
               license = licenses.mit;
               maintainers = [];
             };
