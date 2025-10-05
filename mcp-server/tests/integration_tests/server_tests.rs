@@ -106,3 +106,49 @@ async fn test_mcp_server_connection() -> Result<(), Box<dyn std::error::Error>> 
 
     Ok(())
 }
+
+#[tokio::test]
+#[traced_test]
+async fn test_mcp_server_with_config_file() -> Result<(), Box<dyn std::error::Error>> {
+    use std::fs;
+
+    info!("Starting MCP server with config file");
+
+    let temp_dir = setup_test_org_files()?;
+    let config_path = temp_dir.path().join("test-config.toml");
+
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "debug"
+"#,
+        temp_dir.path().to_str().unwrap()
+    );
+    fs::write(&config_path, config_content)?;
+
+    use rmcp::{
+        ServiceExt,
+        transport::{ConfigureCommandExt, TokioChildProcess},
+    };
+
+    let command =
+        tokio::process::Command::new(crate::get_binary_path("org-mcp-server")).configure(|cmd| {
+            cmd.args(["--config", config_path.to_str().unwrap()]);
+        });
+
+    let service = ().serve(TokioChildProcess::new(command)?).await?;
+
+    let server_info = service.peer_info();
+    assert!(
+        server_info.is_some(),
+        "Server should be connected with config file"
+    );
+
+    service.cancel().await?;
+    info!("MCP server with config file test completed successfully");
+
+    Ok(())
+}

@@ -510,3 +510,145 @@ fn test_search_command_help() {
         .stdout(predicate::str::contains("--format"))
         .stdout(predicate::str::contains("--snippet-size"));
 }
+
+#[test]
+fn test_config_init_creates_file() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("org-mcp-server.toml");
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "Default configuration file created",
+        ))
+        .stdout(predicate::str::contains(config_path.to_str().unwrap()));
+
+    assert!(config_path.exists());
+}
+
+#[test]
+fn test_config_init_file_already_exists() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_path = temp_dir.path().join("org-mcp-server.toml");
+
+    fs::write(&config_path, "[org]\norg_directory = \"/test\"").unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("already exists"))
+        .stdout(predicate::str::contains("Use 'org config show'"));
+}
+
+#[test]
+fn test_config_show_displays_config() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("[org]"))
+        .stdout(predicate::str::contains("org_directory"))
+        .stdout(predicate::str::contains("[logging]"))
+        .stdout(predicate::str::contains("[cli]"));
+}
+
+#[test]
+fn test_config_show_fallback_to_default() {
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", "/nonexistent/path")
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("~/org/"))
+        .stdout(predicate::str::contains("notes.org"));
+}
+
+#[test]
+fn test_config_path_shows_location() {
+    let temp_dir = TempDir::new().unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap())
+        .arg("config")
+        .arg("path")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("org-mcp-server.toml"));
+}
+
+#[test]
+fn test_config_file_affects_list_output() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[cli]
+default_format = "json"
+"#,
+        temp_dir.path().to_str().unwrap()
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"directory\""))
+        .stdout(predicate::str::contains("\"count\""));
+}
+
+#[test]
+fn test_config_hierarchy_file_env_cli() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_dir = TempDir::new().unwrap();
+    let config_path = config_dir.path().join("config.toml");
+
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "info"
+
+[cli]
+default_format = "plain"
+"#,
+        temp_dir.path().to_str().unwrap()
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.env("ORG_LOG_LEVEL", "debug")
+        .env("ORG_ROOT_DIRECTORY", temp_dir.path().to_str().unwrap())
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("config")
+        .arg("show")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("level = \"debug\""));
+}

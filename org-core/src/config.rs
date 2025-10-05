@@ -95,6 +95,7 @@ impl Default for CliConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct ConfigBuilder {
     config: Config,
 }
@@ -381,5 +382,212 @@ default_format = "json"
         assert_eq!(config.org.org_agenda_files, vec!["test1.org", "test2.org"]);
         assert_eq!(config.logging.level, "debug");
         assert_eq!(config.cli.default_format, "json");
+    }
+
+    #[test]
+    fn test_validate_directory_expansion() {
+        let temp_dir = tempdir().unwrap();
+        let mut config = Config::default();
+        config.org.org_directory = temp_dir.path().to_str().unwrap().to_string();
+
+        let validated = config.validate().unwrap();
+        assert_eq!(
+            validated.org.org_directory,
+            temp_dir.path().to_str().unwrap()
+        );
+    }
+
+    #[test]
+    fn test_validate_nonexistent_directory() {
+        let mut config = Config::default();
+        config.org.org_directory = "/nonexistent/test/directory".to_string();
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("Root directory does not exist"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_non_directory_path() {
+        let temp_dir = tempdir().unwrap();
+        let file_path = temp_dir.path().join("not-a-dir.txt");
+        std::fs::write(&file_path, "test").unwrap();
+
+        let mut config = Config::default();
+        config.org.org_directory = file_path.to_str().unwrap().to_string();
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("not a directory"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_load_full_path() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let test_config = format!(
+            r#"
+[org]
+org_directory = "{}"
+"#,
+            temp_dir.path().to_str().unwrap()
+        );
+
+        std::fs::write(&config_path, test_config).unwrap();
+
+        unsafe {
+            env::set_var("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap());
+            env::set_var("HOME", temp_dir.path().to_str().unwrap());
+        }
+
+        let config = ConfigBuilder::new()
+            .with_config_file(Some(config_path.to_str().unwrap()))
+            .unwrap()
+            .with_env_vars()
+            .build()
+            .validate()
+            .unwrap();
+
+        assert_eq!(config.org.org_directory, temp_dir.path().to_str().unwrap());
+
+        unsafe {
+            env::remove_var("XDG_CONFIG_HOME");
+            env::remove_var("HOME");
+        }
+    }
+
+    #[test]
+    fn test_load_with_overrides_full_hierarchy() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let test_config = format!(
+            r#"
+[org]
+org_directory = "{}"
+
+[logging]
+level = "debug"
+"#,
+            temp_dir.path().to_str().unwrap()
+        );
+
+        std::fs::write(&config_path, test_config).unwrap();
+
+        let config = Config::load_with_overrides(
+            Some(config_path.to_str().unwrap().to_string()),
+            None,
+            Some("trace".to_string()),
+        )
+        .unwrap();
+
+        assert_eq!(config.org.org_directory, temp_dir.path().to_str().unwrap());
+        assert_eq!(config.logging.level, "trace");
+    }
+
+    #[test]
+    fn test_generate_default_config() {
+        let toml_str = Config::generate_default_config().unwrap();
+        assert!(toml_str.contains("org_directory"));
+        assert!(toml_str.contains("~/org/"));
+        assert!(toml_str.contains("[logging]"));
+        assert!(toml_str.contains("[cli]"));
+
+        let parsed: Config = toml::from_str(&toml_str).unwrap();
+        assert_eq!(parsed.org.org_directory, "~/org/");
+    }
+
+    #[test]
+    fn test_save_to_file() {
+        let temp_dir = tempdir().unwrap();
+        let nested_path = temp_dir.path().join("nested").join("config.toml");
+
+        let mut config = Config::default();
+        config.org.org_directory = temp_dir.path().to_str().unwrap().to_string();
+
+        config.save_to_file(&nested_path).unwrap();
+
+        assert!(nested_path.exists());
+        let content = std::fs::read_to_string(&nested_path).unwrap();
+        assert!(content.contains("org_directory"));
+    }
+
+    #[test]
+    fn test_env_var_all_fields() {
+        unsafe {
+            env::set_var("ORG_ROOT_DIRECTORY", "/tmp/test-org");
+            env::set_var("ORG_DEFAULT_NOTES_FILE", "test-notes.org");
+            env::set_var("ORG_AGENDA_FILES", "agenda1.org,agenda2.org");
+            env::set_var("ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES", "archive.org,old.org");
+            env::set_var("ORG_LOG_LEVEL", "trace");
+            env::set_var("ORG_LOG_FILE", "/tmp/test.log");
+        }
+
+        let config = ConfigBuilder::new().with_env_vars().build();
+
+        assert_eq!(config.org.org_directory, "/tmp/test-org");
+        assert_eq!(config.org.org_default_notes_file, "test-notes.org");
+        assert_eq!(
+            config.org.org_agenda_files,
+            vec!["agenda1.org", "agenda2.org"]
+        );
+        assert_eq!(
+            config.org.org_agenda_text_search_extra_files,
+            vec!["archive.org", "old.org"]
+        );
+        assert_eq!(config.logging.level, "trace");
+        assert_eq!(config.logging.file, "/tmp/test.log");
+
+        unsafe {
+            env::remove_var("ORG_ROOT_DIRECTORY");
+            env::remove_var("ORG_DEFAULT_NOTES_FILE");
+            env::remove_var("ORG_AGENDA_FILES");
+            env::remove_var("ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES");
+            env::remove_var("ORG_LOG_LEVEL");
+            env::remove_var("ORG_LOG_FILE");
+        }
+    }
+
+    #[test]
+    fn test_invalid_toml_syntax() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("invalid.toml");
+
+        std::fs::write(&config_path, "invalid toml [ syntax").unwrap();
+
+        let result = ConfigBuilder::new().with_config_file(Some(config_path.to_str().unwrap()));
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("Failed to parse config file"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_config_file_read_error() {
+        let result = ConfigBuilder::new().with_config_file(Some("/nonexistent/path/config.toml"));
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_missing_config_directory_fallback() {
+        let result = ConfigBuilder::new().with_config_file(None);
+
+        assert!(result.is_ok());
     }
 }
