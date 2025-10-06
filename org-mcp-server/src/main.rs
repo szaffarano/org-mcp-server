@@ -1,6 +1,6 @@
 use clap::Parser;
-use mcp_server::core::OrgModeRouter;
 use org_core::Config;
+use org_mcp_server::core::OrgModeRouter;
 use rmcp::{ServiceExt, transport::stdio};
 use tracing::{error, info};
 

@@ -9,7 +9,7 @@ readme = "README.org"
 
 [workspace]
 resolver = "3"
-members = ["mcp-server", "org-cli", "org-core"]
+members = ["org-mcp-server", "org-cli", "org-core"]
 
 [workspace.dependencies]
 anyhow = "1.0"

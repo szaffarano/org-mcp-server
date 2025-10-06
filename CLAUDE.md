@@ -6,7 +6,7 @@ MCP server for org-mode/roam knowledge base management in Rust. Multi-crate
 workspace with:
 
 - `org-core` — Business logic and org-mode functionality
-- `mcp-server` — MCP protocol implementation
+- `org-mcp-server` — MCP protocol implementation
 - `org-cli` — CLI tool for testing and direct usage
 
 **Goal**: Provide search, content creation, and note linking with media
@@ -43,7 +43,7 @@ references for org-mode files.
 ## Development Workflow
 
 1. **Multi-crate changes**: Update workspace dependencies in root Cargo.toml
-1. **New functionality**: Add to `org-core`, expose via `mcp-server` and `org-cli`
+1. **New functionality**: Add to `org-core`, expose via `org-mcp-server` and `org-cli`
 1. **Error handling**: Use custom error types, implement proper chaining
 1. **File operations**: Validate paths at construction, not runtime
 1. **Testing**: Create fixtures for complex org-mode files

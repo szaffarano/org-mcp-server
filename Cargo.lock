@@ -728,25 +728,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mcp-server"
-version = "0.0.1"
-dependencies = [
- "clap",
- "org-core",
- "rmcp",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tokio-test",
- "tracing",
- "tracing-appender",
- "tracing-subscriber",
- "tracing-test",
- "urlencoding",
-]
-
-[[package]]
 name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -908,6 +889,25 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "walkdir",
+]
+
+[[package]]
+name = "org-mcp-server"
+version = "0.0.1"
+dependencies = [
+ "clap",
+ "org-core",
+ "rmcp",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "tracing-test",
+ "urlencoding",
 ]
 
 [[package]]
