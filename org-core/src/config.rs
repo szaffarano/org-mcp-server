@@ -291,6 +291,8 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
+    use temp_env::with_vars;
     use tempfile::tempdir;
 
     #[test]
@@ -323,34 +325,25 @@ mod tests {
         target_os = "windows",
         ignore = "Environment variable handling unreliable in Windows tests"
     )]
+    #[serial]
     fn test_env_var_override() {
-        // Clear any existing values first to ensure clean test environment
-        unsafe {
-            env::remove_var("ORG_ROOT_DIRECTORY");
-            env::remove_var("ORG_DEFAULT_NOTES_FILE");
-            env::remove_var("ORG_AGENDA_FILES");
-        }
+        with_vars(
+            [
+                ("ORG_ROOT_DIRECTORY", Some("/tmp/test-org")),
+                ("ORG_DEFAULT_NOTES_FILE", Some("test-notes.org")),
+                ("ORG_AGENDA_FILES", Some("agenda1.org,agenda2.org")),
+            ],
+            || {
+                let config = ConfigBuilder::new().with_env_vars().build();
 
-        unsafe {
-            env::set_var("ORG_ROOT_DIRECTORY", "/tmp/test-org");
-            env::set_var("ORG_DEFAULT_NOTES_FILE", "test-notes.org");
-            env::set_var("ORG_AGENDA_FILES", "agenda1.org,agenda2.org");
-        }
-
-        let config = ConfigBuilder::new().with_env_vars().build();
-
-        assert_eq!(config.org.org_directory, "/tmp/test-org");
-        assert_eq!(config.org.org_default_notes_file, "test-notes.org");
-        assert_eq!(
-            config.org.org_agenda_files,
-            vec!["agenda1.org", "agenda2.org"]
+                assert_eq!(config.org.org_directory, "/tmp/test-org");
+                assert_eq!(config.org.org_default_notes_file, "test-notes.org");
+                assert_eq!(
+                    config.org.org_agenda_files,
+                    vec!["agenda1.org", "agenda2.org"]
+                );
+            },
         );
-
-        unsafe {
-            env::remove_var("ORG_ROOT_DIRECTORY");
-            env::remove_var("ORG_DEFAULT_NOTES_FILE");
-            env::remove_var("ORG_AGENDA_FILES");
-        }
     }
 
     #[test]
@@ -443,6 +436,7 @@ default_format = "json"
     }
 
     #[test]
+    #[serial]
     fn test_load_full_path() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -459,30 +453,27 @@ org_directory = "{}"
 
         std::fs::write(&config_path, test_config).unwrap();
 
-        unsafe {
-            // Clear any org-related env vars to prevent interference
-            env::remove_var("ORG_ROOT_DIRECTORY");
-            env::set_var("XDG_CONFIG_HOME", temp_dir.path().to_str().unwrap());
-            env::set_var("HOME", temp_dir.path().to_str().unwrap());
-        }
+        with_vars(
+            [
+                ("XDG_CONFIG_HOME", temp_dir.path().to_str()),
+                ("HOME", temp_dir.path().to_str()),
+            ],
+            || {
+                let config = ConfigBuilder::new()
+                    .with_config_file(Some(config_path.to_str().unwrap()))
+                    .unwrap()
+                    .with_env_vars()
+                    .build()
+                    .validate()
+                    .unwrap();
 
-        let config = ConfigBuilder::new()
-            .with_config_file(Some(config_path.to_str().unwrap()))
-            .unwrap()
-            .with_env_vars()
-            .build()
-            .validate()
-            .unwrap();
-
-        assert_eq!(config.org.org_directory, path_str);
-
-        unsafe {
-            env::remove_var("XDG_CONFIG_HOME");
-            env::remove_var("HOME");
-        }
+                assert_eq!(config.org.org_directory, path_str);
+            },
+        );
     }
 
     #[test]
+    #[serial]
     fn test_load_with_overrides_full_hierarchy() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -502,20 +493,17 @@ level = "debug"
 
         std::fs::write(&config_path, test_config).unwrap();
 
-        // Clear any org-related env vars to prevent interference
-        unsafe {
-            env::remove_var("ORG_ROOT_DIRECTORY");
-        }
+        with_vars([("ORG_ROOT_DIRECTORY", None::<&str>)], || {
+            let config = Config::load_with_overrides(
+                Some(config_path.to_str().unwrap().to_string()),
+                None,
+                Some("trace".to_string()),
+            )
+            .unwrap();
 
-        let config = Config::load_with_overrides(
-            Some(config_path.to_str().unwrap().to_string()),
-            None,
-            Some("trace".to_string()),
-        )
-        .unwrap();
-
-        assert_eq!(config.org.org_directory, path_str);
-        assert_eq!(config.logging.level, "trace");
+            assert_eq!(config.org.org_directory, path_str);
+            assert_eq!(config.logging.level, "trace");
+        });
     }
 
     #[test]
@@ -550,39 +538,37 @@ level = "debug"
         target_os = "windows",
         ignore = "Environment variable handling unreliable in Windows tests"
     )]
+    #[serial]
     fn test_env_var_all_fields() {
-        unsafe {
-            env::set_var("ORG_ROOT_DIRECTORY", "/tmp/test-org");
-            env::set_var("ORG_DEFAULT_NOTES_FILE", "test-notes.org");
-            env::set_var("ORG_AGENDA_FILES", "agenda1.org,agenda2.org");
-            env::set_var("ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES", "archive.org,old.org");
-            env::set_var("ORG_LOG_LEVEL", "trace");
-            env::set_var("ORG_LOG_FILE", "/tmp/test.log");
-        }
+        with_vars(
+            [
+                ("ORG_ROOT_DIRECTORY", Some("/tmp/test-org")),
+                ("ORG_DEFAULT_NOTES_FILE", Some("test-notes.org")),
+                ("ORG_AGENDA_FILES", Some("agenda1.org,agenda2.org")),
+                (
+                    "ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES",
+                    Some("archive.org,old.org"),
+                ),
+                ("ORG_LOG_LEVEL", Some("trace")),
+                ("ORG_LOG_FILE", Some("/tmp/test.log")),
+            ],
+            || {
+                let config = ConfigBuilder::new().with_env_vars().build();
 
-        let config = ConfigBuilder::new().with_env_vars().build();
-
-        assert_eq!(config.org.org_directory, "/tmp/test-org");
-        assert_eq!(config.org.org_default_notes_file, "test-notes.org");
-        assert_eq!(
-            config.org.org_agenda_files,
-            vec!["agenda1.org", "agenda2.org"]
+                assert_eq!(config.org.org_directory, "/tmp/test-org");
+                assert_eq!(config.org.org_default_notes_file, "test-notes.org");
+                assert_eq!(
+                    config.org.org_agenda_files,
+                    vec!["agenda1.org", "agenda2.org"]
+                );
+                assert_eq!(
+                    config.org.org_agenda_text_search_extra_files,
+                    vec!["archive.org", "old.org"]
+                );
+                assert_eq!(config.logging.level, "trace");
+                assert_eq!(config.logging.file, "/tmp/test.log");
+            },
         );
-        assert_eq!(
-            config.org.org_agenda_text_search_extra_files,
-            vec!["archive.org", "old.org"]
-        );
-        assert_eq!(config.logging.level, "trace");
-        assert_eq!(config.logging.file, "/tmp/test.log");
-
-        unsafe {
-            env::remove_var("ORG_ROOT_DIRECTORY");
-            env::remove_var("ORG_DEFAULT_NOTES_FILE");
-            env::remove_var("ORG_AGENDA_FILES");
-            env::remove_var("ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES");
-            env::remove_var("ORG_LOG_LEVEL");
-            env::remove_var("ORG_LOG_FILE");
-        }
     }
 
     #[test]

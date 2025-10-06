@@ -11,21 +11,14 @@ resolver = "3"
 members = ["mcp-server", "org-cli", "org-core"]
 
 [workspace.dependencies]
-nucleo-matcher = "0.3"
-orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.145"
-shellexpand = "3.1.1"
-tracing = "0.1.41"
-walkdir = "2.5"
-clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
 assert_cmd = "2.0"
+clap = { version = "4.5", features = ["derive"] }
 dirs = "6"
-toml = "0.9"
-predicates = "3.1"
-tempfile = "3.23"
+nucleo-matcher = "0.3"
 org-core = { version = "0.1.0", path = "../org-core" }
+orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
+predicates = "3.1"
 rmcp = { version = "0.8.0", features = [
   "transport-io",
   "transport-child-process",
@@ -33,6 +26,12 @@ rmcp = { version = "0.8.0", features = [
   "transport-worker",
   "client",
 ] }
+serde_json = "1.0.145"
+serde = { version = "1.0", features = ["derive"] }
+serial_test = "3.2.0"
+shellexpand = "3.1.1"
+tempfile = "3.23"
+tokio-test = "0.4"
 tokio = { version = "1", features = [
   "io-std",
   "macros",
@@ -41,15 +40,17 @@ tokio = { version = "1", features = [
   "rt-multi-thread",
   "signal",
 ] }
+toml = "0.9"
+tracing = "0.1.41"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.20", features = [
   "env-filter",
   "std",
   "fmt",
 ] }
-urlencoding = "2.1"
-tokio-test = "0.4"
 tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
+urlencoding = "2.1"
+walkdir = "2.5"
 
 [workspace.metadata.coverage]
 exclude = ["*/tests/*", "*/benches/*", "**/target/**"]
