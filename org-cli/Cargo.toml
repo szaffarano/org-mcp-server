@@ -1,5 +1,5 @@
 [dependencies]
-org-core = { path = "../org-core" }
+org-core = { version = "0.0.1", path = "../org-core" }
 clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
 serde_json = { workspace = true }
