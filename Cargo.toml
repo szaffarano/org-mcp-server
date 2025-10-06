@@ -1,9 +1,10 @@
 [workspace.package]
-version = "0.2.0"
+version = "0.0.1"
 edition = "2024"
 authors = ["Sebastián Zaffarano <sebastian.zaffarano@elastic.co>"]
 license = "MIT"
 repository = "https://github.com/szaffarano/org-mcp-server"
+readme = "README.org"
 
 
 [workspace]
@@ -16,7 +17,7 @@ assert_cmd = "2.0"
 clap = { version = "4.5", features = ["derive"] }
 dirs = "6"
 nucleo-matcher = "0.3"
-org-core = { version = "0.1.0", path = "../org-core" }
+org-core = { version = "0.0.1", path = "../org-core" }
 orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
 predicates = "3.1"
 rmcp = { version = "0.8.0", features = [
