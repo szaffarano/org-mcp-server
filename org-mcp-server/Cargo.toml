@@ -37,7 +37,7 @@ tempfile = { workspace = true }
 tracing-test = { workspace = true, features = ["no-env-filter"] }
 
 [package]
-name = "mcp-server"
+name = "org-mcp-server"
 description = "MCP protocol server for org-mode knowledge management"
 edition = "2024"
 authors.workspace = true

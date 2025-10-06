@@ -129,7 +129,7 @@ org --root-directory ~/documents/org search "meeting notes"
 Multi-crate Rust workspace:
 
 - *org-core* — Business logic and org-mode parsing
-- *mcp-server* — MCP protocol implementation
+- *org-mcp-server* — MCP protocol implementation
 - *org-cli* — CLI interface for testing and direct usage
 
 Built with:
