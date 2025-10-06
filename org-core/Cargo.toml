@@ -17,7 +17,9 @@ temp-env = "0.3.6"
 
 [package]
 name = "org-core"
+description = "Business logic and org-mode parsing library"
 edition = "2024"
 authors.workspace = true
 license.workspace = true
 version.workspace = true
+readme.workspace = true

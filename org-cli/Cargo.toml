@@ -13,7 +13,9 @@ tempfile = { workspace = true }
 
 [package]
 name = "org-cli"
+description = "CLI tool for org-mode file management and testing"
 edition = "2024"
 authors.workspace = true
 license.workspace = true
 version.workspace = true
+readme.workspace = true
