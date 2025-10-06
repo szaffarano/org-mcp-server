@@ -12,6 +12,8 @@ nucleo-matcher = { workspace = true }
 [dev-dependencies]
 tracing-subscriber = { workspace = true, features = ["fmt"] }
 tempfile = { workspace = true }
+serial_test = { workspace = true }
+temp-env = "0.3.6"
 
 [package]
 name = "org-core"
