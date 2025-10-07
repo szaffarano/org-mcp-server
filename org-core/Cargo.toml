@@ -17,7 +17,7 @@ temp-env = "0.3.6"
 
 [package]
 name = "org-core"
-description = "Business logic and org-mode parsing library"
+description = "Rust library for org-mode file operations with fuzzy search, outline extraction, ID-based lookups, and heading content retrieval"
 edition = "2024"
 authors.workspace = true
 license.workspace = true
