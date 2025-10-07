@@ -38,9 +38,11 @@ tracing-test = { workspace = true, features = ["no-env-filter"] }
 
 [package]
 name = "org-mcp-server"
-description = "MCP protocol server for org-mode knowledge management"
+description = "Model Context Protocol (MCP) server providing AI assistants with access to org-mode knowledge bases through search, content retrieval, and ID-based lookups"
 edition = "2024"
 authors.workspace = true
 license.workspace = true
 version.workspace = true
 readme.workspace = true
+documentation.workspace = true
+repository.workspace = true
