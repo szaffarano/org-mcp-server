@@ -44,3 +44,5 @@ authors.workspace = true
 license.workspace = true
 version.workspace = true
 readme.workspace = true
+documentation.workspace = true
+repository.workspace = true

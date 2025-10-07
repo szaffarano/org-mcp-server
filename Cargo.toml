@@ -4,6 +4,7 @@ edition = "2024"
 authors = ["Sebastián Zaffarano <sebastian.zaffarano@elastic.co>"]
 license = "MIT"
 repository = "https://github.com/szaffarano/org-mcp-server"
+documentation = "https://github.com/szaffarano/org-mcp-server"
 readme = "README.org"
 
 
