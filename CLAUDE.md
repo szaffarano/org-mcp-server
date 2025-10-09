@@ -2,6 +2,8 @@
 
 ## Project Context
 
+This is a GitHub repository hosted in https://github.com/szaffarano/org-mcp-server/
+
 MCP server for org-mode/roam knowledge base management in Rust. Multi-crate
 workspace with:
 
