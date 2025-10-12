@@ -79,7 +79,7 @@ that does not match the info here.
 - `Cargo.toml` — Workspace configuration
 - `flake.nix` — Nix development environment
 - `CLAUDE.md` — Development guidelines
-- `README.org` — Project documentation
+- `README.md` — Project documentation
 
 ## Architecture and Dependencies
 
