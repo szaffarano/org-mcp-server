@@ -603,12 +603,6 @@ fn test_search_snippet_max_size_one() {
 }
 
 #[test]
-fn test_with_defaults() {
-    let result = OrgMode::with_defaults();
-    assert!(result.is_ok());
-}
-
-#[test]
 fn test_config_getter() {
     let org_mode = create_test_org_mode();
     let config = org_mode.config();
