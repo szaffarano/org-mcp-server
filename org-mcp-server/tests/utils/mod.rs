@@ -280,5 +280,31 @@ This is some random text with keywords like productivity, efficiency, and automa
 "#,
     )?;
 
+    // Create a file with tags for testing tag filtering
+    fs::write(
+        temp_dir.path().join("tagged.org"),
+        r#"#+TITLE: Tagged Content
+#+DATE: 2024-01-10
+
+* Work Task :work:urgent:
+Important work-related task that needs attention.
+
+** Subtask :work:
+A subtask of the main work task.
+
+* Personal Project :personal:
+A personal side project for learning.
+
+** Research :personal:learning:
+Research for the personal project.
+
+* Meeting :work:meeting:
+Team meeting notes and action items.
+
+* Learning Goals :learning:academic:
+Educational objectives and progress tracking.
+"#,
+    )?;
+
     Ok(temp_dir)
 }

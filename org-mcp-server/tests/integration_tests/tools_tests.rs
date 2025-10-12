@@ -192,3 +192,127 @@ async fn test_org_search_tool_with_parameters() -> Result<(), Box<dyn std::error
 
     Ok(())
 }
+
+/// Tests the org-search tool with tag filtering.
+///
+/// Verifies that:
+/// - The tool accepts a tags parameter
+/// - Results are filtered by the specified tags
+/// - Only results with matching tags are returned
+#[tokio::test]
+#[traced_test]
+async fn test_org_search_tool_with_tags() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-search tool with tags");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("query".to_string(), Value::String("Task".into()));
+    args.insert(
+        "tags".to_string(),
+        Value::Array(vec![Value::String("work".into())]),
+    );
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-search".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-search with tags result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let search_results: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Search results should be valid JSON");
+
+            if let Some(results_array) = search_results.as_array() {
+                // All results should have the work tag
+                for result in results_array {
+                    if let Some(tags) = result["tags"].as_array() {
+                        assert!(
+                            tags.iter().any(|t| t.as_str() == Some("work")),
+                            "All results should have the work tag"
+                        );
+                    }
+                }
+            }
+        } else {
+            panic!("Expected text content in org-search result");
+        }
+    } else {
+        panic!("No content in org-search result");
+    }
+
+    service.cancel().await?;
+    info!("org-search tool with tags test completed successfully");
+
+    Ok(())
+}
+
+/// Tests the org-search tool with multiple tags.
+///
+/// Verifies that:
+/// - The tool accepts multiple tags
+/// - Results match ANY of the specified tags (OR logic)
+#[tokio::test]
+#[traced_test]
+async fn test_org_search_tool_with_multiple_tags() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-search tool with multiple tags");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("query".to_string(), Value::String("Project".into()));
+    args.insert(
+        "tags".to_string(),
+        Value::Array(vec![
+            Value::String("work".into()),
+            Value::String("personal".into()),
+        ]),
+    );
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-search".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-search with multiple tags result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let search_results: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Search results should be valid JSON");
+
+            if let Some(results_array) = search_results.as_array() {
+                // All results should have at least one of the specified tags
+                for result in results_array {
+                    if let Some(tags) = result["tags"].as_array() {
+                        assert!(
+                            tags.iter().any(|t| {
+                                t.as_str() == Some("work") || t.as_str() == Some("personal")
+                            }),
+                            "Results should have work or personal tag"
+                        );
+                    }
+                }
+            }
+        } else {
+            panic!("Expected text content in org-search result");
+        }
+    } else {
+        panic!("No content in org-search result");
+    }
+
+    service.cancel().await?;
+    info!("org-search tool with multiple tags test completed successfully");
+
+    Ok(())
+}

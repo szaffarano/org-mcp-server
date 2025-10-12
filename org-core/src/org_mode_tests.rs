@@ -601,3 +601,188 @@ fn test_search_snippet_max_size_one() {
         }
     }
 }
+
+#[test]
+fn test_with_defaults() {
+    let result = OrgMode::with_defaults();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_config_getter() {
+    let org_mode = create_test_org_mode();
+    let config = org_mode.config();
+    assert_eq!(config.org.org_directory, "tests/fixtures");
+}
+
+#[test]
+fn test_tags_in_file_with_tags() {
+    let org_mode = create_test_org_mode();
+    let tags = org_mode
+        .tags_in_file("with_tags.org")
+        .expect("Failed to get tags");
+
+    assert!(!tags.is_empty());
+    assert!(tags.contains(&"work".to_string()));
+    assert!(tags.contains(&"important".to_string()));
+    assert!(tags.contains(&"personal".to_string()));
+    assert!(tags.contains(&"learning".to_string()));
+    assert!(tags.contains(&"urgent".to_string()));
+    assert!(tags.contains(&"meeting".to_string()));
+    assert!(tags.contains(&"archive".to_string()));
+    assert!(tags.contains(&"academic".to_string()));
+}
+
+#[test]
+fn test_tags_in_file_no_tags() {
+    let org_mode = create_test_org_mode();
+    let tags = org_mode
+        .tags_in_file("simple.org")
+        .expect("Failed to get tags");
+
+    assert!(tags.is_empty());
+}
+
+#[test]
+fn test_tags_in_file_nonexistent() {
+    let org_mode = create_test_org_mode();
+    let result = org_mode.tags_in_file("nonexistent.org");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_list_files_by_tags_single_tag() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files_by_tags(&["work".to_string()])
+        .expect("Failed to list files by tag");
+
+    assert!(!files.is_empty());
+    assert!(files.iter().any(|f| f.contains("with_tags.org")));
+}
+
+#[test]
+fn test_list_files_by_tags_multiple_tags() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files_by_tags(&["work".to_string(), "personal".to_string()])
+        .expect("Failed to list files by tags");
+
+    assert!(!files.is_empty());
+    assert!(files.iter().any(|f| f.contains("with_tags.org")));
+}
+
+#[test]
+fn test_list_files_by_tags_no_match() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files_by_tags(&["nonexistent_tag".to_string()])
+        .expect("Failed to list files by tag");
+
+    assert!(files.is_empty());
+}
+
+#[test]
+fn test_list_files_by_tags_empty_list() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files_by_tags(&[])
+        .expect("Failed to list files by empty tag list");
+
+    assert!(files.is_empty());
+}
+
+#[test]
+fn test_search_with_tags_single_tag() {
+    let org_mode = create_test_org_mode();
+    let results = org_mode
+        .search_with_tags("Project", Some(&["work".to_string()]), None, None)
+        .expect("Search with tags failed");
+
+    for result in &results {
+        assert!(
+            result.tags.contains(&"work".to_string()),
+            "Result should have work tag"
+        );
+    }
+}
+
+#[test]
+fn test_search_with_tags_multiple_tags() {
+    let org_mode = create_test_org_mode();
+    let results = org_mode
+        .search_with_tags(
+            "Project",
+            Some(&["work".to_string(), "personal".to_string()]),
+            None,
+            None,
+        )
+        .expect("Search with tags failed");
+
+    for result in &results {
+        assert!(
+            result.tags.contains(&"work".to_string())
+                || result.tags.contains(&"personal".to_string()),
+            "Result should have work or personal tag"
+        );
+    }
+}
+
+#[test]
+fn test_search_with_tags_no_match() {
+    let org_mode = create_test_org_mode();
+    let results = org_mode
+        .search_with_tags(
+            "Project",
+            Some(&["nonexistent_tag".to_string()]),
+            None,
+            None,
+        )
+        .expect("Search with tags failed");
+
+    assert!(results.is_empty());
+}
+
+#[test]
+fn test_search_with_tags_with_limit() {
+    let org_mode = create_test_org_mode();
+    let results = org_mode
+        .search_with_tags("Task", Some(&["work".to_string()]), Some(1), None)
+        .expect("Search with tags and limit failed");
+
+    assert!(results.len() <= 1);
+}
+
+#[test]
+fn test_search_with_tags_none() {
+    let org_mode = create_test_org_mode();
+    let results = org_mode
+        .search_with_tags("heading", None, None, None)
+        .expect("Search with no tag filter failed");
+
+    assert!(!results.is_empty());
+}
+
+#[test]
+fn test_read_file_directory_error() {
+    use std::fs;
+    use tempfile::TempDir;
+
+    let temp_dir = TempDir::new().expect("Failed to create temp dir");
+    let test_dir = temp_dir.path().join("test_subdir");
+    fs::create_dir(&test_dir).expect("Failed to create subdirectory");
+
+    let mut config = Config::default();
+    config.org.org_directory = temp_dir.path().to_str().unwrap().to_string();
+    let org_mode = OrgMode::new(config).expect("Failed to create OrgMode");
+
+    let result = org_mode.read_file("test_subdir");
+
+    assert!(result.is_err());
+    if let Err(e) = result {
+        assert!(
+            format!("{:?}", e).contains("InvalidInput")
+                || format!("{:?}", e).contains("not a file")
+        );
+    }
+}
