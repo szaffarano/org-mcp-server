@@ -1,0 +1,27 @@
+#+TITLE: Old Notes
+#+DATE: 2023-12-01
+
+* Archived Ideas
+  :PROPERTIES:
+  :ID: archived-ideas-501
+  :END:
+** Idea 1: Mobile game development
+** Idea 2: Productivity app
+** Idea 3: E-commerce platform
+
+* Completed Projects
+** Personal website
+   - Built with React
+   - Deployed on Netlify
+   - Source code on GitHub
+
+* Learning Resources
+** Books
+   - The Pragmatic Programmer
+   - Clean Code
+   - Design Patterns
+
+** Online Courses
+   - Rust Programming Course
+   - React Advanced Patterns
+   - Database Design Fundamentals

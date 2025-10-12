@@ -18,6 +18,10 @@ pub struct SearchCommand {
     /// Maximum snippet size in characters
     #[arg(short = 's', long, default_value = "100")]
     snippet_size: usize,
+
+    /// Filter by tags (comma-separated)
+    #[arg(short = 't', long, value_delimiter = ',')]
+    tags: Option<Vec<String>>,
 }
 
 #[derive(clap::ValueEnum, Clone)]
@@ -28,7 +32,16 @@ enum OutputFormat {
 
 impl SearchCommand {
     pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
-        let results = org_mode.search(&self.query, self.limit, Some(self.snippet_size))?;
+        let results = if let Some(ref tags) = self.tags {
+            org_mode.search_with_tags(
+                &self.query,
+                Some(tags.as_slice()),
+                self.limit,
+                Some(self.snippet_size),
+            )?
+        } else {
+            org_mode.search(&self.query, self.limit, Some(self.snippet_size))?
+        };
 
         let format = self.format.as_ref().unwrap_or({
             match org_mode.config().cli.default_format.as_str() {

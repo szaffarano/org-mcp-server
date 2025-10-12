@@ -24,6 +24,8 @@ pub struct TreeNode {
     pub level: usize,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub children: Vec<TreeNode>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tags: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -31,6 +33,8 @@ pub struct SearchResult {
     pub file_path: String,
     pub snippet: String,
     pub score: u32,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tags: Vec<String>,
 }
 
 impl TreeNode {
@@ -39,6 +43,7 @@ impl TreeNode {
             label,
             level: 0,
             children: Vec::new(),
+            tags: Vec::new(),
         }
     }
 
@@ -47,6 +52,7 @@ impl TreeNode {
             label,
             level,
             children: Vec::new(),
+            tags: Vec::new(),
         }
     }
 
@@ -146,6 +152,7 @@ impl OrgMode {
                     file_path: file.clone(),
                     snippet,
                     score,
+                    tags: self.tags_in_file(&file).unwrap_or_default(),
                 });
             }
         }
@@ -154,6 +161,54 @@ impl OrgMode {
         all_results.truncate(limit.unwrap_or(all_results.len()));
 
         Ok(all_results)
+    }
+
+    pub fn search_with_tags(
+        &self,
+        query: &str,
+        tags: Option<&[String]>,
+        limit: Option<usize>,
+        snippet_max_size: Option<usize>,
+    ) -> Result<Vec<SearchResult>, OrgModeError> {
+        self.search(query, None, snippet_max_size)
+            .map(|results| match tags {
+                Some(filter_tags) => results
+                    .into_iter()
+                    .filter(|r| filter_tags.iter().any(|tag| r.tags.contains(tag)))
+                    .collect(),
+                None => results,
+            })
+            .map(|mut all_results| {
+                all_results.truncate(limit.unwrap_or(all_results.len()));
+                all_results
+            })
+    }
+
+    fn tags_in_file(&self, path: &str) -> Result<Vec<String>, OrgModeError> {
+        let content = self.read_file(path)?;
+        let mut tags = Vec::new();
+
+        let mut handler = from_fn(|event| {
+            if let Event::Enter(Container::Headline(h)) = event {
+                tags.extend(h.tags().map(|s| s.to_string()));
+            }
+        });
+
+        Org::parse(&content).traverse(&mut handler);
+
+        Ok(tags)
+    }
+
+    pub fn list_files_by_tags(&self, tags: &[String]) -> Result<Vec<String>, OrgModeError> {
+        self.list_files().map(|files| {
+            files
+                .into_iter()
+                .filter(|path| {
+                    let file_tags = self.tags_in_file(path).unwrap_or_default();
+                    tags.iter().any(|tag| file_tags.contains(tag))
+                })
+                .collect::<Vec<String>>()
+        })
     }
 
     pub fn read_file(&self, path: &str) -> Result<String, OrgModeError> {
@@ -186,8 +241,14 @@ impl OrgMode {
         let mut handler = from_fn(|event| {
             if let Event::Enter(Container::Headline(h)) = event {
                 let level = h.level();
-                let title = h.title_raw();
-                let node = TreeNode::new_with_level(title, level);
+                let label = h.title_raw();
+                let tags = h.tags().map(|s| s.to_string()).collect();
+                let node = TreeNode {
+                    label,
+                    level,
+                    tags,
+                    children: Vec::new(),
+                };
 
                 while let Some(n) = stack.last() {
                     if n.level < level {
@@ -263,7 +324,7 @@ impl OrgMode {
         found.ok_or_else(|| OrgModeError::InvalidElementId(id.into()))
     }
 
-    pub fn search_id(&self, content: String, id: &str) -> Option<String> {
+    fn search_id(&self, content: String, id: &str) -> Option<String> {
         let mut found = None;
         let has_id_property = |properties: Option<PropertyDrawer>| {
             properties

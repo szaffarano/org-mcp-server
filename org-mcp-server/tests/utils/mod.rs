@@ -5,7 +5,6 @@
 
 use std::{
     env::{self, consts},
-    fs,
     path::{self, PathBuf},
 };
 
@@ -60,7 +59,7 @@ pub fn target_dir() -> path::PathBuf {
 ///
 /// This function sets up a complete test environment with multiple org files
 /// containing various org-mode features like headings, properties, TODO items,
-/// and nested directory structures.
+/// and nested directory structures using shared fixtures from test-utils.
 ///
 /// # Test File Structure
 /// The created directory contains:
@@ -107,178 +106,5 @@ pub fn target_dir() -> path::PathBuf {
 /// - `rust-programming-401`: Rust Programming section
 /// - `archived-ideas-501`: Archived Ideas section
 pub fn setup_test_org_files() -> Result<TempDir, Box<dyn std::error::Error>> {
-    let temp_dir = TempDir::new()?;
-
-    // Create main notes file with various org-mode features
-    fs::write(
-        temp_dir.path().join("notes.org"),
-        r#"#+TITLE: Notes
-#+DATE: 2024-01-01
-
-* Daily Tasks
-  :PROPERTIES:
-  :ID: daily-tasks-123
-  :END:
-** TODO Buy groceries
-   :PROPERTIES:
-   :ID: task-groceries-456
-   :END:
-** DONE Read book
-   :PROPERTIES:
-   :ID: task-book-789
-   :END:
-   - Author: John Doe
-   - Pages: 256
-
-* Project Ideas
-** Web scraper for news articles
-** Mobile app for habit tracking
-
-* Meeting Notes
-** 2024-01-15 Team Standup
-   - Discussed sprint goals
-   - Reviewed backlog items
-   - Assigned new tasks
-
-* Random Thoughts
-This is some random text with keywords like productivity, efficiency, and automation.
-"#,
-    )?;
-
-    // Create project planning file with nested structure
-    fs::write(
-        temp_dir.path().join("project.org"),
-        r#"#+TITLE: Project Planning
-#+AUTHOR: Test User
-#+DATE: 2024-01-02
-
-* Backend Development
-  :PROPERTIES:
-  :ID: backend-dev-101
-  :END:
-** API Design
-   :PROPERTIES:
-   :ID: api-design-102
-   :END:
-   - REST endpoints
-   - Authentication
-   - Database schema
-
-** Implementation
-*** TODO Set up development environment
-*** TODO Create user authentication
-*** DONE Initialize project structure
-
-* Frontend Development
-  :PROPERTIES:
-  :ID: frontend-dev-201
-  :END:
-** UI/UX Design
-   - Wireframes
-   - User flow
-   - Color scheme
-
-** React Components
-*** TODO Header component
-*** TODO Navigation menu
-*** TODO User dashboard
-
-* Testing Strategy
-** Unit Tests
-   - Controller tests
-   - Service layer tests
-   - Database tests
-
-** Integration Tests
-   - API endpoint tests
-   - End-to-end tests
-"#,
-    )?;
-
-    // Create research notes with technical content
-    fs::write(
-        temp_dir.path().join("research.org"),
-        r#"#+TITLE: Research Notes
-#+TAGS: research, technology, AI
-
-* Machine Learning
-  :PROPERTIES:
-  :ID: ml-research-301
-  :END:
-** Deep Learning Fundamentals
-   :PROPERTIES:
-   :ID: dl-fundamentals-302
-   :END:
-   - Neural networks
-   - Backpropagation
-   - Gradient descent
-
-** Natural Language Processing
-   - Tokenization
-   - Word embeddings
-   - Transformer models
-
-* Rust Programming
-  :PROPERTIES:
-  :ID: rust-programming-401
-  :END:
-** Memory Management
-   - Ownership
-   - Borrowing
-   - Lifetimes
-
-** Async Programming
-   - Futures
-   - Tokio runtime
-   - async/await syntax
-
-* Tools and Technologies
-** Development Tools
-   - Git version control
-   - Docker containers
-   - CI/CD pipelines
-
-** Databases
-   - PostgreSQL
-   - Redis
-   - MongoDB
-"#,
-    )?;
-
-    // Create archive subdirectory with old files
-    let subdir = temp_dir.path().join("archive");
-    fs::create_dir(&subdir)?;
-    fs::write(
-        subdir.join("old_notes.org"),
-        r#"#+TITLE: Old Notes
-#+DATE: 2023-12-01
-
-* Archived Ideas
-  :PROPERTIES:
-  :ID: archived-ideas-501
-  :END:
-** Idea 1: Mobile game development
-** Idea 2: Productivity app
-** Idea 3: E-commerce platform
-
-* Completed Projects
-** Personal website
-   - Built with React
-   - Deployed on Netlify
-   - Source code on GitHub
-
-* Learning Resources
-** Books
-   - The Pragmatic Programmer
-   - Clean Code
-   - Design Patterns
-
-** Online Courses
-   - Rust Programming Course
-   - React Advanced Patterns
-   - Database Design Fundamentals
-"#,
-    )?;
-
-    Ok(temp_dir)
+    test_utils::setup_test_org_files()
 }

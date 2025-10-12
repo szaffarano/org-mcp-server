@@ -1,0 +1,59 @@
+* Project A :work:important:
+
+Project A is critical for Q1 deliverables.
+
+** Task 1 :work:urgent:
+
+This task needs immediate attention.
+
+** Task 2 :work:
+
+Regular work task.
+
+* Project B :personal:
+
+Personal project for learning.
+
+** Learning Goals :personal:learning:
+
+Goals for personal development.
+
+* Meeting Notes :work:meeting:
+
+Weekly team meeting notes.
+
+** Action Items :work:urgent:
+
+Follow-up items from the meeting.
+
+* Research :learning:
+
+Research on new technologies.
+
+** Paper Reviews :learning:academic:
+
+Academic paper analysis.
+
+* Heading Without Tags
+
+This heading has no tags at all.
+
+** Nested Without Tags
+
+Nested heading also without tags.
+
+* Project C :work:
+
+Another work project.
+
+* Shopping List :personal:urgent:
+
+Urgent shopping items needed.
+
+* Archive :archive:
+
+Old items for reference.
+
+** Old Project :archive:work:
+
+Archived work project.

@@ -16,6 +16,10 @@ pub struct SearchRequest {
     pub limit: Option<usize>,
     #[schemars(description = "Maximum snippet size in characters (optional, default: 100)")]
     pub snippet_max_size: Option<usize>,
+    #[schemars(
+        description = "Filter results by tags (optional, matches any of the provided tags)"
+    )]
+    pub tags: Option<Vec<String>>,
 }
 
 #[tool_router(router = "tool_router_search", vis = "pub(crate)")]
@@ -31,11 +35,18 @@ impl OrgModeRouter {
             query,
             limit,
             snippet_max_size,
+            tags,
         }): Parameters<SearchRequest>,
     ) -> Result<CallToolResult, McpError> {
         let org_mode = self.org_mode.lock().await;
 
-        match org_mode.search(&query, limit, snippet_max_size) {
+        let results = if tags.is_some() {
+            org_mode.search_with_tags(&query, tags.as_deref(), limit, snippet_max_size)
+        } else {
+            org_mode.search(&query, limit, snippet_max_size)
+        };
+
+        match results {
             Ok(results) => match Content::json(results) {
                 Ok(serialized) => Ok(CallToolResult::success(vec![serialized])),
                 Err(e) => Err(McpError {

@@ -2,68 +2,10 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
+use test_utils::copy_fixtures_to_temp;
 
 fn create_test_org_files(temp_dir: &TempDir) -> Result<(), Box<dyn std::error::Error>> {
-    let temp_path = temp_dir.path();
-
-    // Create a basic org file
-    fs::write(
-        temp_path.join("basic.org"),
-        r#"* First Heading
-:PROPERTIES:
-:ID: heading-123
-:END:
-This is the first heading content.
-
-** Sub Heading
-Some sub heading content.
-
-* Second Heading
-:PROPERTIES:
-:ID: heading-456
-:END:
-This is the second heading.
-"#,
-    )?;
-
-    // Create an org file with document-level ID
-    fs::write(
-        temp_path.join("with_doc_id.org"),
-        r#":PROPERTIES:
-:ID: doc-id-789
-:TITLE: Test Document
-:END:
-
-* Some Content
-Regular heading content.
-"#,
-    )?;
-
-    // Create an org file with searchable content
-    fs::write(
-        temp_path.join("search_test.org"),
-        r#"* Project Planning
-This document contains project planning information.
-
-** TODO Meeting Notes
-Meeting scheduled for next week.
-
-** DONE Task Completion
-Task was completed successfully.
-
-* Bug Reports
-Found several bugs in the system:
-- Critical bug in authentication
-- Minor UI bug in dashboard
-
-* Long Content Test
-This is a very long line of text that should be truncated when using a small snippet size parameter to test the snippet truncation functionality properly.
-"#,
-    )?;
-
-    // Create an empty org file
-    fs::write(temp_path.join("empty.org"), "")?;
-
+    copy_fixtures_to_temp(temp_dir)?;
     Ok(())
 }
 
@@ -78,11 +20,12 @@ fn test_list_command_basic() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Found 4 .org files"))
+        .stdout(predicate::str::contains("Found 9 .org files"))
         .stdout(predicate::str::contains("basic.org"))
         .stdout(predicate::str::contains("with_doc_id.org"))
         .stdout(predicate::str::contains("search_test.org"))
-        .stdout(predicate::str::contains("empty.org"));
+        .stdout(predicate::str::contains("empty.org"))
+        .stdout(predicate::str::contains("tagged.org"));
 }
 
 #[test]
@@ -98,7 +41,7 @@ fn test_list_command_json_format() {
         .arg("json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"count\": 4"))
+        .stdout(predicate::str::contains("\"count\": 9"))
         .stdout(predicate::str::contains("\"files\""))
         .stdout(predicate::str::contains("{"))
         .stdout(predicate::str::contains("}"));
@@ -840,4 +783,193 @@ level = "trace"
         .success()
         .stdout(predicate::str::contains("[org]"))
         .stdout(predicate::str::contains("level = \"trace\""));
+}
+
+// Tag filtering tests
+
+#[test]
+fn test_list_command_with_single_tag() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
+        .arg("--tags")
+        .arg("work")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("tagged.org"));
+
+    // Verify files without tags are NOT included
+    // (The test setup only has tagged.org with work tag)
+}
+
+#[test]
+fn test_list_command_with_multiple_tags() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
+        .arg("--tags")
+        .arg("work,personal")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("tagged.org"));
+}
+
+#[test]
+fn test_list_command_with_tags_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
+        .arg("--tags")
+        .arg("work")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"files\""))
+        .stdout(predicate::str::contains("tagged.org"));
+}
+
+#[test]
+fn test_list_command_with_nonexistent_tag() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("list")
+        .arg("--tags")
+        .arg("nonexistent")
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("Found 0 .org files")
+                .or(predicate::str::contains("No .org files found")),
+        );
+}
+
+#[test]
+fn test_search_command_with_single_tag() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("Task")
+        .arg("--tags")
+        .arg("work")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("tagged.org"));
+}
+
+#[test]
+fn test_search_command_with_multiple_tags() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("Project")
+        .arg("--tags")
+        .arg("personal,work")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_search_command_with_tags_and_limit() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("Task")
+        .arg("--tags")
+        .arg("work")
+        .arg("--limit")
+        .arg("1")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_search_command_with_tags_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("Task")
+        .arg("--tags")
+        .arg("work")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"results\""))
+        .stdout(predicate::str::contains("\"file_path\""));
+}
+
+#[test]
+fn test_search_command_with_tags_no_match() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("test")
+        .arg("--tags")
+        .arg("nonexistent")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No results found"));
+}
+
+#[test]
+fn test_search_command_with_tags_all_parameters() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("search")
+        .arg("Task")
+        .arg("--tags")
+        .arg("work")
+        .arg("--limit")
+        .arg("2")
+        .arg("--format")
+        .arg("json")
+        .arg("--snippet-size")
+        .arg("30")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"results\""));
 }
