@@ -1,0 +1,16 @@
+* Project Planning
+This document contains project planning information.
+
+** TODO Meeting Notes
+Meeting scheduled for next week.
+
+** DONE Task Completion
+Task was completed successfully.
+
+* Bug Reports
+Found several bugs in the system:
+- Critical bug in authentication
+- Minor UI bug in dashboard
+
+* Long Content Test
+This is a very long line of text that should be truncated when using a small snippet size parameter to test the snippet truncation functionality properly.

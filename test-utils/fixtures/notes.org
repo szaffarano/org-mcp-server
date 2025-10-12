@@ -1,0 +1,30 @@
+#+TITLE: Notes
+#+DATE: 2024-01-01
+
+* Daily Tasks
+  :PROPERTIES:
+  :ID: daily-tasks-123
+  :END:
+** TODO Buy groceries
+   :PROPERTIES:
+   :ID: task-groceries-456
+   :END:
+** DONE Read book
+   :PROPERTIES:
+   :ID: task-book-789
+   :END:
+   - Author: John Doe
+   - Pages: 256
+
+* Project Ideas
+** Web scraper for news articles
+** Mobile app for habit tracking
+
+* Meeting Notes
+** 2024-01-15 Team Standup
+   - Discussed sprint goals
+   - Reviewed backlog items
+   - Assigned new tasks
+
+* Random Thoughts
+This is some random text with keywords like productivity, efficiency, and automation.

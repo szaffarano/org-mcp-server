@@ -1,0 +1,14 @@
+* First Heading
+:PROPERTIES:
+:ID: heading-123
+:END:
+This is the first heading content.
+
+** Sub Heading
+Some sub heading content.
+
+* Second Heading
+:PROPERTIES:
+:ID: heading-456
+:END:
+This is the second heading.

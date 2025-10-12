@@ -1,0 +1,44 @@
+#+TITLE: Research Notes
+#+TAGS: research, technology, AI
+
+* Machine Learning
+  :PROPERTIES:
+  :ID: ml-research-301
+  :END:
+** Deep Learning Fundamentals
+   :PROPERTIES:
+   :ID: dl-fundamentals-302
+   :END:
+   - Neural networks
+   - Backpropagation
+   - Gradient descent
+
+** Natural Language Processing
+   - Tokenization
+   - Word embeddings
+   - Transformer models
+
+* Rust Programming
+  :PROPERTIES:
+  :ID: rust-programming-401
+  :END:
+** Memory Management
+   - Ownership
+   - Borrowing
+   - Lifetimes
+
+** Async Programming
+   - Futures
+   - Tokio runtime
+   - async/await syntax
+
+* Tools and Technologies
+** Development Tools
+   - Git version control
+   - Docker containers
+   - CI/CD pipelines
+
+** Databases
+   - PostgreSQL
+   - Redis
+   - MongoDB

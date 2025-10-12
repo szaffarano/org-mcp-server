@@ -10,6 +10,7 @@ toml = { workspace = true }
 assert_cmd = { workspace = true }
 predicates = { workspace = true }
 tempfile = { workspace = true }
+test-utils = { path = "../test-utils" }
 
 [package]
 name = "org-cli"

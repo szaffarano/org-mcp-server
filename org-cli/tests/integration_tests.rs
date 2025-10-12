@@ -2,88 +2,10 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
+use test_utils::copy_fixtures_to_temp;
 
 fn create_test_org_files(temp_dir: &TempDir) -> Result<(), Box<dyn std::error::Error>> {
-    let temp_path = temp_dir.path();
-
-    // Create a basic org file
-    fs::write(
-        temp_path.join("basic.org"),
-        r#"* First Heading
-:PROPERTIES:
-:ID: heading-123
-:END:
-This is the first heading content.
-
-** Sub Heading
-Some sub heading content.
-
-* Second Heading
-:PROPERTIES:
-:ID: heading-456
-:END:
-This is the second heading.
-"#,
-    )?;
-
-    // Create an org file with document-level ID
-    fs::write(
-        temp_path.join("with_doc_id.org"),
-        r#":PROPERTIES:
-:ID: doc-id-789
-:TITLE: Test Document
-:END:
-
-* Some Content
-Regular heading content.
-"#,
-    )?;
-
-    // Create an org file with searchable content
-    fs::write(
-        temp_path.join("search_test.org"),
-        r#"* Project Planning
-This document contains project planning information.
-
-** TODO Meeting Notes
-Meeting scheduled for next week.
-
-** DONE Task Completion
-Task was completed successfully.
-
-* Bug Reports
-Found several bugs in the system:
-- Critical bug in authentication
-- Minor UI bug in dashboard
-
-* Long Content Test
-This is a very long line of text that should be truncated when using a small snippet size parameter to test the snippet truncation functionality properly.
-"#,
-    )?;
-
-    // Create an empty org file
-    fs::write(temp_path.join("empty.org"), "")?;
-
-    // Create an org file with tags
-    fs::write(
-        temp_path.join("tagged.org"),
-        r#"* Work Task :work:urgent:
-Important work-related task.
-
-** Subtask :work:
-A subtask of the main work task.
-
-* Personal Project :personal:
-A personal side project.
-
-** Research :personal:learning:
-Research for the personal project.
-
-* Meeting :work:meeting:
-Team meeting notes.
-"#,
-    )?;
-
+    copy_fixtures_to_temp(temp_dir)?;
     Ok(())
 }
 
@@ -98,7 +20,7 @@ fn test_list_command_basic() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Found 5 .org files"))
+        .stdout(predicate::str::contains("Found 9 .org files"))
         .stdout(predicate::str::contains("basic.org"))
         .stdout(predicate::str::contains("with_doc_id.org"))
         .stdout(predicate::str::contains("search_test.org"))
@@ -119,7 +41,7 @@ fn test_list_command_json_format() {
         .arg("json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"count\": 5"))
+        .stdout(predicate::str::contains("\"count\": 9"))
         .stdout(predicate::str::contains("\"files\""))
         .stdout(predicate::str::contains("{"))
         .stdout(predicate::str::contains("}"));
