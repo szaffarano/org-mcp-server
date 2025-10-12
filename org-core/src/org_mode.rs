@@ -152,7 +152,7 @@ impl OrgMode {
                     file_path: file.clone(),
                     snippet,
                     score,
-                    tags: self.tags_inf_file(&file).unwrap_or_default(),
+                    tags: self.tags_in_file(&file).unwrap_or_default(),
                 });
             }
         }
@@ -174,7 +174,7 @@ impl OrgMode {
             .map(|results| match tags {
                 Some(filter_tags) => results
                     .into_iter()
-                    .filter(|r| filter_tags.iter().all(|tag| r.tags.contains(tag)))
+                    .filter(|r| filter_tags.iter().any(|tag| r.tags.contains(tag)))
                     .collect(),
                 None => results,
             })
@@ -184,7 +184,7 @@ impl OrgMode {
             })
     }
 
-    fn tags_inf_file(&self, path: &str) -> Result<Vec<String>, OrgModeError> {
+    fn tags_in_file(&self, path: &str) -> Result<Vec<String>, OrgModeError> {
         let content = self.read_file(path)?;
         let mut tags = Vec::new();
 
@@ -204,8 +204,8 @@ impl OrgMode {
             files
                 .into_iter()
                 .filter(|path| {
-                    let file_tags = self.tags_inf_file(path).unwrap_or_default();
-                    tags.iter().all(|tag| file_tags.contains(tag))
+                    let file_tags = self.tags_in_file(path).unwrap_or_default();
+                    tags.iter().any(|tag| file_tags.contains(tag))
                 })
                 .collect::<Vec<String>>()
         })
