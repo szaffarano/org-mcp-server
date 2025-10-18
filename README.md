@@ -150,6 +150,36 @@ Built with:
 
 ## Setup
 
+### Pre-built Binaries
+
+Download the latest pre-built binaries from [GitHub Releases](https://github.com/szaffarano/org-mcp-server/releases/latest):
+
+```bash
+# Download org-cli
+curl -LO https://github.com/szaffarano/org-mcp-server/releases/latest/download/org-cli-x86_64-unknown-linux-gnu.tar.gz
+tar xzf org-cli-x86_64-unknown-linux-gnu.tar.gz
+sudo mv org-cli /usr/local/bin/
+
+# Download org-mcp-server
+curl -LO https://github.com/szaffarano/org-mcp-server/releases/latest/download/org-mcp-server-x86_64-unknown-linux-gnu.tar.gz
+tar xzf org-mcp-server-x86_64-unknown-linux-gnu.tar.gz
+sudo mv org-mcp-server /usr/local/bin/
+```
+
+Pre-built binaries are available for multiple platforms. Check the [releases page](https://github.com/szaffarano/org-mcp-server/releases) for all available downloads.
+
+### Cargo Install
+
+Install from [crates.io](https://crates.io) using Cargo:
+
+```bash
+# Install CLI tool
+cargo install org-cli
+
+# Install MCP server
+cargo install org-mcp-server
+```
+
 ### Using Nix Flakes
 
 ```bash
