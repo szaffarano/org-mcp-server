@@ -79,11 +79,11 @@ impl ServerAppConfig {
             OrgModeError::ConfigError(format!("Failed to build config: {e}"))
         })?;
 
-        let org_config: ServerConfig = config.get("server").map_err(|e: ConfigError| {
-            OrgModeError::ConfigError(format!("Failed to deserialize org config: {e}"))
+        let server_config: ServerConfig = config.get("server").map_err(|e: ConfigError| {
+            OrgModeError::ConfigError(format!("Failed to deserialize server config: {e}"))
         })?;
 
-        Ok(org_config)
+        Ok(server_config)
     }
 
     /// Save the configuration to a file

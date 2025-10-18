@@ -77,7 +77,7 @@ impl CliAppConfig {
         })?;
 
         config.get("cli").map_err(|e: ConfigError| {
-            OrgModeError::ConfigError(format!("Failed to deserialize org config: {e}"))
+            OrgModeError::ConfigError(format!("Failed to deserialize cli config: {e}"))
         })
     }
 
