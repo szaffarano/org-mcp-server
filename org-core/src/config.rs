@@ -99,9 +99,11 @@ pub fn load_org_config(
         .set_default("org.org_default_notes_file", default_notes_file())?
         .set_default("org.org_agenda_files", default_agenda_files())?;
 
-    let config_path = config_file
-        .map(PathBuf::from)
-        .unwrap_or_else(|| default_config_path().expect("Failed to get default config path"));
+    let config_path = if let Some(path) = config_file {
+        PathBuf::from(path)
+    } else {
+        default_config_path()?
+    };
 
     if config_path.exists() {
         builder = builder.add_source(File::from(config_path).required(false));
@@ -146,9 +148,11 @@ pub fn load_logging_config(
         .set_default("logging.level", default_log_level())?
         .set_default("logging.file", default_log_file())?;
 
-    let config_path = config_file
-        .map(PathBuf::from)
-        .unwrap_or_else(|| default_config_path().expect("Failed to get default config path"));
+    let config_path = if let Some(path) = config_file {
+        PathBuf::from(path)
+    } else {
+        default_config_path()?
+    };
 
     if config_path.exists() {
         builder = builder.add_source(File::from(config_path).required(false));
