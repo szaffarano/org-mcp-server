@@ -93,7 +93,11 @@ impl OrgMode {
 }
 
 impl OrgMode {
-    pub fn list_files(&self) -> Result<Vec<String>, OrgModeError> {
+    pub fn list_files(
+        &self,
+        tags: Option<&[String]>,
+        limit: Option<usize>,
+    ) -> Result<Vec<String>, OrgModeError> {
         WalkDir::new(&self.config.org_directory)
             .into_iter()
             .filter_map(|entry| match entry {
@@ -114,6 +118,20 @@ impl OrgMode {
                 Err(e) => Some(Err(OrgModeError::WalkDirError(e))),
             })
             .collect::<Result<Vec<String>, OrgModeError>>()
+            .map(|files| {
+                files
+                    .into_iter()
+                    .filter(|path| {
+                        if let Some(tags) = tags {
+                            let file_tags = self.tags_in_file(path).unwrap_or_default();
+                            tags.iter().any(|tag| file_tags.contains(tag))
+                        } else {
+                            true
+                        }
+                    })
+                    .take(limit.unwrap_or(usize::MAX))
+                    .collect::<Vec<String>>()
+            })
     }
 
     pub fn search(
@@ -134,7 +152,7 @@ impl OrgMode {
             AtomKind::Fuzzy,
         );
 
-        let files = self.list_files()?;
+        let files = self.list_files(None, None)?;
         let mut all_results = Vec::new();
 
         for file in files {
@@ -187,15 +205,7 @@ impl OrgMode {
     }
 
     pub fn list_files_by_tags(&self, tags: &[String]) -> Result<Vec<String>, OrgModeError> {
-        self.list_files().map(|files| {
-            files
-                .into_iter()
-                .filter(|path| {
-                    let file_tags = self.tags_in_file(path).unwrap_or_default();
-                    tags.iter().any(|tag| file_tags.contains(tag))
-                })
-                .collect::<Vec<String>>()
-        })
+        self.list_files(Some(tags), None)
     }
 
     pub fn read_file(&self, path: &str) -> Result<String, OrgModeError> {
@@ -300,7 +310,7 @@ impl OrgMode {
     }
 
     pub fn get_element_by_id(&self, id: &str) -> Result<String, OrgModeError> {
-        let files = self.list_files()?;
+        let files = self.list_files(None, None)?;
 
         let found = files.iter().find_map(|path| {
             self.read_file(path)
