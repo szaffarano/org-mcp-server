@@ -50,9 +50,11 @@ impl CliAppConfig {
     pub fn load_cli_config(config_file: Option<&str>) -> Result<CliConfig, OrgModeError> {
         let mut builder = ConfigRs::builder().set_default("cli.default_format", "plain")?;
 
-        let config_path = config_file
-            .map(PathBuf::from)
-            .unwrap_or_else(|| default_config_path().expect("Failed to get default config path"));
+        let config_path = if let Some(path) = config_file {
+            PathBuf::from(path)
+        } else {
+            default_config_path()?
+        };
 
         if config_path.exists() {
             builder = builder.add_source(File::from(config_path).required(false));
