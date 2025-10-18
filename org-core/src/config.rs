@@ -337,9 +337,7 @@ mod tests {
     #[serial]
     fn test_load_from_toml_file() {
         let temp_dir = tempdir().unwrap();
-        let config_path = temp_dir.path().join("config.toml");
-
-        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let path_str = test_utils::config::normalize_path(temp_dir.path());
         let test_config = format!(
             r#"
 [org]
@@ -349,7 +347,7 @@ org_agenda_files = ["test1.org", "test2.org"]
 "#,
         );
 
-        std::fs::write(&config_path, &test_config).unwrap();
+        let config_path = test_utils::config::create_toml_config(&temp_dir, &test_config).unwrap();
 
         let config = load_org_config(Some(config_path.to_str().unwrap()), None);
         let config = config.unwrap();
@@ -363,10 +361,7 @@ org_agenda_files = ["test1.org", "test2.org"]
     #[serial]
     fn test_load_from_yaml_file() {
         let temp_dir = tempdir().unwrap();
-        let config_dir = temp_dir.path().join(".config");
-        std::fs::create_dir_all(&config_dir).unwrap();
-
-        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let path_str = test_utils::config::normalize_path(temp_dir.path());
         let yaml_config = format!(
             r#"
 org:
@@ -378,8 +373,8 @@ org:
 "#
         );
 
-        let yaml_path = config_dir.join("config.yaml");
-        std::fs::write(&yaml_path, &yaml_config).unwrap();
+        let yaml_path = test_utils::config::create_yaml_config(&temp_dir, &yaml_config).unwrap();
+        let config_dir = yaml_path.parent().unwrap();
 
         let config = load_org_config(Some(config_dir.join("config").to_str().unwrap()), None);
         let config = config.unwrap();
@@ -393,10 +388,7 @@ org:
     #[serial]
     fn test_load_from_yml_file() {
         let temp_dir = tempdir().unwrap();
-        let config_dir = temp_dir.path().join(".config");
-        std::fs::create_dir_all(&config_dir).unwrap();
-
-        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let path_str = test_utils::config::normalize_path(temp_dir.path());
         let yml_config = format!(
             r#"
 org:
@@ -408,8 +400,8 @@ logging:
 "#
         );
 
-        let yml_path = config_dir.join("config.yml");
-        std::fs::write(&yml_path, &yml_config).unwrap();
+        let yml_path = test_utils::config::create_yml_config(&temp_dir, &yml_config).unwrap();
+        let config_dir = yml_path.parent().unwrap();
 
         let config = load_org_config(Some(config_dir.join("config").to_str().unwrap()), None);
         let config = config.unwrap();
@@ -426,10 +418,7 @@ logging:
     #[serial]
     fn test_load_from_json_file() {
         let temp_dir = tempdir().unwrap();
-        let config_dir = temp_dir.path().join(".config");
-        std::fs::create_dir_all(&config_dir).unwrap();
-
-        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let path_str = test_utils::config::normalize_path(temp_dir.path());
         let json_config = format!(
             r#"{{
   "org": {{
@@ -440,8 +429,8 @@ logging:
 }}"#
         );
 
-        let json_path = config_dir.join("config.json");
-        std::fs::write(&json_path, &json_config).unwrap();
+        let json_path = test_utils::config::create_json_config(&temp_dir, &json_config).unwrap();
+        let config_dir = json_path.parent().unwrap();
 
         let config = load_org_config(Some(config_dir.join("config").to_str().unwrap()), None);
         let config = config.unwrap();
@@ -455,8 +444,6 @@ logging:
     #[serial]
     fn test_logging_config_file_extensions() {
         let temp_dir = tempdir().unwrap();
-        let config_dir = temp_dir.path().join(".config");
-        std::fs::create_dir_all(&config_dir).unwrap();
 
         let toml_config = r#"
 [logging]
@@ -464,10 +451,9 @@ level = "trace"
 file = "/var/log/test.log"
 "#;
 
-        let toml_path = config_dir.join("config.toml");
-        std::fs::write(&toml_path, toml_config).unwrap();
+        let toml_path = test_utils::config::create_toml_config(&temp_dir, toml_config).unwrap();
 
-        let config = load_logging_config(Some(config_dir.join("config").to_str().unwrap()), None);
+        let config = load_logging_config(Some(toml_path.to_str().unwrap()), None);
         let config = config.unwrap();
 
         assert_eq!(config.level, "trace");

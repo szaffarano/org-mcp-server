@@ -1029,6 +1029,7 @@ dependencies = [
  "shellexpand",
  "temp-env",
  "tempfile",
+ "test-utils",
  "toml",
  "tracing",
  "tracing-subscriber",
