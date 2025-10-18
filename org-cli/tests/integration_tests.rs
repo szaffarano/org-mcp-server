@@ -240,34 +240,6 @@ fn test_element_by_id_command_nonexistent() {
 }
 
 #[test]
-fn test_init_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.env("ORG_ORG__ORG_DIRECTORY", temp_dir.path().to_str().unwrap());
-    cmd.arg("init")
-        .arg(temp_dir.path().to_str().unwrap())
-        .assert()
-        .success();
-
-    // Verify the directory is accessible
-    assert!(temp_dir.path().is_dir());
-}
-
-#[test]
-fn test_init_command_existing_directory() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
-
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.env("ORG_ORG__ORG_DIRECTORY", temp_dir.path().to_str().unwrap());
-    cmd.arg("init")
-        .arg(temp_dir.path().to_str().unwrap())
-        .assert()
-        .success();
-}
-
-#[test]
 fn test_help_command() {
     let mut cmd = Command::cargo_bin("org-cli").unwrap();
     cmd.arg("--help")

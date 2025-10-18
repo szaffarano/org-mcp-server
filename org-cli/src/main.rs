@@ -5,8 +5,8 @@ use org_core::OrgMode;
 mod commands;
 mod config;
 use commands::{
-    ConfigCommand, ElementByIdCommand, HeadingCommand, InitCommand, ListCommand, OutlineCommand,
-    ReadCommand, SearchCommand,
+    ConfigCommand, ElementByIdCommand, HeadingCommand, ListCommand, OutlineCommand, ReadCommand,
+    SearchCommand,
 };
 use config::CliAppConfig;
 
@@ -33,8 +33,6 @@ enum Commands {
     Config(ConfigCommand),
     /// List all .org files in a directory
     List(ListCommand),
-    /// Initialize or validate an org directory
-    Init(InitCommand),
     /// Read the contents of an org file
     Read(ReadCommand),
     /// Get the outline (headings) of an org file
@@ -64,7 +62,6 @@ fn main() -> Result<()> {
             match cli.command {
                 Commands::Config(_) => unreachable!(),
                 Commands::List(cmd) => cmd.execute(org_mode, config.cli),
-                Commands::Init(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::Read(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::Outline(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::Heading(cmd) => cmd.execute(org_mode, config.cli),
