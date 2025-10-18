@@ -1,3 +1,4 @@
+use crate::config::CliConfig;
 use anyhow::Result;
 use clap::Args;
 use org_core::OrgMode;
@@ -12,7 +13,7 @@ pub struct HeadingCommand {
 }
 
 impl HeadingCommand {
-    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
+    pub fn execute(&self, org_mode: OrgMode, _cli: CliConfig) -> Result<()> {
         let content = org_mode.get_heading(&self.file, &self.heading)?;
         println!("{}", content);
         Ok(())

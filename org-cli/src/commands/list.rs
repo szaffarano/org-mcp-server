@@ -1,3 +1,4 @@
+use crate::config::CliConfig;
 use anyhow::Result;
 use clap::Args;
 use org_core::OrgMode;
@@ -20,7 +21,7 @@ enum OutputFormat {
 }
 
 impl ListCommand {
-    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
+    pub fn execute(&self, org_mode: OrgMode, cli: CliConfig) -> Result<()> {
         let files = if let Some(ref tags) = self.tags {
             org_mode.list_files_by_tags(tags.as_slice())?
         } else {
@@ -28,7 +29,7 @@ impl ListCommand {
         };
 
         let format = self.format.as_ref().unwrap_or({
-            match org_mode.config().cli.default_format.as_str() {
+            match cli.default_format.as_str() {
                 "json" => &OutputFormat::Json,
                 _ => &OutputFormat::Plain,
             }
@@ -37,15 +38,12 @@ impl ListCommand {
         match format {
             OutputFormat::Plain => {
                 if files.is_empty() {
-                    println!(
-                        "No .org files found in {}",
-                        org_mode.config().org.org_directory
-                    );
+                    println!("No .org files found in {}", org_mode.config().org_directory);
                 } else {
                     println!(
                         "Found {} .org files in {}:",
                         files.len(),
-                        org_mode.config().org.org_directory
+                        org_mode.config().org_directory
                     );
                     for file in files {
                         println!("  {file}");
@@ -54,7 +52,7 @@ impl ListCommand {
             }
             OutputFormat::Json => {
                 let json = serde_json::json!({
-                    "directory": org_mode.config().org.org_directory,
+                    "directory": org_mode.config().org_directory,
                     "count": files.len(),
                     "files": files
                 });

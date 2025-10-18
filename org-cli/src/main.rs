@@ -1,12 +1,14 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use org_core::{Config, OrgMode};
+use org_core::OrgMode;
 
 mod commands;
+mod config;
 use commands::{
-    ConfigCommand, ElementByIdCommand, HeadingCommand, InitCommand, ListCommand, OutlineCommand,
-    ReadCommand, SearchCommand,
+    ConfigCommand, ElementByIdCommand, HeadingCommand, ListCommand, OutlineCommand, ReadCommand,
+    SearchCommand,
 };
+use config::CliAppConfig;
 
 #[derive(Parser)]
 #[command(name = "org")]
@@ -31,8 +33,6 @@ enum Commands {
     Config(ConfigCommand),
     /// List all .org files in a directory
     List(ListCommand),
-    /// Initialize or validate an org directory
-    Init(InitCommand),
     /// Read the contents of an org file
     Read(ReadCommand),
     /// Get the outline (headings) of an org file
@@ -52,22 +52,21 @@ fn main() -> Result<()> {
         Commands::Config(cmd) => cmd.execute(cli.config),
         _ => {
             // Load configuration with CLI overrides for non-config commands
-            let config = Config::load_with_overrides(
+            let config = CliAppConfig::load(
                 cli.config,
                 cli.root_directory,
                 None, // log_level not needed for CLI
             )?;
 
-            let org_mode = OrgMode::new(config)?;
+            let org_mode = OrgMode::new(config.org)?;
             match cli.command {
                 Commands::Config(_) => unreachable!(),
-                Commands::List(cmd) => cmd.execute(org_mode),
-                Commands::Init(cmd) => cmd.execute(org_mode),
-                Commands::Read(cmd) => cmd.execute(org_mode),
-                Commands::Outline(cmd) => cmd.execute(org_mode),
-                Commands::Heading(cmd) => cmd.execute(org_mode),
-                Commands::ElementById(cmd) => cmd.execute(org_mode),
-                Commands::Search(cmd) => cmd.execute(org_mode),
+                Commands::List(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Read(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Outline(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Heading(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::ElementById(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Search(cmd) => cmd.execute(org_mode, config.cli),
             }
         }
     }

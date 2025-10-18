@@ -1,9 +1,12 @@
+use crate::config::OrgConfig;
 use crate::org_mode::TreeNode;
-use crate::{Config, OrgMode, OrgModeError};
+use crate::{OrgMode, OrgModeError};
 
 fn create_test_org_mode() -> OrgMode {
-    let mut config = Config::default();
-    config.org.org_directory = "tests/fixtures".to_string();
+    let config = OrgConfig {
+        org_directory: "tests/fixtures".to_string(),
+        ..OrgConfig::default()
+    };
     OrgMode::new(config).expect("Failed to create test OrgMode")
 }
 
@@ -606,7 +609,7 @@ fn test_search_snippet_max_size_one() {
 fn test_config_getter() {
     let org_mode = create_test_org_mode();
     let config = org_mode.config();
-    assert_eq!(config.org.org_directory, "tests/fixtures");
+    assert_eq!(config.org_directory, "tests/fixtures");
 }
 
 #[test]
@@ -766,8 +769,10 @@ fn test_read_file_directory_error() {
     let test_dir = temp_dir.path().join("test_subdir");
     fs::create_dir(&test_dir).expect("Failed to create subdirectory");
 
-    let mut config = Config::default();
-    config.org.org_directory = temp_dir.path().to_str().unwrap().to_string();
+    let config = OrgConfig {
+        org_directory: temp_dir.path().to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
     let org_mode = OrgMode::new(config).expect("Failed to create OrgMode");
 
     let result = org_mode.read_file("test_subdir");

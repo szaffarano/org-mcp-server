@@ -1,3 +1,4 @@
+use crate::config::CliConfig;
 use anyhow::Result;
 use clap::Args;
 use org_core::OrgMode;
@@ -31,7 +32,7 @@ enum OutputFormat {
 }
 
 impl SearchCommand {
-    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
+    pub fn execute(&self, org_mode: OrgMode, cli: CliConfig) -> Result<()> {
         let results = if let Some(ref tags) = self.tags {
             org_mode.search_with_tags(
                 &self.query,
@@ -44,7 +45,7 @@ impl SearchCommand {
         };
 
         let format = self.format.as_ref().unwrap_or({
-            match org_mode.config().cli.default_format.as_str() {
+            match cli.default_format.as_str() {
                 "json" => &OutputFormat::Json,
                 _ => &OutputFormat::Plain,
             }
@@ -56,14 +57,14 @@ impl SearchCommand {
                     println!(
                         "No results found for query '{}' in {}",
                         self.query,
-                        org_mode.config().org.org_directory
+                        org_mode.config().org_directory
                     );
                 } else {
                     println!(
                         "Found {} results for query '{}' in {}:",
                         results.len(),
                         self.query,
-                        org_mode.config().org.org_directory
+                        org_mode.config().org_directory
                     );
                     for result in results {
                         println!(
@@ -75,7 +76,7 @@ impl SearchCommand {
             }
             OutputFormat::Json => {
                 let json = serde_json::json!({
-                    "directory": org_mode.config().org.org_directory,
+                    "directory": org_mode.config().org_directory,
                     "query": self.query,
                     "count": results.len(),
                     "results": results

@@ -1,6 +1,5 @@
 use clap::Parser;
-use org_core::Config;
-use org_mcp_server::core::OrgModeRouter;
+use org_mcp_server::{config::ServerAppConfig, core::OrgModeRouter};
 use rmcp::{ServiceExt, transport::stdio};
 use tracing::{error, info};
 
@@ -30,8 +29,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
     let cli = Cli::parse();
 
     // Load configuration with CLI overrides
-    let config =
-        Config::load_with_overrides(cli.config, cli.root_directory, cli.log_level.clone())?;
+    let config = ServerAppConfig::load(cli.config, cli.root_directory, cli.log_level.clone())?;
 
     // Initialize logging with config
     let log_level = cli
@@ -51,7 +49,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
         config.org.org_directory
     );
 
-    let service = OrgModeRouter::with_config(config)?
+    let service = OrgModeRouter::with_config(config.org)?
         .serve(stdio())
         .await
         .inspect_err(|e| {

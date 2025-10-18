@@ -5,9 +5,11 @@ use nucleo_matcher::{Config as NucleoConfig, Matcher};
 use orgize::Org;
 use orgize::ast::PropertyDrawer;
 use orgize::export::{Container, Event, from_fn, from_fn_with_ctx};
+use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::{Config, OrgModeError};
+use crate::OrgModeError;
+use crate::config::{OrgConfig, load_org_config};
 
 #[cfg(test)]
 #[path = "org_mode_tests.rs"]
@@ -15,10 +17,10 @@ mod org_mode_tests;
 
 #[derive(Debug)]
 pub struct OrgMode {
-    config: Config,
+    config: OrgConfig,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TreeNode {
     pub label: String,
     pub level: usize,
@@ -28,7 +30,7 @@ pub struct TreeNode {
     pub tags: Vec<String>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub file_path: String,
     pub snippet: String,
@@ -75,24 +77,24 @@ impl TreeNode {
 }
 
 impl OrgMode {
-    pub fn new(config: Config) -> Result<Self, OrgModeError> {
+    pub fn new(config: OrgConfig) -> Result<Self, OrgModeError> {
         let config = config.validate()?;
 
         Ok(OrgMode { config })
     }
 
     pub fn with_defaults() -> Result<Self, OrgModeError> {
-        Self::new(Config::load()?)
+        Self::new(load_org_config(None, None)?)
     }
 
-    pub fn config(&self) -> &Config {
+    pub fn config(&self) -> &OrgConfig {
         &self.config
     }
 }
 
 impl OrgMode {
     pub fn list_files(&self) -> Result<Vec<String>, OrgModeError> {
-        WalkDir::new(&self.config.org.org_directory)
+        WalkDir::new(&self.config.org_directory)
             .into_iter()
             .filter_map(|entry| match entry {
                 Ok(dir_entry) => {
@@ -101,7 +103,7 @@ impl OrgMode {
                     if path.is_file()
                         && let Some(extension) = path.extension()
                         && extension == "org"
-                        && let Ok(relative_path) = path.strip_prefix(&self.config.org.org_directory)
+                        && let Ok(relative_path) = path.strip_prefix(&self.config.org_directory)
                         && let Some(path_str) = relative_path.to_str()
                     {
                         Some(Ok(path_str.to_string()))
@@ -184,21 +186,6 @@ impl OrgMode {
             })
     }
 
-    fn tags_in_file(&self, path: &str) -> Result<Vec<String>, OrgModeError> {
-        let content = self.read_file(path)?;
-        let mut tags = Vec::new();
-
-        let mut handler = from_fn(|event| {
-            if let Event::Enter(Container::Headline(h)) = event {
-                tags.extend(h.tags().map(|s| s.to_string()));
-            }
-        });
-
-        Org::parse(&content).traverse(&mut handler);
-
-        Ok(tags)
-    }
-
     pub fn list_files_by_tags(&self, tags: &[String]) -> Result<Vec<String>, OrgModeError> {
         self.list_files().map(|files| {
             files
@@ -212,7 +199,7 @@ impl OrgMode {
     }
 
     pub fn read_file(&self, path: &str) -> Result<String, OrgModeError> {
-        let org_dir = PathBuf::from(&self.config.org.org_directory);
+        let org_dir = PathBuf::from(&self.config.org_directory);
         let full_path = org_dir.join(path);
 
         if !full_path.exists() {
@@ -361,5 +348,20 @@ impl OrgMode {
         } else {
             s.to_string()
         }
+    }
+
+    fn tags_in_file(&self, path: &str) -> Result<Vec<String>, OrgModeError> {
+        let content = self.read_file(path)?;
+        let mut tags = Vec::new();
+
+        let mut handler = from_fn(|event| {
+            if let Event::Enter(Container::Headline(h)) = event {
+                tags.extend(h.tags().map(|s| s.to_string()));
+            }
+        });
+
+        Org::parse(&content).traverse(&mut handler);
+
+        Ok(tags)
     }
 }

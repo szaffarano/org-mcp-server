@@ -83,12 +83,21 @@ default_format = "plain"  # plain | json
 
 ### Environment Variables
 
-- `ORG_ROOT_DIRECTORY` — Root directory for org files
-- `ORG_DEFAULT_NOTES_FILE` — Default notes file name
-- `ORG_AGENDA_FILES` — Comma-separated list of agenda files
-- `ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES` — Comma-separated extra search files
-- `ORG_LOG_LEVEL` — Log level for server
-- `ORG_LOG_FILE` — Log file location for server
+#### Org-mode Configuration
+- `ORG_ORG__ORG_DIRECTORY` — Root directory for org files
+- `ORG_ORG__ORG_DEFAULT_NOTES_FILE` — Default notes file name
+- `ORG_ORG__ORG_AGENDA_FILES` — Comma-separated list of agenda files
+- `ORG_ORG__ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES` — Comma-separated extra search files
+
+#### Logging Configuration
+- `ORG_LOGGING__LEVEL` — Log level (debug, info, warn, error, trace)
+- `ORG_LOGGING__FILE` — Log file location
+
+#### Server Configuration
+- `ORG_SERVER__MAX_CONNECTIONS` — Maximum number of concurrent connections (default: 10)
+
+#### CLI Configuration
+- `ORG_CLI__DEFAULT_FORMAT` — Default output format for CLI commands (plain, json)
 
 ### Configuration Commands
 
@@ -213,8 +222,9 @@ You can configure the MCP server through environment variables in your agent con
       "command": "/path/to/org-mcp-server",
       "args": [],
       "env": {
-        "ORG_ROOT_DIRECTORY": "/path/to/your/org/files",
-        "ORG_LOG_LEVEL": "info"
+        "ORG_ORG__ORG_DIRECTORY": "/path/to/your/org/files",
+        "ORG_LOGGING__LEVEL": "info",
+        "ORG_SERVER__MAX_CONNECTIONS": "20"
       }
     }
   }

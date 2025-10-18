@@ -3,6 +3,8 @@
 //! This crate provides common test fixtures and helper functions to set up
 //! test environments for org-cli and org-mcp-server integration tests.
 
+pub mod config;
+
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;

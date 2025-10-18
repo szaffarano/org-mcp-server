@@ -1,4 +1,5 @@
 [dependencies]
+config = { workspace = true }
 orgize = { workspace = true, features = ["tracing"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -14,6 +15,7 @@ tracing-subscriber = { workspace = true, features = ["fmt"] }
 tempfile = { workspace = true }
 serial_test = { workspace = true }
 temp-env = "0.3.6"
+test-utils = { path = "../test-utils" }
 
 [package]
 name = "org-core"
