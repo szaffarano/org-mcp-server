@@ -690,6 +690,56 @@ fn test_list_files_by_tags_empty_list() {
 }
 
 #[test]
+fn test_list_files_basic() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files(None, None)
+        .expect("Failed to list files");
+
+    assert!(!files.is_empty());
+    assert!(files.iter().any(|f| f.ends_with(".org")));
+}
+
+#[test]
+fn test_list_files_with_tags() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files(Some(&["work".to_string()]), None)
+        .expect("Failed to list files with tags");
+
+    assert!(!files.is_empty());
+    for file in &files {
+        let tags = org_mode.tags_in_file(file).unwrap_or_default();
+        assert!(tags.contains(&"work".to_string()));
+    }
+}
+
+#[test]
+fn test_list_files_with_limit() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files(None, Some(2))
+        .expect("Failed to list files with limit");
+
+    assert!(files.len() <= 2);
+}
+
+#[test]
+fn test_list_files_with_tags_and_limit() {
+    let org_mode = create_test_org_mode();
+    let files = org_mode
+        .list_files(Some(&["work".to_string()]), Some(1))
+        .expect("Failed to list files with tags and limit");
+
+    assert!(files.len() <= 1);
+
+    if !files.is_empty() {
+        let tags = org_mode.tags_in_file(&files[0]).unwrap_or_default();
+        assert!(tags.contains(&"work".to_string()));
+    }
+}
+
+#[test]
 fn test_search_with_tags_single_tag() {
     let org_mode = create_test_org_mode();
     let results = org_mode

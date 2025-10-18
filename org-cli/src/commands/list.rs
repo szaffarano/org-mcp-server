@@ -25,7 +25,7 @@ impl ListCommand {
         let files = if let Some(ref tags) = self.tags {
             org_mode.list_files_by_tags(tags.as_slice())?
         } else {
-            org_mode.list_files()?
+            org_mode.list_files(None, None)?
         };
 
         let format = self.format.as_ref().unwrap_or({

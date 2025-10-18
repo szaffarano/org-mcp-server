@@ -8,7 +8,7 @@ use crate::core::OrgModeRouter;
 impl OrgModeRouter {
     pub(crate) async fn list_files(&self, uri: String) -> Result<ReadResourceResult, McpError> {
         let org_mode = self.org_mode.lock().await;
-        match org_mode.list_files() {
+        match org_mode.list_files(None, None) {
             Ok(files) => Ok(ReadResourceResult {
                 contents: vec![ResourceContents::text(
                     serde_json::to_string(&files).unwrap_or_default(),
