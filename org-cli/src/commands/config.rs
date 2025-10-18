@@ -1,7 +1,7 @@
 use crate::config::CliAppConfig;
 use anyhow::Result;
 use clap::{Args, Subcommand};
-use org_core::config::default_config_path;
+use org_core::config::{default_config_path, find_config_file};
 
 #[derive(Args)]
 pub struct ConfigCommand {
@@ -91,20 +91,7 @@ impl ConfigCommand {
                     default_config_path()?
                 };
 
-                let mut actual_path = None;
-                if config_path.exists() {
-                    actual_path = Some(config_path.clone());
-                } else if let Some(parent) = config_path.parent() {
-                    for ext in &["toml", "yaml", "yml", "json"] {
-                        let path_with_ext = parent.join(format!("config.{ext}"));
-                        if path_with_ext.exists() {
-                            actual_path = Some(path_with_ext);
-                            break;
-                        }
-                    }
-                }
-
-                if let Some(path) = actual_path {
+                if let Some(path) = find_config_file(config_path) {
                     let content = std::fs::read_to_string(&path)?;
                     println!("{}", content);
                 } else {
