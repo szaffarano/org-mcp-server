@@ -1,12 +1,14 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use org_core::{Config, OrgMode};
+use org_core::OrgMode;
 
 mod commands;
+mod config;
 use commands::{
     ConfigCommand, ElementByIdCommand, HeadingCommand, InitCommand, ListCommand, OutlineCommand,
     ReadCommand, SearchCommand,
 };
+use config::CliAppConfig;
 
 #[derive(Parser)]
 #[command(name = "org")]
@@ -52,7 +54,7 @@ fn main() -> Result<()> {
         Commands::Config(cmd) => cmd.execute(cli.config),
         _ => {
             // Load configuration with CLI overrides for non-config commands
-            let config = Config::load_with_overrides(
+            let config = CliAppConfig::load(
                 cli.config,
                 cli.root_directory,
                 None, // log_level not needed for CLI

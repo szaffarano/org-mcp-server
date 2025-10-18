@@ -52,3 +52,9 @@ impl From<std::io::Error> for OrgModeError {
         OrgModeError::IoError(err)
     }
 }
+
+impl From<config::ConfigError> for OrgModeError {
+    fn from(err: config::ConfigError) -> Self {
+        OrgModeError::ConfigError(err.to_string())
+    }
+}

@@ -1,6 +1,7 @@
+use crate::config::CliConfig;
 use anyhow::Result;
 use clap::Args;
-use org_core::{OrgMode, config::CliConfig};
+use org_core::OrgMode;
 
 #[derive(Args)]
 pub struct HeadingCommand {

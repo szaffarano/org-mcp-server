@@ -8,8 +8,8 @@ use orgize::export::{Container, Event, from_fn, from_fn_with_ctx};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::config::OrgConfig;
-use crate::{Config, OrgModeError};
+use crate::OrgModeError;
+use crate::config::{OrgConfig, load_org_config};
 
 #[cfg(test)]
 #[path = "org_mode_tests.rs"]
@@ -84,7 +84,7 @@ impl OrgMode {
     }
 
     pub fn with_defaults() -> Result<Self, OrgModeError> {
-        Self::new(Config::load()?.org)
+        Self::new(load_org_config(None, None)?)
     }
 
     pub fn config(&self) -> &OrgConfig {

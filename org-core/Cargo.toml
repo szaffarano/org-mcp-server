@@ -1,4 +1,5 @@
 [dependencies]
+config = { workspace = true }
 orgize = { workspace = true, features = ["tracing"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

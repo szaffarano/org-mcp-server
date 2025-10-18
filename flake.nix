@@ -129,6 +129,7 @@
               cargo-bloat
               cargo-edit
               cargo-llvm-cov
+              cargo-nextest
               cargo-outdated
               cargo-udeps
               cargo-watch
