@@ -174,10 +174,10 @@ Install from [crates.io](https://crates.io) using Cargo:
 
 ```bash
 # Install CLI tool
-cargo install org-cli
+cargo install org-cli --locked
 
 # Install MCP server
-cargo install org-mcp-server
+cargo install org-mcp-server --locked
 ```
 
 ### Using Nix Flakes
