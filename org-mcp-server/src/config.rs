@@ -1,7 +1,7 @@
-use config::{Config as ConfigRs, ConfigError, Environment, File};
+use config::{Config as ConfigRs, ConfigError};
 use org_core::{
     LoggingConfig, OrgConfig, OrgModeError,
-    config::{default_config_path, find_config_file, load_logging_config, load_org_config},
+    config::{build_config_with_file_and_env, load_logging_config, load_org_config},
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -48,30 +48,12 @@ impl ServerAppConfig {
     }
 
     fn load_server_config(config_file: Option<&str>) -> Result<ServerConfig, OrgModeError> {
-        let mut builder = ConfigRs::builder().set_default(
+        let builder = ConfigRs::builder().set_default(
             "server.max_connections",
             default_max_connections().to_string(),
         )?;
 
-        let config_path = if let Some(path) = config_file {
-            PathBuf::from(path)
-        } else {
-            default_config_path()?
-        };
-
-        if let Some(config_file_path) = find_config_file(config_path) {
-            builder = builder.add_source(File::from(config_file_path).required(false));
-        }
-
-        builder = builder.add_source(
-            Environment::with_prefix("ORG")
-                .prefix_separator("_")
-                .separator("__"),
-        );
-
-        let config = builder.build().map_err(|e: ConfigError| {
-            OrgModeError::ConfigError(format!("Failed to build config: {e}"))
-        })?;
+        let config = build_config_with_file_and_env(config_file, builder)?;
 
         let server_config: ServerConfig = config.get("server").map_err(|e: ConfigError| {
             OrgModeError::ConfigError(format!("Failed to deserialize server config: {e}"))

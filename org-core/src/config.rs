@@ -1,7 +1,10 @@
 use std::{fs, io, path::PathBuf};
 
 use crate::OrgModeError;
-use config::{Config as ConfigRs, ConfigError, Environment, File};
+use config::{
+    Config as ConfigRs, ConfigError, Environment, File,
+    builder::{ConfigBuilder, DefaultState},
+};
 use serde::{Deserialize, Serialize};
 use shellexpand::tilde;
 
@@ -110,22 +113,28 @@ pub fn find_config_file(base_path: PathBuf) -> Option<PathBuf> {
     None
 }
 
-/// Load org configuration using config-rs with layered sources
-pub fn load_org_config(
+/// Build config from file and environment sources
+///
+/// Takes a builder with defaults already set, adds file and env sources,
+/// then builds and returns the config ready for section extraction.
+///
+/// # Arguments
+/// * `config_file` - Optional path to config file
+/// * `builder` - ConfigBuilder with defaults already set
+///
+/// # Returns
+/// Built Config object ready for section extraction via .get()
+pub fn build_config_with_file_and_env(
     config_file: Option<&str>,
-    org_directory: Option<&str>,
-) -> Result<OrgConfig, OrgModeError> {
-    let mut builder = ConfigRs::builder()
-        .set_default("org.org_directory", default_org_directory())?
-        .set_default("org.org_default_notes_file", default_notes_file())?
-        .set_default("org.org_agenda_files", default_agenda_files())?;
-
+    builder: ConfigBuilder<DefaultState>,
+) -> Result<ConfigRs, OrgModeError> {
     let config_path = if let Some(path) = config_file {
         PathBuf::from(path)
     } else {
         default_config_path()?
     };
 
+    let mut builder = builder;
     if let Some(config_file_path) = find_config_file(config_path) {
         builder = builder.add_source(File::from(config_file_path).required(false));
     }
@@ -136,9 +145,22 @@ pub fn load_org_config(
             .separator("__"),
     );
 
-    let config = builder.build().map_err(|e: ConfigError| {
-        OrgModeError::ConfigError(format!("Failed to build config: {e}"))
-    })?;
+    builder
+        .build()
+        .map_err(|e: ConfigError| OrgModeError::ConfigError(format!("Failed to build config: {e}")))
+}
+
+/// Load org configuration using config-rs with layered sources
+pub fn load_org_config(
+    config_file: Option<&str>,
+    org_directory: Option<&str>,
+) -> Result<OrgConfig, OrgModeError> {
+    let builder = ConfigRs::builder()
+        .set_default("org.org_directory", default_org_directory())?
+        .set_default("org.org_default_notes_file", default_notes_file())?
+        .set_default("org.org_agenda_files", default_agenda_files())?;
+
+    let config = build_config_with_file_and_env(config_file, builder)?;
 
     let mut org_config: OrgConfig = config.get("org").map_err(|e: ConfigError| {
         OrgModeError::ConfigError(format!("Failed to deserialize org config: {e}"))
@@ -156,29 +178,11 @@ pub fn load_logging_config(
     config_file: Option<&str>,
     log_level: Option<&str>,
 ) -> Result<LoggingConfig, OrgModeError> {
-    let mut builder = ConfigRs::builder()
+    let builder = ConfigRs::builder()
         .set_default("logging.level", default_log_level())?
         .set_default("logging.file", default_log_file())?;
 
-    let config_path = if let Some(path) = config_file {
-        PathBuf::from(path)
-    } else {
-        default_config_path()?
-    };
-
-    if let Some(config_file_path) = find_config_file(config_path) {
-        builder = builder.add_source(File::from(config_file_path).required(false));
-    }
-
-    builder = builder.add_source(
-        Environment::with_prefix("ORG")
-            .prefix_separator("_")
-            .separator("__"),
-    );
-
-    let config = builder.build().map_err(|e: ConfigError| {
-        OrgModeError::ConfigError(format!("Failed to build config: {e}"))
-    })?;
+    let config = build_config_with_file_and_env(config_file, builder)?;
 
     let mut config: LoggingConfig = config.get("logging").map_err(|e: ConfigError| {
         OrgModeError::ConfigError(format!("Failed to deserialize logging config: {e}"))
