@@ -125,20 +125,22 @@
             # inputsFrom = [self'.packages.org-mcp-server];
             inherit (self'.checks) pre-commit;
             packages = with pkgsWithOverlay; [
-              rustToolchain
               cargo-bloat
               cargo-edit
               cargo-llvm-cov
               cargo-nextest
               cargo-outdated
+              cargo-semver-checks
               cargo-udeps
               cargo-watch
-              pkgs.alejandra
-              pkgs.deadnix
-              pkgs.statix
               curl
               git
               jq
+              pkgs.alejandra
+              pkgs.deadnix
+              pkgs.statix
+              release-plz
+              rustToolchain
             ];
 
             env = {
