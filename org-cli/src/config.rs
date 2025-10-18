@@ -105,6 +105,7 @@ impl CliAppConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::tempdir;
 
     #[test]
@@ -122,6 +123,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_load_from_file() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -153,6 +155,7 @@ level = "debug"
     }
 
     #[test]
+    #[serial]
     fn test_cli_overrides() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -183,5 +186,59 @@ default_format = "json"
             override_dir.path().to_str().unwrap()
         );
         assert_eq!(config.logging.level, "trace");
+    }
+
+    #[test]
+    #[serial]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "Environment variable handling unreliable in Windows tests"
+    )]
+    fn test_env_var_cli_override() {
+        use temp_env::with_vars;
+
+        let temp_dir = tempdir().unwrap();
+        let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+        with_vars(
+            [
+                ("ORG_ORG__ORG_DIRECTORY", Some(temp_dir_path)),
+                ("ORG_CLI__DEFAULT_FORMAT", Some("json")),
+            ],
+            || {
+                let config = CliAppConfig::load(None, None, None).unwrap();
+                assert_eq!(config.org.org_directory, temp_dir_path);
+                assert_eq!(config.cli.default_format, "json");
+            },
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn test_load_cli_config_extension_fallback() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let yaml_config = r#"
+cli:
+  default_format: "json"
+org:
+  org_directory: "/tmp"
+"#;
+
+        let yaml_path = config_dir.join("config.yaml");
+        std::fs::write(&yaml_path, yaml_config).unwrap();
+
+        let org_dir = tempdir().unwrap();
+        let config = CliAppConfig::load(
+            Some(config_dir.join("config").to_str().unwrap().to_string()),
+            Some(org_dir.path().to_str().unwrap().to_string()),
+            None,
+        );
+
+        assert!(config.is_ok());
+        let config = config.unwrap();
+        assert_eq!(config.cli.default_format, "json");
     }
 }

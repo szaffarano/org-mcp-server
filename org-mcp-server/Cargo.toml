@@ -38,6 +38,8 @@ tempfile = { workspace = true }
 test-utils = { path = "../test-utils" }
 tokio-test = { workspace = true }
 tracing-test = { workspace = true, features = ["no-env-filter"] }
+serial_test = { workspace = true }
+temp-env = "0.3.6"
 
 [package]
 name = "org-mcp-server"

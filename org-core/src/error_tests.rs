@@ -225,4 +225,49 @@ fn test_error_display_formatting() {
     let display = format!("{}", error);
     assert!(display.contains("~/path"));
     assert!(display.contains("Failed to expand path"));
+
+    let error = OrgModeError::ConfigError("Invalid configuration".to_string());
+    let display = format!("{}", error);
+    assert!(display.contains("Invalid configuration"));
+    assert!(display.contains("Configuration error"));
+}
+
+#[test]
+fn test_error_source_chain() {
+    use std::error::Error;
+
+    let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
+    let org_error = OrgModeError::from(io_error);
+    assert!(org_error.source().is_some());
+
+    let io_error2 = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied");
+    let org_error2 = OrgModeError::IoError(io_error2);
+    assert!(org_error2.source().is_some());
+
+    let config_error = OrgModeError::ConfigError("test error".to_string());
+    assert!(config_error.source().is_none());
+
+    let invalid_dir = OrgModeError::InvalidDirectory("/path".to_string());
+    assert!(invalid_dir.source().is_none());
+}
+
+#[test]
+fn test_config_error_conversion() {
+    use config::File;
+
+    let config_builder = config::Config::builder()
+        .add_source(File::from_str("invalid toml{{{", config::FileFormat::Toml));
+
+    let result = config_builder.build();
+    assert!(result.is_err());
+
+    let config_err = result.unwrap_err();
+    let org_error: OrgModeError = config_err.into();
+
+    match org_error {
+        OrgModeError::ConfigError(msg) => {
+            assert!(!msg.is_empty());
+        }
+        _ => panic!("Expected ConfigError variant"),
+    }
 }

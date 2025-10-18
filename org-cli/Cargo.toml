@@ -13,6 +13,8 @@ assert_cmd = { workspace = true }
 predicates = { workspace = true }
 tempfile = { workspace = true }
 test-utils = { path = "../test-utils" }
+serial_test = { workspace = true }
+temp-env = "0.3.6"
 
 [package]
 name = "org-cli"

@@ -350,4 +350,119 @@ org_agenda_files = ["test1.org", "test2.org"]
         assert_eq!(config.org_default_notes_file, "custom-notes.org");
         assert_eq!(config.org_agenda_files, vec!["test1.org", "test2.org"]);
     }
+
+    #[test]
+    #[serial]
+    fn test_load_from_yaml_file() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let yaml_config = format!(
+            r#"
+org:
+  org_directory: "{path_str}"
+  org_default_notes_file: "yaml-notes.org"
+  org_agenda_files:
+    - "yaml1.org"
+    - "yaml2.org"
+"#
+        );
+
+        let yaml_path = config_dir.join("config.yaml");
+        std::fs::write(&yaml_path, &yaml_config).unwrap();
+
+        let config = load_org_config(Some(config_dir.join("config").to_str().unwrap()), None);
+        let config = config.unwrap();
+
+        assert_eq!(config.org_directory, path_str);
+        assert_eq!(config.org_default_notes_file, "yaml-notes.org");
+        assert_eq!(config.org_agenda_files, vec!["yaml1.org", "yaml2.org"]);
+    }
+
+    #[test]
+    #[serial]
+    fn test_load_from_yml_file() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let yml_config = format!(
+            r#"
+org:
+  org_directory: "{path_str}"
+  org_default_notes_file: "yml-notes.org"
+logging:
+  level: "debug"
+  file: "/tmp/test.log"
+"#
+        );
+
+        let yml_path = config_dir.join("config.yml");
+        std::fs::write(&yml_path, &yml_config).unwrap();
+
+        let config = load_org_config(Some(config_dir.join("config").to_str().unwrap()), None);
+        let config = config.unwrap();
+        assert_eq!(config.org_default_notes_file, "yml-notes.org");
+
+        let logging_config =
+            load_logging_config(Some(config_dir.join("config").to_str().unwrap()), None);
+        let logging_config = logging_config.unwrap();
+        assert_eq!(logging_config.level, "debug");
+        assert_eq!(logging_config.file, "/tmp/test.log");
+    }
+
+    #[test]
+    #[serial]
+    fn test_load_from_json_file() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+        let json_config = format!(
+            r#"{{
+  "org": {{
+    "org_directory": "{path_str}",
+    "org_default_notes_file": "json-notes.org",
+    "org_agenda_files": ["json1.org", "json2.org"]
+  }}
+}}"#
+        );
+
+        let json_path = config_dir.join("config.json");
+        std::fs::write(&json_path, &json_config).unwrap();
+
+        let config = load_org_config(Some(config_dir.join("config").to_str().unwrap()), None);
+        let config = config.unwrap();
+
+        assert_eq!(config.org_directory, path_str);
+        assert_eq!(config.org_default_notes_file, "json-notes.org");
+        assert_eq!(config.org_agenda_files, vec!["json1.org", "json2.org"]);
+    }
+
+    #[test]
+    #[serial]
+    fn test_logging_config_file_extensions() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let toml_config = r#"
+[logging]
+level = "trace"
+file = "/var/log/test.log"
+"#;
+
+        let toml_path = config_dir.join("config.toml");
+        std::fs::write(&toml_path, toml_config).unwrap();
+
+        let config = load_logging_config(Some(config_dir.join("config").to_str().unwrap()), None);
+        let config = config.unwrap();
+
+        assert_eq!(config.level, "trace");
+        assert_eq!(config.file, "/var/log/test.log");
+    }
 }

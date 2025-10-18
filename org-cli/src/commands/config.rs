@@ -131,3 +131,122 @@ impl ConfigCommand {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_show_config_when_file_doesnt_exist() {
+        let temp_dir = tempdir().unwrap();
+        let nonexistent_path = temp_dir.path().join("nonexistent_config");
+
+        let cmd = ConfigCommand {
+            action: ConfigAction::Show,
+        };
+
+        let result = cmd.show_config(Some(nonexistent_path.to_str().unwrap().to_string()));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_show_config_with_existing_file() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let test_config = format!(
+            r#"
+[org]
+org_directory = "{}"
+
+[cli]
+default_format = "json"
+"#,
+            temp_dir.path().to_str().unwrap().replace('\\', "/")
+        );
+
+        std::fs::write(&config_path, test_config).unwrap();
+
+        let cmd = ConfigCommand {
+            action: ConfigAction::Show,
+        };
+
+        let result = cmd.show_config(Some(config_path.to_str().unwrap().to_string()));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_show_path_adds_extension() {
+        let temp_dir = tempdir().unwrap();
+        let base_path = temp_dir.path().join("config");
+
+        let cmd = ConfigCommand {
+            action: ConfigAction::Path,
+        };
+
+        let result = cmd.show_path(Some(base_path.to_str().unwrap().to_string()));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_init_config_creates_file() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("new_config.toml");
+
+        let cmd = ConfigCommand {
+            action: ConfigAction::Init,
+        };
+
+        let result = cmd.init_config(Some(config_path.to_str().unwrap().to_string()));
+        assert!(result.is_ok());
+        assert!(config_path.exists());
+    }
+
+    #[test]
+    fn test_init_config_file_already_exists() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("existing_config.toml");
+
+        std::fs::write(&config_path, "test content").unwrap();
+
+        let cmd = ConfigCommand {
+            action: ConfigAction::Init,
+        };
+
+        let result = cmd.init_config(Some(config_path.to_str().unwrap().to_string()));
+        assert!(result.is_ok());
+
+        let content = std::fs::read_to_string(&config_path).unwrap();
+        assert_eq!(content, "test content");
+    }
+
+    #[test]
+    fn test_show_config_extension_fallback() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let yaml_config = format!(
+            r#"
+org:
+  org_directory: "{}"
+cli:
+  default_format: "json"
+"#,
+            temp_dir.path().to_str().unwrap().replace('\\', "/")
+        );
+
+        let yaml_path = config_dir.join("config.yaml");
+        std::fs::write(&yaml_path, yaml_config).unwrap();
+
+        let cmd = ConfigCommand {
+            action: ConfigAction::Show,
+        };
+
+        let result = cmd.show_config(Some(
+            config_dir.join("config").to_str().unwrap().to_string(),
+        ));
+        assert!(result.is_ok());
+    }
+}

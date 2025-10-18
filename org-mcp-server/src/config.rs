@@ -53,9 +53,11 @@ impl ServerAppConfig {
             default_max_connections().to_string(),
         )?;
 
-        let config_path = config_file
-            .map(PathBuf::from)
-            .unwrap_or_else(|| default_config_path().expect("Failed to get default config path"));
+        let config_path = if let Some(path) = config_file {
+            PathBuf::from(path)
+        } else {
+            default_config_path()?
+        };
 
         if config_path.exists() {
             builder = builder.add_source(File::from(config_path).required(false));
@@ -133,6 +135,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_load_from_file() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -164,6 +167,7 @@ level = "debug"
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_cli_overrides() {
         let temp_dir = tempdir().unwrap();
         let config_path = temp_dir.path().join("config.toml");
@@ -194,5 +198,119 @@ max_connections = 5
             override_dir.path().to_str().unwrap()
         );
         assert_eq!(config.logging.level, "trace");
+    }
+
+    #[test]
+    fn test_save_to_file() {
+        let temp_dir = tempdir().unwrap();
+        let save_path = temp_dir.path().join("saved_config.toml");
+
+        let config_dir = tempdir().unwrap();
+        let config = ServerAppConfig {
+            org: OrgConfig {
+                org_directory: config_dir.path().to_str().unwrap().to_string(),
+                org_default_notes_file: "test.org".to_string(),
+                org_agenda_files: vec!["agenda.org".to_string()],
+                org_agenda_text_search_extra_files: vec![],
+            },
+            server: ServerConfig {
+                max_connections: 25,
+            },
+            logging: LoggingConfig {
+                level: "warn".to_string(),
+                file: "/tmp/server.log".to_string(),
+            },
+        };
+
+        let result = config.save_to_file(&save_path);
+        assert!(result.is_ok());
+
+        assert!(save_path.exists());
+
+        let content = std::fs::read_to_string(&save_path).unwrap();
+        assert!(content.contains("max_connections = 25"));
+        assert!(content.contains("level = \"warn\""));
+        assert!(content.contains("org_default_notes_file = \"test.org\""));
+    }
+
+    #[test]
+    fn test_save_to_file_creates_parent_directory() {
+        let temp_dir = tempdir().unwrap();
+        let nested_path = temp_dir
+            .path()
+            .join("nested")
+            .join("dirs")
+            .join("config.toml");
+
+        let config_dir = tempdir().unwrap();
+        let config = ServerAppConfig {
+            org: OrgConfig {
+                org_directory: config_dir.path().to_str().unwrap().to_string(),
+                ..OrgConfig::default()
+            },
+            server: ServerConfig::default(),
+            logging: LoggingConfig::default(),
+        };
+
+        let result = config.save_to_file(&nested_path);
+        assert!(result.is_ok());
+        assert!(nested_path.exists());
+        assert!(nested_path.parent().unwrap().exists());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "Environment variable handling unreliable in Windows tests"
+    )]
+    fn test_env_var_server_override() {
+        use temp_env::with_vars;
+
+        let temp_dir = tempdir().unwrap();
+        let temp_dir_path = temp_dir.path().to_str().unwrap();
+
+        with_vars(
+            [
+                ("ORG_ORG__ORG_DIRECTORY", Some(temp_dir_path)),
+                ("ORG_SERVER__MAX_CONNECTIONS", Some("50")),
+            ],
+            || {
+                let config = ServerAppConfig::load(None, None, None).unwrap();
+                assert_eq!(config.org.org_directory, temp_dir_path);
+                assert_eq!(config.server.max_connections, 50);
+            },
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_load_server_config_extension_fallback() {
+        let temp_dir = tempdir().unwrap();
+        let config_dir = temp_dir.path().join(".config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let yaml_config = r#"
+server:
+  max_connections: 15
+org:
+  org_directory: "/tmp"
+logging:
+  level: "info"
+"#;
+
+        let yaml_path = config_dir.join("config.yaml");
+        std::fs::write(&yaml_path, yaml_config).unwrap();
+
+        let org_dir = tempdir().unwrap();
+        let config = ServerAppConfig::load(
+            Some(config_dir.join("config").to_str().unwrap().to_string()),
+            Some(org_dir.path().to_str().unwrap().to_string()),
+            None,
+        );
+
+        assert!(config.is_ok());
+        let config = config.unwrap();
+        assert_eq!(config.server.max_connections, 15);
     }
 }
