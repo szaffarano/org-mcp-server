@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Args;
-use org_core::OrgMode;
+use org_core::{OrgMode, config::CliConfig};
 use std::path::Path;
 
 #[derive(Args)]
@@ -10,15 +10,15 @@ pub struct InitCommand {
 }
 
 impl InitCommand {
-    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
+    pub fn execute(&self, org_mode: OrgMode, _cli: CliConfig) -> Result<()> {
         let dir = self
             .path
             .as_deref()
-            .unwrap_or(&org_mode.config().org.org_directory);
+            .unwrap_or(&org_mode.config().org_directory);
 
         let mut init_config = org_mode.config().clone();
         if self.path.is_some() {
-            init_config.org.org_directory = dir.to_string();
+            init_config.org_directory = dir.to_string();
         }
 
         match OrgMode::new(init_config.clone()) {

@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn error::Error>> {
         config.org.org_directory
     );
 
-    let service = OrgModeRouter::with_config(config)?
+    let service = OrgModeRouter::with_config(config.org)?
         .serve(stdio())
         .await
         .inspect_err(|e| {

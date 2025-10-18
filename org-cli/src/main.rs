@@ -58,16 +58,16 @@ fn main() -> Result<()> {
                 None, // log_level not needed for CLI
             )?;
 
-            let org_mode = OrgMode::new(config)?;
+            let org_mode = OrgMode::new(config.org)?;
             match cli.command {
                 Commands::Config(_) => unreachable!(),
-                Commands::List(cmd) => cmd.execute(org_mode),
-                Commands::Init(cmd) => cmd.execute(org_mode),
-                Commands::Read(cmd) => cmd.execute(org_mode),
-                Commands::Outline(cmd) => cmd.execute(org_mode),
-                Commands::Heading(cmd) => cmd.execute(org_mode),
-                Commands::ElementById(cmd) => cmd.execute(org_mode),
-                Commands::Search(cmd) => cmd.execute(org_mode),
+                Commands::List(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Init(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Read(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Outline(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Heading(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::ElementById(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Search(cmd) => cmd.execute(org_mode, config.cli),
             }
         }
     }

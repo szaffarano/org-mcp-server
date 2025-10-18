@@ -1,12 +1,13 @@
-use crate::{Config, OrgMode, OrgModeError};
+use crate::{OrgMode, OrgModeError, config::OrgConfig};
 use std::fs;
 use tempfile::TempDir;
 
 #[test]
 fn test_invalid_directory_error() {
-    let mut config = Config::default();
-    config.org.org_directory = "/completely/nonexistent/directory/path".to_string();
-    let result = OrgMode::new(config);
+    let result = OrgMode::new(OrgConfig {
+        org_directory: "/completely/nonexistent/directory/path".to_string(),
+        ..OrgConfig::default()
+    });
 
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -22,8 +23,11 @@ fn test_invalid_directory_error() {
 #[test]
 fn test_file_not_found_error() {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.org.org_directory = temp_dir.path().to_str().unwrap().to_string();
+    let config = OrgConfig {
+        org_directory: temp_dir.path().to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
+
     let org_mode = OrgMode::new(config).unwrap();
 
     let result = org_mode.read_file("nonexistent.org");
@@ -55,8 +59,11 @@ More content.
     )
     .unwrap();
 
-    let mut config = Config::default();
-    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let config = OrgConfig {
+        org_directory: temp_path.to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
+
     let org_mode = OrgMode::new(config).unwrap();
 
     // Test invalid heading path
@@ -89,8 +96,11 @@ Some content.
     )
     .unwrap();
 
-    let mut config = Config::default();
-    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let config = OrgConfig {
+        org_directory: temp_path.to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
+
     let org_mode = OrgMode::new(config).unwrap();
 
     let result = org_mode.get_element_by_id("nonexistent-id");
@@ -116,9 +126,10 @@ fn test_parsing_error_handling() {
         "This is not a valid org file with weird control characters: \x00\x01\x02",
     )
     .unwrap();
-
-    let mut config = Config::default();
-    config.org.org_directory = temp_path.to_str().unwrap().to_string();
+    let config = OrgConfig {
+        org_directory: temp_path.to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
     let org_mode = OrgMode::new(config).unwrap();
 
     // Even malformed content should be readable (orgize handles it gracefully)
@@ -133,9 +144,11 @@ fn test_empty_file_handling() {
 
     // Create empty file
     fs::write(temp_path.join("empty.org"), "").unwrap();
+    let config = OrgConfig {
+        org_directory: temp_path.to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
 
-    let mut config = Config::default();
-    config.org.org_directory = temp_path.to_str().unwrap().to_string();
     let org_mode = OrgMode::new(config).unwrap();
 
     // Empty file should be readable
@@ -157,9 +170,11 @@ fn test_io_error_propagation() {
 
     // Create a file, then make the directory unreadable (if possible)
     fs::write(temp_path.join("test.org"), "* Test\nContent").unwrap();
+    let config = OrgConfig {
+        org_directory: temp_path.to_str().unwrap().to_string(),
+        ..OrgConfig::default()
+    };
 
-    let mut config = Config::default();
-    config.org.org_directory = temp_path.to_str().unwrap().to_string();
     let org_mode = OrgMode::new(config).unwrap();
 
     // This should work normally

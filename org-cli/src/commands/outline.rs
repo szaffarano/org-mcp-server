@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::Args;
-use org_core::OrgMode;
+use org_core::{OrgMode, config::CliConfig};
 
 #[derive(Args)]
 pub struct OutlineCommand {
@@ -19,11 +19,11 @@ enum OutputFormat {
 }
 
 impl OutlineCommand {
-    pub fn execute(&self, org_mode: OrgMode) -> Result<()> {
+    pub fn execute(&self, org_mode: OrgMode, cli: CliConfig) -> Result<()> {
         let tree = org_mode.get_outline(&self.file)?;
 
         let format = self.format.as_ref().unwrap_or({
-            match org_mode.config().cli.default_format.as_str() {
+            match cli.default_format.as_str() {
                 "json" => &OutputFormat::Json,
                 _ => &OutputFormat::Plain,
             }

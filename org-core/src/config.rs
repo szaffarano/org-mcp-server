@@ -4,7 +4,7 @@ use crate::OrgModeError;
 use serde::{Deserialize, Serialize};
 use shellexpand::tilde;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
     pub org: OrgConfig,
     #[serde(default)]
@@ -63,17 +63,13 @@ fn default_output_format() -> String {
     "plain".to_string()
 }
 
-impl Default for Config {
+impl Default for OrgConfig {
     fn default() -> Self {
         Self {
-            org: OrgConfig {
-                org_directory: default_org_directory(),
-                org_default_notes_file: default_notes_file(),
-                org_agenda_files: default_agenda_files(),
-                org_agenda_text_search_extra_files: Vec::default(),
-            },
-            logging: LoggingConfig::default(),
-            cli: CliConfig::default(),
+            org_directory: default_org_directory(),
+            org_default_notes_file: default_notes_file(),
+            org_agenda_files: default_agenda_files(),
+            org_agenda_text_search_extra_files: Vec::default(),
         }
     }
 }
@@ -285,6 +281,42 @@ impl Config {
             .map_err(|e| OrgModeError::ConfigError(format!("Failed to write config file: {e}")))?;
 
         Ok(())
+    }
+}
+
+impl OrgConfig {
+    pub fn validate(mut self) -> Result<Self, OrgModeError> {
+        let expanded_root = tilde(&self.org_directory);
+        let root_path = PathBuf::from(expanded_root.as_ref());
+
+        if !root_path.exists() {
+            return Err(OrgModeError::ConfigError(format!(
+                "Root directory does not exist: {}",
+                self.org_directory
+            )));
+        }
+
+        if !root_path.is_dir() {
+            return Err(OrgModeError::ConfigError(format!(
+                "Root directory is not a directory: {}",
+                self.org_directory
+            )));
+        }
+
+        match fs::read_dir(&root_path) {
+            Ok(_) => {}
+            Err(e) => {
+                if e.kind() == io::ErrorKind::PermissionDenied {
+                    return Err(OrgModeError::InvalidDirectory(format!(
+                        "Permission denied accessing directory: {root_path:?}"
+                    )));
+                }
+                return Err(OrgModeError::IoError(e));
+            }
+        }
+
+        self.org_directory = expanded_root.to_string();
+        Ok(self)
     }
 }
 
