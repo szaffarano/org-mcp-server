@@ -1,7 +1,7 @@
 use config::{Config as ConfigRs, ConfigError, Environment, File};
 use org_core::{
     LoggingConfig, OrgConfig, OrgModeError,
-    config::{default_config_path, load_logging_config, load_org_config},
+    config::{default_config_path, find_config_file, load_logging_config, load_org_config},
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -59,16 +59,8 @@ impl ServerAppConfig {
             default_config_path()?
         };
 
-        if config_path.exists() {
-            builder = builder.add_source(File::from(config_path).required(false));
-        } else if let Some(parent) = config_path.parent() {
-            for ext in &["toml", "yaml", "yml", "json"] {
-                let path_with_ext = parent.join(format!("config.{ext}"));
-                if path_with_ext.exists() {
-                    builder = builder.add_source(File::from(path_with_ext).required(false));
-                    break;
-                }
-            }
+        if let Some(config_file_path) = find_config_file(config_path) {
+            builder = builder.add_source(File::from(config_file_path).required(false));
         }
 
         builder = builder.add_source(

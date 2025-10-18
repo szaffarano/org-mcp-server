@@ -89,6 +89,27 @@ pub fn default_config_path() -> Result<PathBuf, OrgModeError> {
     Ok(default_config_dir()?.join("config"))
 }
 
+/// Find an existing config file, trying common extensions if the base path doesn't exist
+///
+/// Returns the first existing config file path found, or None if no config file exists.
+/// Tries extensions in order: toml, yaml, yml, json
+pub fn find_config_file(base_path: PathBuf) -> Option<PathBuf> {
+    if base_path.exists() {
+        return Some(base_path);
+    }
+
+    if let Some(parent) = base_path.parent() {
+        for ext in &["toml", "yaml", "yml", "json"] {
+            let path_with_ext = parent.join(format!("config.{ext}"));
+            if path_with_ext.exists() {
+                return Some(path_with_ext);
+            }
+        }
+    }
+
+    None
+}
+
 /// Load org configuration using config-rs with layered sources
 pub fn load_org_config(
     config_file: Option<&str>,
@@ -105,17 +126,8 @@ pub fn load_org_config(
         default_config_path()?
     };
 
-    if config_path.exists() {
-        builder = builder.add_source(File::from(config_path).required(false));
-    } else if let Some(parent) = config_path.parent() {
-        // Try with common extensions
-        for ext in &["toml", "yaml", "yml", "json"] {
-            let path_with_ext = parent.join(format!("config.{ext}"));
-            if path_with_ext.exists() {
-                builder = builder.add_source(File::from(path_with_ext).required(false));
-                break;
-            }
-        }
+    if let Some(config_file_path) = find_config_file(config_path) {
+        builder = builder.add_source(File::from(config_file_path).required(false));
     }
 
     builder = builder.add_source(
@@ -154,16 +166,8 @@ pub fn load_logging_config(
         default_config_path()?
     };
 
-    if config_path.exists() {
-        builder = builder.add_source(File::from(config_path).required(false));
-    } else if let Some(parent) = config_path.parent() {
-        for ext in &["toml", "yaml", "yml", "json"] {
-            let path_with_ext = parent.join(format!("config.{ext}"));
-            if path_with_ext.exists() {
-                builder = builder.add_source(File::from(path_with_ext).required(false));
-                break;
-            }
-        }
+    if let Some(config_file_path) = find_config_file(config_path) {
+        builder = builder.add_source(File::from(config_file_path).required(false));
     }
 
     builder = builder.add_source(
