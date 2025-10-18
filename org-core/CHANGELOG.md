@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.2...org-core-v0.0.3)
+
+### ✨ Features
+
+
+- *(mcp)* Add tags parameter to list files tool ([#79](https://github.com/szaffarano/org-mcp-server/pull/79)) - ([1b02b24](https://github.com/szaffarano/org-mcp-server/commit/1b02b243cd9d3f478cd46b682183e098b408c93f))
+
+### 🚜 Refactor
+
+
+- *(config)* [**breaking**] Improve configuration architecture ([#78](https://github.com/szaffarano/org-mcp-server/pull/78)) - ([4053d2e](https://github.com/szaffarano/org-mcp-server/commit/4053d2e8655125ec712438d021c89c768dd0962b))
+
+
 ## [0.0.2](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.1...org-core-v0.0.2) - 2025-10-12
 
 ### Added
