@@ -186,6 +186,7 @@ max_connections = 5
                 org_default_notes_file: "test.org".to_string(),
                 org_agenda_files: vec!["agenda.org".to_string()],
                 org_agenda_text_search_extra_files: vec![],
+                org_todo_keywords: vec!["TODO".to_string(), "|".to_string(), "DONE".to_string()],
             },
             server: ServerConfig {
                 max_connections: 25,
