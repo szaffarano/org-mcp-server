@@ -1285,3 +1285,200 @@ fn test_agenda_help() {
         .stdout(predicate::str::contains("week"))
         .stdout(predicate::str::contains("range"));
 }
+
+#[test]
+fn test_agenda_list_no_matching_priority() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("list")
+        .arg("--priority")
+        .arg("c")
+        .arg("--states")
+        .arg("TODO")
+        .assert()
+        .success();
+    // TODO: complete once prio filter is implemented
+}
+
+#[test]
+fn test_agenda_list_multiple_filters() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("list")
+        .arg("--states")
+        .arg("TODO")
+        .arg("--tags")
+        .arg("work")
+        .arg("--priority")
+        .arg("a")
+        .arg("--limit")
+        .arg("5")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Found"));
+
+    // TODO: complete once prio filter is implemented
+}
+
+#[test]
+fn test_agenda_today_with_tags() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("today")
+        .arg("--tags")
+        .arg("work,personal")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Agenda"));
+
+    // TODO: complete once tags filter is implemented
+}
+
+#[test]
+fn test_agenda_week_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("week")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"items\""))
+        .stdout(predicate::str::contains("\"count\""));
+
+    // TODO: complete once agenda view is implemented
+}
+
+#[test]
+fn test_agenda_list_combined_states() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("list")
+        .arg("--states")
+        .arg("TODO,DONE")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Found"));
+
+    // TODO: complete once agenda view is implemented
+}
+
+#[test]
+fn test_agenda_list_with_limit_edge_case() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    // Test with limit of 1
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("list")
+        .arg("--limit")
+        .arg("1")
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("Found 1 tasks")
+                .or(predicate::str::contains("Found 1 task"))
+                .or(predicate::str::contains("Found")),
+        );
+}

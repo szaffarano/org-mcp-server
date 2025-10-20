@@ -271,3 +271,38 @@ fn test_config_error_conversion() {
         _ => panic!("Expected ConfigError variant"),
     }
 }
+
+#[test]
+fn test_glob_error_conversion_and_display() {
+    use globset::GlobBuilder;
+
+    let result = GlobBuilder::new("[invalid").build();
+    assert!(result.is_err());
+
+    let glob_err = result.unwrap_err();
+    let org_error: OrgModeError = glob_err.into();
+
+    match &org_error {
+        OrgModeError::GlobError(_) => {
+            let display = format!("{}", org_error);
+            assert!(display.contains("Error with glob pattern"));
+        }
+        _ => panic!("Expected GlobError variant, got: {:?}", org_error),
+    }
+
+    // Test error source
+    use std::error::Error;
+    assert!(org_error.source().is_none());
+}
+
+#[test]
+fn test_invalid_agenda_view_type_error() {
+    let error = OrgModeError::InvalidAgendaViewType("invalid-view".to_string());
+
+    let display = format!("{}", error);
+    assert!(display.contains("Invalid agenda view type"));
+    assert!(display.contains("invalid-view"));
+
+    use std::error::Error;
+    assert!(error.source().is_none());
+}

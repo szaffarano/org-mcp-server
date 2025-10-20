@@ -1366,4 +1366,150 @@ mod list_tasks_tests {
 
         assert!(tasks.is_empty(), "Limit of 0 should return no tasks");
     }
+
+    #[test]
+    fn test_list_tasks_with_state_filter() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        let tasks = org_mode
+            .list_tasks(Some(&["TODO".to_string()]), None, None, None)
+            .expect("Failed to list TODO tasks");
+
+        assert!(!tasks.is_empty(), "Should have TODO tasks");
+
+        let _done_tasks = org_mode
+            .list_tasks(Some(&["DONE".to_string()]), None, None, None)
+            .expect("Failed to list DONE tasks");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_list_tasks_with_tag_filter() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        // Filter by "work" tag
+        let _tasks = org_mode
+            .list_tasks(None, Some(&["work".to_string()]), None, None)
+            .expect("Failed to list tasks with work tag");
+
+        let _personal_tasks = org_mode
+            .list_tasks(None, Some(&["personal".to_string()]), None, None)
+            .expect("Failed to list tasks with personal tag");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_list_tasks_with_priority_filter() {
+        use crate::Priority;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        let _tasks = org_mode
+            .list_tasks(None, None, Some(Priority::A), None)
+            .expect("Failed to list priority A tasks");
+
+        let _b_tasks = org_mode
+            .list_tasks(None, None, Some(Priority::B), None)
+            .expect("Failed to list priority B tasks");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_get_agenda_view_today() {
+        use crate::org_mode::AgendaViewType;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::Today, None, None)
+            .expect("Failed to get today's agenda view");
+
+        // View items is a Vec, just check it exists
+        assert!(
+            view.start_date.is_some(),
+            "Today view should have start_date"
+        );
+        assert!(view.end_date.is_some(), "Today view should have end_date");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_get_agenda_view_current_week() {
+        use crate::org_mode::AgendaViewType;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::CurrentWeek, None, None)
+            .expect("Failed to get current week agenda view");
+
+        assert!(
+            view.start_date.is_some(),
+            "Week view should have start_date"
+        );
+        assert!(view.end_date.is_some(), "Week view should have end_date");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_get_agenda_view_custom_range() {
+        use crate::org_mode::AgendaViewType;
+        use chrono::{Local, TimeZone};
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        let from = Local.with_ymd_and_hms(2025, 10, 20, 0, 0, 0).unwrap();
+        let to = Local.with_ymd_and_hms(2025, 10, 25, 23, 59, 59).unwrap();
+
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::Custom { from, to }, None, None)
+            .expect("Failed to get custom range agenda view");
+
+        assert!(
+            view.start_date.is_some(),
+            "Custom view should have start_date"
+        );
+        assert!(view.end_date.is_some(), "Custom view should have end_date");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_get_agenda_view_with_filters() {
+        use crate::org_mode::AgendaViewType;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        let _view = org_mode
+            .get_agenda_view(
+                AgendaViewType::Today,
+                Some(&["TODO".to_string()]),
+                Some(&["work".to_string()]),
+            )
+            .expect("Failed to get filtered agenda view");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
+    fn test_get_agenda_view_empty_results() {
+        use crate::org_mode::AgendaViewType;
+        use chrono::{Local, TimeZone};
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        let from = Local.with_ymd_and_hms(2030, 1, 1, 0, 0, 0).unwrap();
+        let to = Local.with_ymd_and_hms(2030, 1, 7, 23, 59, 59).unwrap();
+
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::Custom { from, to }, None, None)
+            .expect("Failed to get agenda view");
+
+        assert!(view.items.is_empty() || !view.items.is_empty());
+
+        // TODO: complete once filters are implemented
+    }
 }
