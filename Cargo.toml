@@ -15,9 +15,12 @@ members = ["org-mcp-server", "org-cli", "org-core", "test-utils"]
 [workspace.dependencies]
 anyhow = "1.0"
 assert_cmd = "2.0"
+chrono = "0.4"
 clap = { version = "4.5", features = ["derive"] }
 config = "0.15"
 dirs = "6"
+globset = "0.4"
+ignore = "0.4"
 nucleo-matcher = "0.3"
 org-core = { version = "0.0.1", path = "../org-core" }
 orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
@@ -53,7 +56,6 @@ tracing-subscriber = { version = "0.3.20", features = [
 ] }
 tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
 urlencoding = "2.1"
-walkdir = "2.5"
 
 [workspace.metadata.coverage]
 exclude = ["*/tests/*", "*/benches/*", "**/target/**"]

@@ -28,6 +28,7 @@ tracing-subscriber = { workspace = true, features = [
   "fmt",
 ] }
 urlencoding = { workspace = true }
+chrono = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true }
 config = { workspace = true }
