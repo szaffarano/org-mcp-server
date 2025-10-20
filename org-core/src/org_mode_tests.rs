@@ -1218,7 +1218,7 @@ mod list_tasks_tests {
 
         assert!(has_priority_a, "Should have priority A tasks");
         assert!(has_priority_b, "Should have priority B tasks");
-        assert!(!has_priority_c, "Should have priority C tasks");
+        assert!(!has_priority_c, "Should not have priority C tasks");
     }
 
     #[test]
