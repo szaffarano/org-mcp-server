@@ -1455,6 +1455,24 @@ mod list_tasks_tests {
     }
 
     #[test]
+    fn test_get_agenda_view_custom_week() {
+        use crate::org_mode::AgendaViewType;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::Week(9), None, None)
+            .expect("Failed to get current week agenda view");
+
+        assert!(
+            view.start_date.is_some(),
+            "Week view should have start_date"
+        );
+        assert!(view.end_date.is_some(), "Week view should have end_date");
+
+        // TODO: complete once filters are implemented
+    }
+
+    #[test]
     fn test_get_agenda_view_custom_range() {
         use crate::org_mode::AgendaViewType;
         use chrono::{Local, TimeZone};

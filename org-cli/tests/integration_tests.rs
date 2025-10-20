@@ -1095,7 +1095,6 @@ org_agenda_files = ["agenda.org"]
 }
 
 #[test]
-#[ignore = "Date parsing needs to be fixed in implementation"]
 fn test_agenda_range_command() {
     let temp_dir = TempDir::new().unwrap();
     create_test_org_files(&temp_dir).unwrap();
@@ -1124,6 +1123,68 @@ org_agenda_files = ["agenda.org"]
         .assert()
         .success()
         .stdout(predicate::str::contains("Agenda"));
+}
+
+#[test]
+fn test_agenda_range_command_invalid_start() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("range")
+        .arg("--start")
+        .arg("2025-15-01")
+        .arg("--end")
+        .arg("2025-10-31")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to parse start date"));
+}
+
+#[test]
+fn test_agenda_range_command_invalid_end() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("range")
+        .arg("--start")
+        .arg("2025-10-01")
+        .arg("--end")
+        .arg("2025-15-31")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Failed to parse end date"));
 }
 
 #[test]
