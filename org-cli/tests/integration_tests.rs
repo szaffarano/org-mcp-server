@@ -1482,3 +1482,127 @@ org_agenda_files = ["agenda.org"]
                 .or(predicate::str::contains("Found")),
         );
 }
+
+#[test]
+fn test_agenda_today_plain_format_explicit() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+
+[cli]
+default_format = "plain"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("today")
+        .arg("--format")
+        .arg("plain")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Agenda"));
+    // TODO: improve once the agenda feature is fully implemented
+}
+
+#[test]
+fn test_agenda_week_plain_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("week")
+        .arg("--format")
+        .arg("plain")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Agenda"));
+    // TODO: improve once the agenda feature is fully implemented
+}
+
+#[test]
+fn test_agenda_today_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("today")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("{"))
+        .stdout(predicate::str::contains("\"items\""));
+    // TODO: improve once the agenda feature is fully implemented
+}
+
+#[test]
+fn test_agenda_list_plain_format() {
+    let temp_dir = TempDir::new().unwrap();
+    create_test_org_files(&temp_dir).unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    let mut cmd = Command::cargo_bin("org-cli").unwrap();
+    cmd.arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("list")
+        .arg("--format")
+        .arg("plain")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Found"));
+    // TODO: improve once the agenda feature is fully implemented
+}

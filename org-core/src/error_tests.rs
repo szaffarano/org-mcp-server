@@ -306,3 +306,36 @@ fn test_invalid_agenda_view_type_error() {
     use std::error::Error;
     assert!(error.source().is_none());
 }
+
+#[test]
+fn test_walk_error_conversion_and_source() {
+    use ignore::WalkBuilder;
+
+    // Create a walker for a non-existent path to trigger an error
+    let walker = WalkBuilder::new("/nonexistent/path/that/does/not/exist").build();
+
+    // Try to get an error from walking
+    for result in walker {
+        if let Err(walk_err) = result {
+            let org_error: OrgModeError = walk_err.into();
+
+            // Test that it converts to WalkError variant
+            match &org_error {
+                OrgModeError::WalkError(_) => {
+                    // Verify the display formatting
+                    let display = format!("{}", org_error);
+                    assert!(display.contains("Error walking directory"));
+                }
+                _ => panic!("Expected WalkError variant, got: {:?}", org_error),
+            }
+
+            // Test error source - WalkError should have a source
+            use std::error::Error;
+            assert!(
+                org_error.source().is_some(),
+                "WalkError should have a source"
+            );
+            return;
+        }
+    }
+}
