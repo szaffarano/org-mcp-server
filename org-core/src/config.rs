@@ -137,7 +137,7 @@ impl OrgConfig {
             self.org_todo_keywords
                 .last()
                 .map(|e| vec![e.clone()])
-                .unwrap_or(vec![])
+                .unwrap_or_default()
         }
     }
 }
