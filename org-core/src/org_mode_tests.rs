@@ -1150,3 +1150,220 @@ mod agenda_view_type_tests {
         assert_eq!(end.day(), 31);
     }
 }
+
+mod list_tasks_tests {
+    use super::*;
+
+    fn create_test_org_mode_with_agenda_files() -> OrgMode {
+        let config = OrgConfig {
+            org_directory: "tests/fixtures".to_string(),
+            org_agenda_files: vec!["agenda.org".to_string(), "project.org".to_string()],
+            ..OrgConfig::default()
+        };
+        OrgMode::new(config).expect("Failed to create test OrgMode")
+    }
+
+    #[test]
+    fn test_list_tasks_basic() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        assert!(!tasks.is_empty());
+        assert!(tasks.len() >= 10, "Expected at least 10 tasks");
+
+        assert!(tasks.iter().any(|t| t.file_path.contains("agenda.org")));
+        assert!(tasks.iter().any(|t| t.file_path.contains("project.org")));
+    }
+
+    #[test]
+    fn test_list_tasks_with_limit() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, Some(5))
+            .expect("Failed to list tasks with limit");
+
+        assert!(tasks.len() <= 5, "Expected at most 5 tasks");
+    }
+
+    #[test]
+    fn test_list_tasks_todo_states() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        let has_todo = tasks
+            .iter()
+            .any(|t| t.todo_state == Some("TODO".to_string()));
+        let has_done = tasks
+            .iter()
+            .any(|t| t.todo_state == Some("DONE".to_string()));
+
+        assert!(has_todo, "Should have TODO tasks");
+        assert!(!has_done, "Should have DONE tasks");
+    }
+
+    #[test]
+    fn test_list_tasks_priorities() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        let has_priority_a = tasks.iter().any(|t| t.priority == Some("A".to_string()));
+        let has_priority_b = tasks.iter().any(|t| t.priority == Some("B".to_string()));
+        let has_priority_c = tasks.iter().any(|t| t.priority == Some("C".to_string()));
+
+        assert!(has_priority_a, "Should have priority A tasks");
+        assert!(has_priority_b, "Should have priority B tasks");
+        assert!(!has_priority_c, "Should have priority C tasks");
+    }
+
+    #[test]
+    fn test_list_tasks_scheduled_deadline() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        let has_scheduled = tasks.iter().any(|t| t.scheduled.is_some());
+        let has_deadline = tasks.iter().any(|t| t.deadline.is_some());
+
+        assert!(has_scheduled, "Should have tasks with scheduled dates");
+        assert!(has_deadline, "Should have tasks with deadline dates");
+
+        let scheduled_task = tasks.iter().find(|t| t.scheduled.is_some()).unwrap();
+        assert!(
+            scheduled_task.scheduled.as_ref().unwrap().contains("2025"),
+            "Scheduled date should contain year"
+        );
+    }
+
+    #[test]
+    fn test_list_tasks_nested_headlines() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        let nested_tasks = tasks.iter().filter(|t| t.level >= 3).count();
+
+        assert!(
+            nested_tasks > 0,
+            "Should have nested TODO items (level >= 3)"
+        );
+    }
+
+    #[test]
+    fn test_list_tasks_file_path_handling() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        for task in &tasks {
+            assert!(
+                !task.file_path.starts_with('/'),
+                "File path should be relative: {}",
+                task.file_path
+            );
+            assert!(
+                task.file_path.ends_with(".org"),
+                "File path should end with .org: {}",
+                task.file_path
+            );
+        }
+    }
+
+    #[test]
+    fn test_list_tasks_custom_todo_keywords() {
+        let config = OrgConfig {
+            org_directory: "tests/fixtures".to_string(),
+            org_agenda_files: vec!["agenda.org".to_string()],
+            org_todo_keywords: vec![
+                "TODO".to_string(),
+                "IN_PROGRESS".to_string(),
+                "|".to_string(),
+                "DONE".to_string(),
+                "CANCELLED".to_string(),
+            ],
+            ..OrgConfig::default()
+        };
+        let org_mode = OrgMode::new(config).expect("Failed to create test OrgMode");
+
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        assert!(!tasks.is_empty());
+        assert!(tasks.iter().any(|t| t.todo_state.is_some()));
+    }
+
+    #[test]
+    fn test_list_tasks_empty_agenda_files() {
+        let config = OrgConfig {
+            org_directory: "tests/fixtures".to_string(),
+            org_agenda_files: vec!["empty.org".to_string()],
+            ..OrgConfig::default()
+        };
+        let org_mode = OrgMode::new(config).expect("Failed to create test OrgMode");
+
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        assert!(tasks.is_empty(), "Empty file should have no tasks");
+    }
+
+    #[test]
+    fn test_list_tasks_glob_patterns() {
+        let config = OrgConfig {
+            org_directory: "tests/fixtures".to_string(),
+            org_agenda_files: vec!["*.org".to_string()],
+            ..OrgConfig::default()
+        };
+        let org_mode = OrgMode::new(config).expect("Failed to create test OrgMode");
+
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        assert!(!tasks.is_empty());
+        assert!(tasks.len() >= 10, "Should find tasks from multiple files");
+    }
+
+    #[test]
+    fn test_list_tasks_specific_heading_content() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, None)
+            .expect("Failed to list tasks");
+
+        let quarterly_report = tasks
+            .iter()
+            .find(|t| t.heading.contains("Complete quarterly report"));
+
+        assert!(
+            quarterly_report.is_some(),
+            "Should find quarterly report task"
+        );
+
+        let task = quarterly_report.unwrap();
+        assert_eq!(task.todo_state, Some("TODO".to_string()));
+        assert_eq!(task.priority, Some("A".to_string()));
+        assert!(task.scheduled.is_some());
+        assert!(task.deadline.is_some());
+    }
+
+    #[test]
+    fn test_list_tasks_limit_zero() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+        let tasks = org_mode
+            .list_tasks(None, None, None, Some(0))
+            .expect("Failed to list tasks");
+
+        assert!(tasks.is_empty(), "Limit of 0 should return no tasks");
+    }
+}

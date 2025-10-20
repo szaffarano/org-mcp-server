@@ -1,0 +1,95 @@
+#+TITLE: Agenda Test File
+#+AUTHOR: Test User
+#+DATE: 2025-10-19
+
+* Work Tasks
+** TODO [#A] Complete quarterly report
+   SCHEDULED: <2025-10-20 Mon> DEADLINE: <2025-10-25 Fri>
+   :PROPERTIES:
+   :ID: work-task-001
+   :END:
+   Need to finish Q3 report for the board meeting.
+
+** TODO [#B] Review pull requests
+   SCHEDULED: <2025-10-19 Sat>
+   :PROPERTIES:
+   :ID: work-task-002
+   :END:
+   - Check backend changes
+   - Review frontend updates
+
+** DONE [#C] Update documentation
+   CLOSED: [2025-10-18 Fri 14:30] SCHEDULED: <2025-10-18 Fri>
+   :PROPERTIES:
+   :ID: work-task-003
+   :END:
+   Documentation has been updated with latest API changes.
+
+* Personal Tasks :personal:
+** TODO Buy groceries
+   DEADLINE: <2025-10-21 Sun>
+   :PROPERTIES:
+   :ID: personal-task-001
+   :END:
+   - Milk
+   - Bread
+   - Eggs
+
+** TODO Call dentist
+   :PROPERTIES:
+   :ID: personal-task-002
+   :END:
+   Schedule annual checkup appointment.
+
+** DONE Read book chapter
+   CLOSED: [2025-10-17 Thu 22:00]
+   :PROPERTIES:
+   :ID: personal-task-003
+   :END:
+   Finished chapter 5 of "Clean Code".
+
+* Project Planning :project:work:
+** TODO [#A] Design database schema
+   SCHEDULED: <2025-10-22 Tue> DEADLINE: <2025-10-28 Mon>
+   :PROPERTIES:
+   :ID: project-task-001
+   :END:
+*** TODO Define user tables
+*** TODO Define relationship mappings
+*** DONE Research database options
+    CLOSED: [2025-10-16 Wed 16:00]
+
+** TODO Set up CI/CD pipeline
+   SCHEDULED: <2025-10-23 Wed>
+   :PROPERTIES:
+   :ID: project-task-002
+   :END:
+   Configure GitHub Actions for automated testing and deployment.
+
+* Meetings
+** TODO [#A] Team standup
+   SCHEDULED: <2025-10-19 Sat 10:00>
+   :PROPERTIES:
+   :ID: meeting-001
+   :END:
+   Daily standup meeting with the development team.
+
+** TODO Client presentation
+   SCHEDULED: <2025-10-24 Thu 14:00> DEADLINE: <2025-10-24 Thu 14:00>
+   :PROPERTIES:
+   :ID: meeting-002
+   :END:
+   Present Q3 results and Q4 roadmap to client.
+
+* Someday/Maybe
+** Research new framework
+   :PROPERTIES:
+   :ID: maybe-001
+   :END:
+   Look into Rust web frameworks for future projects.
+
+** Learn machine learning
+   :PROPERTIES:
+   :ID: maybe-002
+   :END:
+   Take online course on ML fundamentals.
