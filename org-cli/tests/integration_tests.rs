@@ -20,7 +20,7 @@ fn test_list_command_basic() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Found 9 .org files"))
+        .stdout(predicate::str::contains("Found 10 .org files"))
         .stdout(predicate::str::contains("basic.org"))
         .stdout(predicate::str::contains("with_doc_id.org"))
         .stdout(predicate::str::contains("search_test.org"))
@@ -41,7 +41,7 @@ fn test_list_command_json_format() {
         .arg("json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"count\": 9"))
+        .stdout(predicate::str::contains("\"count\": 10"))
         .stdout(predicate::str::contains("\"files\""))
         .stdout(predicate::str::contains("{"))
         .stdout(predicate::str::contains("}"));
