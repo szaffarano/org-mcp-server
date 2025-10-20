@@ -447,7 +447,7 @@ impl OrgMode {
         let path = if PathBuf::from(&path).is_absolute() {
             path.to_string()
         } else {
-            org_root.join(&path).to_str().unwrap().to_string()
+            org_root.join(&path).to_str().unwrap_or(&path).to_string()
         };
 
         let root = path
