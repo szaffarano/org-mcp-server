@@ -19,6 +19,8 @@ pub struct OrgConfig {
     pub org_agenda_files: Vec<String>,
     #[serde(default)]
     pub org_agenda_text_search_extra_files: Vec<String>,
+    #[serde(default = "default_todo_keywords")]
+    pub org_todo_keywords: Vec<String>,
 }
 
 /// Logging configuration (shared across CLI and server)
@@ -37,6 +39,7 @@ impl Default for OrgConfig {
             org_default_notes_file: default_notes_file(),
             org_agenda_files: default_agenda_files(),
             org_agenda_text_search_extra_files: Vec::default(),
+            org_todo_keywords: default_todo_keywords(),
         }
     }
 }
@@ -70,6 +73,39 @@ impl OrgConfig {
             )));
         }
 
+        if self.org_todo_keywords.len() < 2 {
+            return Err(OrgModeError::ConfigError(
+                "org_todo_keywords must contain at least two keywords".to_string(),
+            ));
+        }
+
+        let separators: Vec<usize> = self
+            .org_todo_keywords
+            .iter()
+            .enumerate()
+            .filter_map(|(i, x)| (x == "|").then_some(i))
+            .collect();
+
+        if separators.len() > 1 {
+            return Err(OrgModeError::ConfigError(
+                "Multiple '|' separators found in org_todo_keywords".to_string(),
+            ));
+        }
+
+        if separators.len() == 1 {
+            let sep_pos = separators[0];
+            if sep_pos == 0 {
+                return Err(OrgModeError::ConfigError(
+                    "Separator '|' cannot be at the beginning of org_todo_keywords".to_string(),
+                ));
+            }
+            if sep_pos == self.org_todo_keywords.len() - 1 {
+                return Err(OrgModeError::ConfigError(
+                    "Separator '|' cannot be at the end of org_todo_keywords".to_string(),
+                ));
+            }
+        }
+
         match fs::read_dir(&root_path) {
             Ok(_) => {}
             Err(e) => {
@@ -84,6 +120,25 @@ impl OrgConfig {
 
         self.org_directory = expanded_root.to_string();
         Ok(self)
+    }
+
+    pub fn unfinished_keywords(&self) -> Vec<String> {
+        if let Some(pos) = self.org_todo_keywords.iter().position(|x| x == "|") {
+            self.org_todo_keywords[..pos].to_vec()
+        } else {
+            self.org_todo_keywords[..self.org_todo_keywords.len() - 1].to_vec()
+        }
+    }
+
+    pub fn finished_keywords(&self) -> Vec<String> {
+        if let Some(pos) = self.org_todo_keywords.iter().position(|x| x == "|") {
+            self.org_todo_keywords[pos + 1..self.org_todo_keywords.len()].to_vec()
+        } else {
+            self.org_todo_keywords
+                .last()
+                .map(|e| vec![e.clone()])
+                .unwrap_or(vec![])
+        }
     }
 }
 
@@ -213,6 +268,10 @@ pub fn default_notes_file() -> String {
 
 pub fn default_agenda_files() -> Vec<String> {
     vec!["agenda.org".to_string()]
+}
+
+pub fn default_todo_keywords() -> Vec<String> {
+    vec!["TODO".to_string(), "|".to_string(), "DONE".to_string()]
 }
 
 pub fn default_log_level() -> String {
@@ -458,5 +517,229 @@ file = "/var/log/test.log"
 
         assert_eq!(config.level, "trace");
         assert_eq!(config.file, "/var/log/test.log");
+    }
+
+    #[test]
+    fn test_unfinished_keywords_with_separator() {
+        let config = OrgConfig {
+            org_todo_keywords: vec![
+                "TODO".to_string(),
+                "IN_PROGRESS".to_string(),
+                "|".to_string(),
+                "DONE".to_string(),
+                "CANCELLED".to_string(),
+            ],
+            ..OrgConfig::default()
+        };
+
+        let unfinished = config.unfinished_keywords();
+        assert_eq!(unfinished, vec!["TODO", "IN_PROGRESS"]);
+    }
+
+    #[test]
+    fn test_unfinished_keywords_without_separator() {
+        let config = OrgConfig {
+            org_todo_keywords: vec![
+                "TODO".to_string(),
+                "IN_PROGRESS".to_string(),
+                "DONE".to_string(),
+            ],
+            ..OrgConfig::default()
+        };
+
+        let unfinished = config.unfinished_keywords();
+        assert_eq!(unfinished, vec!["TODO", "IN_PROGRESS"]);
+    }
+
+    #[test]
+    fn test_finished_keywords_with_separator() {
+        let config = OrgConfig {
+            org_todo_keywords: vec![
+                "TODO".to_string(),
+                "|".to_string(),
+                "DONE".to_string(),
+                "CANCELLED".to_string(),
+            ],
+            ..OrgConfig::default()
+        };
+
+        let finished = config.finished_keywords();
+        assert_eq!(finished, vec!["DONE", "CANCELLED"]);
+    }
+
+    #[test]
+    fn test_finished_keywords_without_separator() {
+        let config = OrgConfig {
+            org_todo_keywords: vec!["TODO".to_string(), "DONE".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let finished = config.finished_keywords();
+        assert_eq!(finished, vec!["DONE"]);
+    }
+
+    #[test]
+    fn test_validate_empty_keywords() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec![],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("must contain at least two keywords"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_single_keyword() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec!["TODO".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("must contain at least two keywords"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_multiple_separators() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec![
+                "TODO".to_string(),
+                "|".to_string(),
+                "DONE".to_string(),
+                "|".to_string(),
+                "CANCELLED".to_string(),
+            ],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("Multiple '|' separators"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_separator_at_beginning() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec!["|".to_string(), "DONE".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("cannot be at the beginning"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_separator_at_end() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec!["TODO".to_string(), "|".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("cannot be at the end"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_only_separator() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec!["|".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            OrgModeError::ConfigError(msg) => {
+                assert!(msg.contains("must contain at least two keywords"));
+            }
+            _ => panic!("Expected ConfigError"),
+        }
+    }
+
+    #[test]
+    fn test_validate_valid_keywords_with_separator() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec!["TODO".to_string(), "|".to_string(), "DONE".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_valid_keywords_without_separator() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec!["TODO".to_string(), "DONE".to_string()],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_multiple_unfinished_and_finished() {
+        let temp_dir = tempdir().unwrap();
+        let config = OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_todo_keywords: vec![
+                "TODO".to_string(),
+                "IN_PROGRESS".to_string(),
+                "|".to_string(),
+                "DONE".to_string(),
+                "CANCELLED".to_string(),
+            ],
+            ..OrgConfig::default()
+        };
+
+        let result = config.validate();
+        assert!(result.is_ok());
     }
 }
