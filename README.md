@@ -22,11 +22,15 @@ linking capabilities for your org-mode files through the MCP protocol.
 - `org-outline://{file}` — Get hierarchical structure of `{file}` as JSON
 - `org-heading://{file}#{heading}` — Access specific headings by path
 - `org-id://{id}` — Find content by org-mode ID properties
+- `org-agenda://` — List all agenda items and tasks
+- `org-agenda://today` — Today's scheduled agenda items
+- `org-agenda://week` — This week's scheduled agenda items
 
 ### MCP Tools
 
 - `org-file-list` — List all org files in configured directories
 - `org-search` — Search for text content across all org files using fuzzy matching
+- `org-agenda` — Query agenda items with filtering by dates, states, tags, and priorities
 
 ### CLI Tool
 
@@ -42,6 +46,10 @@ linking capabilities for your org-mode files through the MCP protocol.
   org files
 - `org-cli search` — Search for text content across all org files using fuzzy
   matching
+- `org-cli agenda list` — List all tasks (TODO/DONE items)
+- `org-cli agenda today` — Show today's scheduled tasks
+- `org-cli agenda week` — Show this week's scheduled tasks
+- `org-cli agenda range` — Show tasks in custom date range
 
 ## Configuration
 
@@ -131,6 +139,34 @@ org search "TODO" --limit 5 --format json --snippet-size 75
 
 # Override root directory for a single command
 org --root-directory ~/documents/org search "meeting notes"
+```
+
+### Agenda Commands
+
+```bash
+# List all tasks (TODO/DONE items)
+org agenda list
+
+# List tasks with specific TODO states
+org agenda list --states TODO,IN_PROGRESS
+
+# Filter tasks by priority
+org agenda list --priority A
+
+# Filter by tags
+org agenda list --tags work,urgent
+
+# Show today's scheduled tasks
+org agenda today
+
+# Show this week's tasks
+org agenda week
+
+# Show tasks in custom date range
+org agenda range --start 2025-10-20 --end 2025-10-27
+
+# JSON output for agenda
+org agenda list --format json --limit 10
 ```
 
 ## Architecture
@@ -295,9 +331,9 @@ cargo run --example <name>
 - [x] Environment variable configuration
 - [x] Unified CLI interface with global configuration
 - [x] Tag-based filtering and querying
+- [x] Agenda-related Functionality
 - [ ] Link following and backlink discovery (org-roam support)
 - [ ] Metadata caching for performance
-- [ ] Agenda-related Functionality
 
 ### Phase 3: Extended Capabilities 📋
 
