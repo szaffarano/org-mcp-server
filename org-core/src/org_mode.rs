@@ -484,7 +484,7 @@ impl OrgMode {
         _todo_states: Option<&[String]>,
         _tags: Option<&[String]>,
         _priority: Option<Priority>,
-        _limit: Option<usize>,
+        limit: Option<usize>,
     ) -> Result<Vec<AgendaItem>, OrgModeError> {
         // 1. Iterate through all org files using list_files()
         // 2. Parse each file with orgize to find headlines with TODO keywords
@@ -541,7 +541,7 @@ impl OrgMode {
                 org.traverse(&mut handler);
                 tasks
             })
-            .take(_limit.unwrap_or(usize::MAX))
+            .take(limit.unwrap_or(usize::MAX))
             .collect::<Vec<_>>();
 
         Ok(tasks)
