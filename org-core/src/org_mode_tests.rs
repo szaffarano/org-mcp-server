@@ -835,3 +835,318 @@ fn test_read_file_directory_error() {
         );
     }
 }
+
+mod agenda_view_type_tests {
+    use super::*;
+    use crate::org_mode::AgendaViewType;
+    use chrono::{Datelike, TimeZone};
+    use std::convert::TryFrom;
+
+    #[test]
+    fn test_try_from_empty_string() {
+        let result = AgendaViewType::try_from("");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::CurrentWeek));
+    }
+
+    #[test]
+    fn test_try_from_today() {
+        let result = AgendaViewType::try_from("today");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::Today));
+    }
+
+    #[test]
+    fn test_try_from_week() {
+        let result = AgendaViewType::try_from("week");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::CurrentWeek));
+    }
+
+    #[test]
+    fn test_try_from_month() {
+        let result = AgendaViewType::try_from("month");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::CurrentMonth));
+    }
+
+    #[test]
+    fn test_try_from_specific_day_valid() {
+        let result = AgendaViewType::try_from("day/2025-10-20");
+        assert!(result.is_ok());
+        if let Ok(AgendaViewType::Day(date)) = result {
+            assert_eq!(date.format("%Y-%m-%d").to_string(), "2025-10-20");
+        } else {
+            panic!("Expected Day variant");
+        }
+    }
+
+    #[test]
+    fn test_try_from_specific_day_invalid_format() {
+        let result = AgendaViewType::try_from("day/20-10-2025");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid date format"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_specific_day_invalid_date() {
+        let result = AgendaViewType::try_from("day/2025-13-40");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid date format"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_week_number_valid() {
+        let result = AgendaViewType::try_from("week/42");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::Week(42)));
+    }
+
+    #[test]
+    fn test_try_from_week_number_invalid() {
+        let result = AgendaViewType::try_from("week/invalid");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid week number"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_month_number_valid() {
+        let result = AgendaViewType::try_from("month/6");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::Month(6)));
+    }
+
+    #[test]
+    fn test_try_from_month_number_boundary_1() {
+        let result = AgendaViewType::try_from("month/1");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::Month(1)));
+    }
+
+    #[test]
+    fn test_try_from_month_number_boundary_12() {
+        let result = AgendaViewType::try_from("month/12");
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), AgendaViewType::Month(12)));
+    }
+
+    #[test]
+    fn test_try_from_month_number_out_of_range_zero() {
+        let result = AgendaViewType::try_from("month/0");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("out of range"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_month_number_out_of_range_13() {
+        let result = AgendaViewType::try_from("month/13");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("out of range"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_month_number_invalid() {
+        let result = AgendaViewType::try_from("month/abc");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid month number"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_custom_range_valid() {
+        let result = AgendaViewType::try_from("query/from/2025-10-01/to/2025-10-31");
+        assert!(result.is_ok());
+        if let Ok(AgendaViewType::Custom { from, to }) = result {
+            assert_eq!(from.format("%Y-%m-%d").to_string(), "2025-10-01");
+            assert_eq!(to.format("%Y-%m-%d").to_string(), "2025-10-31");
+        } else {
+            panic!("Expected Custom variant");
+        }
+    }
+
+    #[test]
+    fn test_try_from_custom_range_from_greather_than_to() {
+        let result = AgendaViewType::try_from("query/from/2025-10-31/to/2025-10-01");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("From date must be before to date"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_custom_range_invalid_from_date() {
+        let result = AgendaViewType::try_from("query/from/invalid/to/2025-10-31");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid from date"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_custom_range_invalid_to_date() {
+        let result = AgendaViewType::try_from("query/from/2025-10-01/to/invalid");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid to date"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_try_from_unknown_format() {
+        let result = AgendaViewType::try_from("unknown/format");
+        assert!(result.is_err());
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Unknown agenda view type format"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_today() {
+        let view_type = AgendaViewType::Today;
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        assert_eq!(
+            start.format("%Y-%m-%d").to_string(),
+            end.format("%Y-%m-%d").to_string()
+        );
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_specific_day() {
+        let result = AgendaViewType::try_from("day/2025-06-15");
+        assert!(result.is_ok());
+        let view_type = result.unwrap();
+
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        assert_eq!(start.format("%Y-%m-%d").to_string(), "2025-06-15");
+        assert_eq!(end.format("%Y-%m-%d").to_string(), "2025-06-15");
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_current_week() {
+        let view_type = AgendaViewType::CurrentWeek;
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        // Week should span 7 days
+        let duration = end.signed_duration_since(start);
+        assert_eq!(duration.num_days(), 6);
+
+        // Start should be a Monday (weekday 0)
+        assert_eq!(start.weekday().num_days_from_monday(), 0);
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_custom_range() {
+        let result = AgendaViewType::try_from("query/from/2025-03-01/to/2025-03-15");
+        assert!(result.is_ok());
+        let view_type = result.unwrap();
+
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        assert_eq!(start.format("%Y-%m-%d").to_string(), "2025-03-01");
+        assert_eq!(end.format("%Y-%m-%d").to_string(), "2025-03-15");
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_current_month() {
+        let view_type = AgendaViewType::CurrentMonth;
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        // Start should be day 1 of current month
+        assert_eq!(start.day(), 1);
+
+        // Start and end should be in same month
+        assert_eq!(start.month(), end.month());
+        assert_eq!(start.year(), end.year());
+
+        // End should be last day of month
+        let next_month_first = if end.month() == 12 {
+            chrono::Local
+                .with_ymd_and_hms(end.year() + 1, 1, 1, 0, 0, 0)
+                .unwrap()
+        } else {
+            chrono::Local
+                .with_ymd_and_hms(end.year(), end.month() + 1, 1, 0, 0, 0)
+                .unwrap()
+        };
+        let last_day_of_month = next_month_first - chrono::Duration::days(1);
+        assert_eq!(end.day(), last_day_of_month.day());
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_specific_month() {
+        let result = AgendaViewType::try_from("month/2");
+        assert!(result.is_ok());
+        let view_type = result.unwrap();
+
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        // Should be February
+        assert_eq!(start.month(), 2);
+        assert_eq!(end.month(), 2);
+
+        // Start should be day 1
+        assert_eq!(start.day(), 1);
+
+        // End should be 28 or 29 depending on leap year
+        assert!(end.day() == 28 || end.day() == 29);
+    }
+
+    #[test]
+    fn test_start_date_and_end_date_december() {
+        let result = AgendaViewType::try_from("month/12");
+        assert!(result.is_ok());
+        let view_type = result.unwrap();
+
+        let start = view_type.start_date();
+        let end = view_type.end_date();
+
+        // Should be December
+        assert_eq!(start.month(), 12);
+        assert_eq!(end.month(), 12);
+
+        // Start should be day 1
+        assert_eq!(start.day(), 1);
+
+        // End should be day 31
+        assert_eq!(end.day(), 31);
+    }
+}

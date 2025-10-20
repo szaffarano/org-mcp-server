@@ -5,7 +5,9 @@ pub enum OrgModeError {
     InvalidDirectory(String),
     InvalidHeadingPath(String),
     InvalidElementId(String),
-    WalkDirError(walkdir::Error),
+    InvalidAgendaViewType(String),
+    WalkError(ignore::Error),
+    GlobError(globset::Error),
     IoError(std::io::Error),
     ShellExpansionError(String),
     ConfigError(String),
@@ -23,7 +25,11 @@ impl fmt::Display for OrgModeError {
             OrgModeError::InvalidElementId(id) => {
                 write!(f, "Invalid element id: {id}")
             }
-            OrgModeError::WalkDirError(err) => write!(f, "Error walking directory: {err}"),
+            OrgModeError::InvalidAgendaViewType(input) => {
+                write!(f, "Invalid agenda view type: {input}")
+            }
+            OrgModeError::WalkError(err) => write!(f, "Error walking directory: {err}"),
+            OrgModeError::GlobError(err) => write!(f, "Error with glob pattern: {err}"),
             OrgModeError::IoError(err) => write!(f, "IO error: {err}"),
             OrgModeError::ShellExpansionError(path) => write!(f, "Failed to expand path: {path}"),
             OrgModeError::ConfigError(msg) => write!(f, "Configuration error: {msg}"),
@@ -34,16 +40,16 @@ impl fmt::Display for OrgModeError {
 impl std::error::Error for OrgModeError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            OrgModeError::WalkDirError(err) => Some(err),
+            OrgModeError::WalkError(err) => Some(err),
             OrgModeError::IoError(err) => Some(err),
             _ => None,
         }
     }
 }
 
-impl From<walkdir::Error> for OrgModeError {
-    fn from(err: walkdir::Error) -> Self {
-        OrgModeError::WalkDirError(err)
+impl From<ignore::Error> for OrgModeError {
+    fn from(err: ignore::Error) -> Self {
+        OrgModeError::WalkError(err)
     }
 }
 
@@ -56,5 +62,11 @@ impl From<std::io::Error> for OrgModeError {
 impl From<config::ConfigError> for OrgModeError {
     fn from(err: config::ConfigError) -> Self {
         OrgModeError::ConfigError(err.to_string())
+    }
+}
+
+impl From<globset::Error> for OrgModeError {
+    fn from(err: globset::Error) -> Self {
+        OrgModeError::GlobError(err)
     }
 }

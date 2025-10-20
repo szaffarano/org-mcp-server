@@ -1,0 +1,135 @@
+* TODO Project Alpha — Main Development
+  DEADLINE: <2025-10-25 Fri> SCHEDULED: <2025-10-20 Mon>
+** PROGRESS Implement user authentication system
+   SCHEDULED: <2025-10-20 Mon>
+*** TODO Set up OAuth2 integration
+    DEADLINE: <2025-10-22 Wed>
+*** DONE Create login page
+    CLOSED: [2025-10-18 Sat 14:30]
+*** TODO Add password reset functionality
+** TODO Database schema design
+   SCHEDULED: <2025-10-23 Thu>
+** REJECTED Use NoSQL database
+   Originally planned but decided against it after team discussion
+*** DONE Research MongoDB options
+    CLOSED: [2025-10-15 Wed 09:15]
+
+* DONE Q3 2025 Planning
+  CLOSED: [2025-10-01 Wed 16:45]
+  DEADLINE: <2025-09-30 Tue>
+** DONE Define quarterly objectives
+   CLOSED: [2025-09-28 Mon 11:00]
+** DONE Budget allocation
+   CLOSED: [2025-09-29 Tue 15:30]
+** DONE Team capacity planning
+   CLOSED: [2025-09-30 Tue 14:00]
+
+* TODO Marketing Campaign Launch
+  SCHEDULED: <2025-11-01 Sat> DEADLINE: <2025-11-15 Sat>
+** PROGRESS Content creation
+*** TODO Write blog posts
+    DEADLINE: <2025-10-28 Wed>
+**** TODO Draft technical article
+**** DONE Research competitor content
+     CLOSED: [2025-10-17 Fri 10:20]
+*** PROGRESS Design social media graphics
+    SCHEDULED: <2025-10-21 Tue>
+**** TODO Create Instagram templates
+**** TODO Design Twitter banners
+**** DONE Finalize color scheme
+     CLOSED: [2025-10-19 Sun 13:45]
+** TODO Email campaign setup
+   SCHEDULED: <2025-10-25 Fri>
+** REJECTED Print advertising
+   Budget constraints led to cancellation
+
+* Infrastructure Maintenance
+** TODO Update server certificates
+   DEADLINE: <2025-10-31 Fri>
+*** PROGRESS Audit current certificates
+*** TODO Request new certificates from CA
+*** TODO Deploy to production servers
+** DONE Quarterly backup verification
+   CLOSED: [2025-10-10 Fri 08:30]
+   SCHEDULED: <2025-10-10 Fri>
+** TODO Performance optimization
+   SCHEDULED: <2025-10-26 Sun>
+
+* PROGRESS Learning and Development
+** TODO Complete Rust programming course
+   SCHEDULED: <2025-10-20 Mon> DEADLINE: <2025-12-31 Wed>
+*** DONE Chapters 1-5: Basics
+    CLOSED: [2025-10-12 Sun 20:15]
+*** PROGRESS Chapter 6: Enums and Pattern Matching
+*** TODO Chapter 7: Modules and Packages
+*** TODO Chapters 8-10: Error Handling and Testing
+** DONE Attend DevOps conference
+   CLOSED: [2025-10-05 Sun 18:00]
+   SCHEDULED: <2025-10-05 Sun>
+** TODO Read Designing Data-Intensive Applications
+   DEADLINE: <2025-11-30 Sun>
+
+* Personal Tasks
+** TODO Home renovation planning
+   SCHEDULED: <2025-10-22 Wed>
+*** PROGRESS Get contractor quotes
+*** TODO Review design options
+*** REJECTED DIY approach
+    Too complex, decided to hire professionals
+** DONE Annual health checkup
+   CLOSED: [2025-10-16 Thu 16:00]
+   SCHEDULED: <2025-10-16 Thu>
+** TODO Plan holiday vacation
+   DEADLINE: <2025-10-30 Thu>
+*** TODO Research destinations
+*** TODO Check flight prices
+*** TODO Book accommodation
+
+* DONE Archive — Completed Projects
+** DONE Website Redesign 2025
+   CLOSED: [2025-09-30 Tue 17:30]
+*** DONE Frontend development
+    CLOSED: [2025-09-15 Mon 14:00]
+*** DONE Backend API updates
+    CLOSED: [2025-09-20 Sat 11:30]
+*** DONE User acceptance testing
+    CLOSED: [2025-09-28 Sun 16:00]
+
+* TODO Bug Fixes and Maintenance
+  SCHEDULED: <2025-10-21 Tue>
+** PROGRESS Fix memory leak in data processor
+   DEADLINE: <2025-10-24 Fri>
+*** TODO Identify leak source
+*** PROGRESS Add memory profiling
+*** TODO Implement fix
+** DONE Resolve login timeout issue
+   CLOSED: [2025-10-18 Sat 09:45]
+   SCHEDULED: <2025-10-18 Sat>
+** TODO Update dependencies
+   DEADLINE: <2025-10-27 Mon>
+*** TODO Audit for security vulnerabilities
+*** TODO Test compatibility
+*** TODO Deploy to staging
+
+* Research and Experimentation
+** TODO Evaluate new CI/CD tools
+   SCHEDULED: <2025-10-23 Thu>
+*** TODO Test GitHub Actions workflows
+*** TODO Compare with Jenkins
+*** PROGRESS Document findings
+** REJECTED Migrate to microservices
+   Current monolith architecture is sufficient for our scale
+** TODO Prototype real-time notification system
+   DEADLINE: <2025-11-10 Mon>
+
+* Meeting Notes and Follow-ups
+** TODO Weekly team sync follow-up
+   SCHEDULED: <2025-10-21 Tue>
+*** TODO Share meeting notes
+*** PROGRESS Action items from last meeting
+**** DONE Review code standards document
+     CLOSED: [2025-10-19 Sun 11:00]
+**** TODO Schedule training session
+** DONE Client presentation preparation
+   CLOSED: [2025-10-17 Fri 15:00]
+   DEADLINE: <2025-10-17 Fri>
