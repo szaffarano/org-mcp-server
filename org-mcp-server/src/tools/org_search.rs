@@ -58,7 +58,7 @@ impl OrgModeRouter {
             Err(e) => {
                 let error_code = match &e {
                     OrgModeError::InvalidDirectory(_) => ErrorCode::INVALID_PARAMS,
-                    OrgModeError::WalkDirError(_) => ErrorCode::INTERNAL_ERROR,
+                    OrgModeError::WalkError(_) => ErrorCode::INTERNAL_ERROR,
                     OrgModeError::IoError(_) => ErrorCode::INTERNAL_ERROR,
                     _ => ErrorCode::INTERNAL_ERROR,
                 };
