@@ -1,6 +1,7 @@
 use crate::config::CliConfig;
 use anyhow::Result;
-use chrono::{Local, NaiveDateTime};
+use chrono::TimeZone;
+use chrono::{Local, NaiveDate};
 use clap::{Args, Subcommand};
 use org_core::{OrgMode, Priority, org_mode::AgendaViewType};
 
@@ -184,15 +185,25 @@ impl AgendaCommand {
             }
 
             AgendaSubcommand::Range { start, end, tags } => {
-                let from = NaiveDateTime::parse_from_str(start, "%Y-%m-%d")?
-                    .and_local_timezone(Local)
-                    .single()
-                    .ok_or_else(|| anyhow::anyhow!("Failed to parse start date '{}'", start))?;
+                let from = NaiveDate::parse_from_str(start, "%Y-%m-%d")
+                    .map_err(|e| anyhow::anyhow!("Failed to parse start date '{}': {}", start, e))?
+                    .and_hms_opt(0, 0, 0)
+                    .ok_or_else(|| {
+                        anyhow::anyhow!("Invalid time components for date '{}'", start)
+                    })?;
 
-                let to = NaiveDateTime::parse_from_str(end, "%Y-%m-%d")?
-                    .and_local_timezone(Local)
-                    .single()
-                    .ok_or_else(|| anyhow::anyhow!("Failed to parse end date '{}'", end))?;
+                let from = Local.from_local_datetime(&from).single().ok_or_else(|| {
+                    anyhow::anyhow!("Failed to convert start date '{}' to local timezone", start)
+                })?;
+
+                let to = NaiveDate::parse_from_str(end, "%Y-%m-%d")
+                    .map_err(|e| anyhow::anyhow!("Failed to parse end date '{}': {}", end, e))?
+                    .and_hms_opt(0, 0, 0)
+                    .ok_or_else(|| anyhow::anyhow!("Invalid time components for date '{}'", end))?;
+
+                let to = Local.from_local_datetime(&to).single().ok_or_else(|| {
+                    anyhow::anyhow!("Failed to convert end date '{}' to local timezone", end)
+                })?;
 
                 let view = org_mode.get_agenda_view(
                     AgendaViewType::Custom { from, to },
