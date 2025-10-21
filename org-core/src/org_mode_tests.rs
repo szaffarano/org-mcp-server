@@ -1152,11 +1152,14 @@ mod agenda_view_type_tests {
 }
 
 mod list_tasks_tests {
+    use serial_test::serial;
+
     use super::*;
 
     fn create_test_org_mode_with_agenda_files() -> OrgMode {
+        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/");
         let config = OrgConfig {
-            org_directory: "tests/fixtures".to_string(),
+            org_directory: root.to_string(),
             org_agenda_files: vec!["agenda.org".to_string(), "project.org".to_string()],
             ..OrgConfig::default()
         };
@@ -1202,7 +1205,7 @@ mod list_tasks_tests {
             .any(|t| t.todo_state == Some("DONE".to_string()));
 
         assert!(has_todo, "Should have TODO tasks");
-        assert!(!has_done, "Should have DONE tasks");
+        assert!(!has_done, "Should not have DONE tasks");
     }
 
     #[test]
@@ -1218,7 +1221,7 @@ mod list_tasks_tests {
 
         assert!(has_priority_a, "Should have priority A tasks");
         assert!(has_priority_b, "Should have priority B tasks");
-        assert!(!has_priority_c, "Should not have priority C tasks");
+        assert!(has_priority_c, "Should have priority C tasks");
     }
 
     #[test]
@@ -1371,33 +1374,95 @@ mod list_tasks_tests {
     fn test_list_tasks_with_state_filter() {
         let org_mode = create_test_org_mode_with_agenda_files();
 
-        let tasks = org_mode
+        let todo_tasks = org_mode
             .list_tasks(Some(&["TODO".to_string()]), None, None, None)
             .expect("Failed to list TODO tasks");
 
-        assert!(!tasks.is_empty(), "Should have TODO tasks");
+        assert!(!todo_tasks.is_empty(), "Should have TODO tasks");
+        for task in &todo_tasks {
+            assert_eq!(
+                task.todo_state.as_deref(),
+                Some("TODO"),
+                "Task '{}' should have TODO state",
+                task.heading
+            );
+        }
+        assert!(
+            todo_tasks.len() >= 10,
+            "Expected at least 10 TODO tasks, got {}",
+            todo_tasks.len()
+        );
 
-        let _done_tasks = org_mode
+        let done_tasks = org_mode
             .list_tasks(Some(&["DONE".to_string()]), None, None, None)
             .expect("Failed to list DONE tasks");
 
-        // TODO: complete once filters are implemented
+        assert!(done_tasks.is_empty(), "Should not have DONE tasks");
     }
 
     #[test]
+    #[serial]
     fn test_list_tasks_with_tag_filter() {
         let org_mode = create_test_org_mode_with_agenda_files();
 
         // Filter by "work" tag
-        let _tasks = org_mode
+        let work_tasks = org_mode
             .list_tasks(None, Some(&["work".to_string()]), None, None)
             .expect("Failed to list tasks with work tag");
 
-        let _personal_tasks = org_mode
+        assert!(
+            work_tasks.len() >= 2,
+            "Should have at least 2 tasks with 'work' tag, got {}",
+            work_tasks.len()
+        );
+        // Verify all returned tasks have the 'work' tag
+        for task in &work_tasks {
+            assert!(
+                task.tags.contains(&"work".to_string()),
+                "Task '{}' should have 'work' tag, has {:?}",
+                task.heading,
+                task.tags
+            );
+        }
+
+        // Filter by "personal" tag
+        let personal_tasks = org_mode
             .list_tasks(None, Some(&["personal".to_string()]), None, None)
             .expect("Failed to list tasks with personal tag");
 
-        // TODO: complete once filters are implemented
+        assert!(
+            !personal_tasks.is_empty(),
+            "Should have at least 1 task with 'personal' tag, got {}",
+            personal_tasks.len()
+        );
+        // Verify all returned tasks have the 'personal' tag
+        for task in &personal_tasks {
+            assert!(
+                task.tags.contains(&"personal".to_string()),
+                "Task '{}' should have 'personal' tag, has {:?}",
+                task.heading,
+                task.tags
+            );
+        }
+
+        // Filter by "urgent" tag (should find tasks with urgent tag)
+        let urgent_tasks = org_mode
+            .list_tasks(None, Some(&["urgent".to_string()]), None, None)
+            .expect("Failed to list tasks with urgent tag");
+
+        assert!(
+            !urgent_tasks.is_empty(),
+            "Should have at least 1 task with 'urgent' tag, got {}",
+            urgent_tasks.len()
+        );
+        for task in &urgent_tasks {
+            assert!(
+                task.tags.contains(&"urgent".to_string()),
+                "Task '{}' should have 'urgent' tag, has {:?}",
+                task.heading,
+                task.tags
+            );
+        }
     }
 
     #[test]
@@ -1406,15 +1471,236 @@ mod list_tasks_tests {
 
         let org_mode = create_test_org_mode_with_agenda_files();
 
-        let _tasks = org_mode
+        // Test Priority A filter
+        let a_tasks = org_mode
             .list_tasks(None, None, Some(Priority::A), None)
             .expect("Failed to list priority A tasks");
 
-        let _b_tasks = org_mode
+        assert!(
+            a_tasks.len() >= 2,
+            "Should have at least 2 priority A tasks, got {}",
+            a_tasks.len()
+        );
+        for task in &a_tasks {
+            assert_eq!(
+                task.priority.as_deref(),
+                Some("A"),
+                "Task '{}' should have priority A, has {:?}",
+                task.heading,
+                task.priority
+            );
+        }
+
+        // Test Priority B filter
+        let b_tasks = org_mode
             .list_tasks(None, None, Some(Priority::B), None)
             .expect("Failed to list priority B tasks");
 
-        // TODO: complete once filters are implemented
+        assert!(
+            !b_tasks.is_empty(),
+            "Should have at least 1 priority B task, got {}",
+            b_tasks.len()
+        );
+        for task in &b_tasks {
+            assert_eq!(
+                task.priority.as_deref(),
+                Some("B"),
+                "Task '{}' should have priority B, has {:?}",
+                task.heading,
+                task.priority
+            );
+        }
+
+        // Test Priority C filter
+        let c_tasks = org_mode
+            .list_tasks(None, None, Some(Priority::C), None)
+            .expect("Failed to list priority C tasks");
+
+        // Note: "Update documentation" is DONE with priority C, but we filter TODO items
+        // So we might have 0 or more C priority tasks depending on fixtures
+        for task in &c_tasks {
+            assert_eq!(
+                task.priority.as_deref(),
+                Some("C"),
+                "Task '{}' should have priority C, has {:?}",
+                task.heading,
+                task.priority
+            );
+        }
+
+        // Test Priority::None filter (tasks with no priority)
+        let no_priority_tasks = org_mode
+            .list_tasks(None, None, Some(Priority::None), None)
+            .expect("Failed to list tasks with no priority");
+
+        assert!(
+            !no_priority_tasks.is_empty(),
+            "Should have tasks with no priority"
+        );
+        for task in &no_priority_tasks {
+            assert!(
+                task.priority.is_none(),
+                "Task '{}' should have no priority, has {:?}",
+                task.heading,
+                task.priority
+            );
+        }
+    }
+
+    #[test]
+    fn test_list_tasks_combined_filters() {
+        use crate::Priority;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        // Combine TODO state + priority filter
+        let todo_a_tasks = org_mode
+            .list_tasks(Some(&["TODO".to_string()]), None, Some(Priority::A), None)
+            .expect("Failed to list TODO tasks with priority A");
+
+        assert!(
+            todo_a_tasks.len() >= 2,
+            "Should have TODO tasks with priority A, got {}",
+            todo_a_tasks.len()
+        );
+        for task in &todo_a_tasks {
+            assert_eq!(task.todo_state.as_deref(), Some("TODO"));
+            assert_eq!(task.priority.as_deref(), Some("A"));
+        }
+
+        // Combine TODO state + tag filter
+        let todo_work_tasks = org_mode
+            .list_tasks(
+                Some(&["TODO".to_string()]),
+                Some(&["work".to_string()]),
+                None,
+                None,
+            )
+            .expect("Failed to list TODO work tasks");
+
+        assert!(
+            todo_work_tasks.len() >= 2,
+            "Should have TODO work tasks, got {}",
+            todo_work_tasks.len()
+        );
+        for task in &todo_work_tasks {
+            assert_eq!(task.todo_state.as_deref(), Some("TODO"));
+            assert!(task.tags.contains(&"work".to_string()));
+        }
+
+        // Combine all three filters: TODO + work + urgent
+        let todo_work_urgent = org_mode
+            .list_tasks(
+                Some(&["TODO".to_string()]),
+                Some(&["work".to_string(), "urgent".to_string()]),
+                None,
+                None,
+            )
+            .expect("Failed to list TODO work+urgent tasks");
+
+        // This should find "Code review session" which has both work and urgent tags
+        assert!(
+            !todo_work_urgent.is_empty(),
+            "Should have at least 1 TODO work+urgent task, got {}",
+            todo_work_urgent.len()
+        );
+        for task in &todo_work_urgent {
+            assert_eq!(task.todo_state.as_deref(), Some("TODO"));
+            assert!(task.tags.contains(&"work".to_string()));
+            assert!(task.tags.contains(&"urgent".to_string()));
+        }
+    }
+
+    #[test]
+    fn test_list_tasks_multiple_tags() {
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        // Task "Code review session" has tags ["work", "review", "urgent"]
+        // Filtering by ["review", "urgent"] should find it
+        let review_urgent_tasks = org_mode
+            .list_tasks(
+                None,
+                Some(&["review".to_string(), "urgent".to_string()]),
+                None,
+                None,
+            )
+            .expect("Failed to list tasks with review+urgent tags");
+
+        assert!(
+            !review_urgent_tasks.is_empty(),
+            "Should have at least 1 task with review+urgent tags, got {}",
+            review_urgent_tasks.len()
+        );
+        for task in &review_urgent_tasks {
+            assert!(task.tags.contains(&"review".to_string()));
+            assert!(task.tags.contains(&"urgent".to_string()));
+        }
+
+        // Filtering by ["work", "review"] should find tasks with both tags
+        let work_review_tasks = org_mode
+            .list_tasks(
+                None,
+                Some(&["work".to_string(), "review".to_string()]),
+                None,
+                None,
+            )
+            .expect("Failed to list tasks with work+review tags");
+
+        assert!(
+            !work_review_tasks.is_empty(),
+            "Should have tasks with work+review tags, got {}",
+            work_review_tasks.len()
+        );
+        for task in &work_review_tasks {
+            assert!(task.tags.contains(&"work".to_string()));
+            assert!(task.tags.contains(&"review".to_string()));
+        }
+    }
+
+    #[test]
+    fn test_list_tasks_no_match_filters() {
+        use crate::Priority;
+
+        let org_mode = create_test_org_mode_with_agenda_files();
+
+        // Filter by non-existent tag
+        let nonexistent_tag_tasks = org_mode
+            .list_tasks(None, Some(&["nonexistent".to_string()]), None, None)
+            .expect("Failed to list tasks with nonexistent tag");
+
+        assert!(
+            nonexistent_tag_tasks.is_empty(),
+            "Should have no tasks with nonexistent tag, got {}",
+            nonexistent_tag_tasks.len()
+        );
+
+        // Filter by combination that doesn't exist (DONE + Priority A)
+        // In our fixtures, Priority A tasks are all TODO
+        let done_a_tasks = org_mode
+            .list_tasks(Some(&["DONE".to_string()]), None, Some(Priority::A), None)
+            .expect("Failed to list DONE priority A tasks");
+
+        assert!(
+            done_a_tasks.is_empty(),
+            "Should have no DONE tasks with priority A, got {}",
+            done_a_tasks.len()
+        );
+
+        // Filter by impossible combination (personal + work tags together on same task)
+        let personal_work_tasks = org_mode
+            .list_tasks(
+                None,
+                Some(&["personal".to_string(), "work".to_string()]),
+                None,
+                None,
+            )
+            .expect("Failed to list tasks with personal+work tags");
+
+        assert!(
+            personal_work_tasks.is_empty(),
+            "Should have no tasks with both personal and work tags, got {}",
+            personal_work_tasks.len()
+        );
     }
 
     #[test]

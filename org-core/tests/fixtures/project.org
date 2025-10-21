@@ -15,8 +15,8 @@
    - Database schema
 
 ** Implementation
-*** TODO Set up development environment
-*** TODO Create user authentication
+*** TODO Set up development environment                                                       :work:
+*** TODO Create user authentication                                                           :work:
 *** DONE Initialize project structure
 
 * Frontend Development

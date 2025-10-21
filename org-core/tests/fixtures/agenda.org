@@ -3,14 +3,14 @@
 #+DATE: 2025-10-19
 
 * Work Tasks
-** TODO [#A] Complete quarterly report
+** TODO [#A] Complete quarterly report                                                        :work:
    SCHEDULED: <2025-10-20 Mon> DEADLINE: <2025-10-25 Fri>
    :PROPERTIES:
    :ID: work-task-001
    :END:
    Need to finish Q3 report for the board meeting.
 
-** TODO [#B] Review pull requests
+** TODO [#B] Review pull requests                                                      :work:triage:
    SCHEDULED: <2025-10-19 Sat>
    :PROPERTIES:
    :ID: work-task-002
@@ -26,7 +26,7 @@
    Documentation has been updated with latest API changes.
 
 * Personal Tasks :personal:
-** TODO Buy groceries
+** TODO [#C] Buy groceries
    DEADLINE: <2025-10-21 Sun>
    :PROPERTIES:
    :ID: personal-task-001
@@ -35,7 +35,7 @@
    - Bread
    - Eggs
 
-** TODO Call dentist
+** TODO Call dentist                                                                          :work:
    :PROPERTIES:
    :ID: personal-task-002
    :END:
@@ -93,3 +93,31 @@
    :ID: maybe-002
    :END:
    Take online course on ML fundamentals.
+
+* Tagged Tasks
+** TODO Review documentation :work:review:
+   SCHEDULED: <2025-10-26 Sat>
+   :PROPERTIES:
+   :ID: tagged-task-001
+   :END:
+   Review and update project documentation.
+
+** TODO Plan weekend :personal:planning:
+   :PROPERTIES:
+   :ID: tagged-task-002
+   :END:
+   Plan activities for the weekend.
+
+** TODO [#A] Code review session :work:review:urgent:
+   DEADLINE: <2025-10-25 Fri>
+   :PROPERTIES:
+   :ID: tagged-task-003
+   :END:
+   Critical code review needed before deployment.
+
+** DONE Write blog post :personal:writing:
+   CLOSED: [2025-10-18 Fri 20:00]
+   :PROPERTIES:
+   :ID: tagged-task-004
+   :END:
+   Published blog post about Rust async.

@@ -3,14 +3,14 @@
 #+DATE: 2025-10-19
 
 * Work Tasks
-** TODO [#A] Complete quarterly report
+** TODO [#A] Complete quarterly report                                                        :work:
    SCHEDULED: <2025-10-20 Mon> DEADLINE: <2025-10-25 Fri>
    :PROPERTIES:
    :ID: work-task-001
    :END:
    Need to finish Q3 report for the board meeting.
 
-** TODO [#B] Review pull requests
+** TODO [#B] Review pull requests                                                      :work:triage:
    SCHEDULED: <2025-10-19 Sat>
    :PROPERTIES:
    :ID: work-task-002

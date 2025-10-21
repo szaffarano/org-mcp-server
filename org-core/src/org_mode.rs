@@ -15,6 +15,7 @@ use shellexpand::tilde;
 
 use crate::OrgModeError;
 use crate::config::{OrgConfig, load_org_config};
+use crate::utils::tags_match;
 
 #[cfg(test)]
 #[path = "org_mode_tests.rs"]
@@ -481,15 +482,15 @@ impl OrgMode {
     /// Vector of `AgendaItem` containing task information
     pub fn list_tasks(
         &self,
-        _todo_states: Option<&[String]>,
-        _tags: Option<&[String]>,
-        _priority: Option<Priority>,
+        todo_states: Option<&[String]>,
+        tags: Option<&[String]>,
+        priority: Option<Priority>,
         limit: Option<usize>,
     ) -> Result<Vec<AgendaItem>, OrgModeError> {
         // 1. Iterate through all org files using list_files()
         // 2. Parse each file with orgize to find headlines with TODO keywords
         // 3. Extract todo_state, priority, scheduled, deadline, tags from each headline
-        // 4. TODO: Filter based on todo_states, tags, and priority parameters
+        // 4. Filter based on todo_states, tags, and priority parameters
         // 5. Apply limit if specified
 
         let files = self
@@ -498,6 +499,15 @@ impl OrgMode {
             .iter()
             .filter_map(|loc| self.files_in_path(loc).ok())
             .flatten()
+            .filter(|path| {
+                tags.map(|tags| {
+                    let tags_in_file = &self
+                        .tags_in_file(&path.to_string_lossy())
+                        .unwrap_or_default();
+                    tags_match(tags_in_file, tags)
+                })
+                .unwrap_or(true)
+            })
             .collect::<HashSet<_>>();
 
         let tasks = files
@@ -519,6 +529,38 @@ impl OrgMode {
                     if let Event::Enter(container) = event
                         && let Container::Headline(headline) = container
                         && headline.is_todo()
+                        && tags
+                            .map(|tags| {
+                                tags_match(
+                                    &headline.tags().map(|s| s.to_string()).collect::<Vec<_>>(),
+                                    tags,
+                                )
+                            })
+                            .unwrap_or(true)
+                        && priority
+                            .as_ref()
+                            .map(|p| {
+                                if let Some(prio) = headline.priority() {
+                                    let prio = prio.to_string();
+                                    matches!(
+                                        (p, prio.as_str()),
+                                        (Priority::A, "A")
+                                            | (Priority::B, "B")
+                                            | (Priority::C, "C")
+                                    )
+                                } else {
+                                    *p == Priority::None
+                                }
+                            })
+                            .unwrap_or(true)
+                        && todo_states
+                            .map(|states| {
+                                headline
+                                    .todo_keyword()
+                                    .map(|kw| states.contains(&kw.to_string()))
+                                    .unwrap_or(false)
+                            })
+                            .unwrap_or(true)
                     {
                         let task = AgendaItem {
                             file_path: file
@@ -532,7 +574,7 @@ impl OrgMode {
                             priority: headline.priority().map(|p| p.to_string()),
                             deadline: headline.deadline().map(|d| d.raw()),
                             scheduled: headline.scheduled().map(|d| d.raw()),
-                            tags: vec![],
+                            tags: headline.tags().map(|s| s.to_string()).collect(),
                             line_number: Some(8),
                         };
                         tasks.push(task);
