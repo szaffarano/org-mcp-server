@@ -1152,23 +1152,55 @@ mod agenda_view_type_tests {
 }
 
 mod list_tasks_tests {
+    use std::{
+        fs::{self, read_to_string},
+        path::PathBuf,
+    };
+
+    use chrono::{Local, NaiveDate};
     use serial_test::serial;
+    use tempfile::TempDir;
 
     use super::*;
 
-    fn create_test_org_mode_with_agenda_files() -> OrgMode {
-        let root = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/");
+    // Load test fixtures with dynamic dates
+    fn create_test_org_mode_with_agenda_files() -> (OrgMode, TempDir) {
+        create_test_org_mode_with_agenda_files_for_date(Local::now().date_naive())
+    }
+
+    // Load test fixtures with specific base date (for deterministic testing)
+    fn create_test_org_mode_with_agenda_files_for_date(base_date: NaiveDate) -> (OrgMode, TempDir) {
+        let agenda_fixture =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/agenda.org");
+        let agenda_content = read_to_string(&agenda_fixture).expect("Failed to read agenda.org");
+
+        let agenda_content =
+            test_utils::dates::replace_dates_in_content(&agenda_content, base_date);
+
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
+        let agenda_path = temp_dir.path().join("agenda.org");
+        fs::write(&agenda_path, agenda_content).expect("Failed to write agenda.org to temp dir");
+
+        // Copy project.org as-is (no date placeholders)
+        let project_fixture =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/project.org");
+        let project_content = read_to_string(&project_fixture).expect("Failed to read project.org");
+        let project_path = temp_dir.path().join("project.org");
+        fs::write(&project_path, project_content).expect("Failed to write project.org to temp dir");
+
         let config = OrgConfig {
-            org_directory: root.to_string(),
+            org_directory: temp_dir.path().to_string_lossy().to_string(),
             org_agenda_files: vec!["agenda.org".to_string(), "project.org".to_string()],
             ..OrgConfig::default()
         };
-        OrgMode::new(config).expect("Failed to create test OrgMode")
+
+        let org_mode = OrgMode::new(config).expect("Failed to create test OrgMode");
+        (org_mode, temp_dir)
     }
 
     #[test]
     fn test_list_tasks_basic() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1182,7 +1214,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_with_limit() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, Some(5))
             .expect("Failed to list tasks with limit");
@@ -1192,7 +1224,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_todo_states() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1210,7 +1242,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_priorities() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1226,7 +1258,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_scheduled_deadline() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1246,7 +1278,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_nested_headlines() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1261,7 +1293,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_file_path_handling() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1339,7 +1371,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_specific_heading_content() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, None)
             .expect("Failed to list tasks");
@@ -1362,7 +1394,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_limit_zero() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let tasks = org_mode
             .list_tasks(None, None, None, Some(0))
             .expect("Failed to list tasks");
@@ -1372,7 +1404,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_with_state_filter() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         let todo_tasks = org_mode
             .list_tasks(Some(&["TODO".to_string()]), None, None, None)
@@ -1403,7 +1435,7 @@ mod list_tasks_tests {
     #[test]
     #[serial]
     fn test_list_tasks_with_tag_filter() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         // Filter by "work" tag
         let work_tasks = org_mode
@@ -1469,7 +1501,7 @@ mod list_tasks_tests {
     fn test_list_tasks_with_priority_filter() {
         use crate::Priority;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         // Test Priority A filter
         let a_tasks = org_mode
@@ -1551,7 +1583,7 @@ mod list_tasks_tests {
     fn test_list_tasks_combined_filters() {
         use crate::Priority;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         // Combine TODO state + priority filter
         let todo_a_tasks = org_mode
@@ -1613,7 +1645,7 @@ mod list_tasks_tests {
 
     #[test]
     fn test_list_tasks_multiple_tags() {
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         // Task "Code review session" has tags ["work", "review", "urgent"]
         // Filtering by ["review", "urgent"] should find it
@@ -1661,7 +1693,7 @@ mod list_tasks_tests {
     fn test_list_tasks_no_match_filters() {
         use crate::Priority;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         // Filter by non-existent tag
         let nonexistent_tag_tasks = org_mode
@@ -1707,26 +1739,46 @@ mod list_tasks_tests {
     fn test_get_agenda_view_today() {
         use crate::org_mode::AgendaViewType;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let view = org_mode
             .get_agenda_view(AgendaViewType::Today, None, None)
             .expect("Failed to get today's agenda view");
 
-        // View items is a Vec, just check it exists
         assert!(
             view.start_date.is_some(),
             "Today view should have start_date"
         );
         assert!(view.end_date.is_some(), "Today view should have end_date");
 
-        // TODO: complete once filters are implemented
+        // With dynamic dates, we should find tasks scheduled for today
+        // Based on our fixture: "@TODAY@" tasks include "Review pull requests" and "Team standup"
+        assert!(
+            view.items.len() >= 2,
+            "Should find at least 2 tasks scheduled for today, found {}",
+            view.items.len()
+        );
+
+        // Verify we're finding the expected tasks
+        let has_review_prs = view
+            .items
+            .iter()
+            .any(|item| item.heading.contains("Review pull requests"));
+        let has_standup = view
+            .items
+            .iter()
+            .any(|item| item.heading.contains("Team standup"));
+
+        assert!(
+            has_review_prs || has_standup,
+            "Should find at least one of today's scheduled tasks"
+        );
     }
 
     #[test]
     fn test_get_agenda_view_current_week() {
         use crate::org_mode::AgendaViewType;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let view = org_mode
             .get_agenda_view(AgendaViewType::CurrentWeek, None, None)
             .expect("Failed to get current week agenda view");
@@ -1737,14 +1789,32 @@ mod list_tasks_tests {
         );
         assert!(view.end_date.is_some(), "Week view should have end_date");
 
-        // TODO: complete once filters are implemented
+        // Week view should find at least some tasks
+        // Number varies depending on which day of the week "today" is
+        assert!(
+            !view.items.is_empty(),
+            "Should find at least 1 task in current week, found {}",
+            view.items.len()
+        );
+
+        // Verify we're finding tasks scheduled for the current week
+        // At minimum, @TODAY@ tasks should be included
+        let task_names: Vec<String> = view.items.iter().map(|i| i.heading.clone()).collect();
+        let has_weekly_task = task_names
+            .iter()
+            .any(|name| name.contains("Review pull requests") || name.contains("Team standup"));
+
+        assert!(
+            has_weekly_task,
+            "Should find tasks from the current week (at least @TODAY@ tasks)"
+        );
     }
 
     #[test]
     fn test_get_agenda_view_custom_week() {
         use crate::org_mode::AgendaViewType;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
         let view = org_mode
             .get_agenda_view(AgendaViewType::Week(9), None, None)
             .expect("Failed to get current week agenda view");
@@ -1761,12 +1831,14 @@ mod list_tasks_tests {
     #[test]
     fn test_get_agenda_view_custom_range() {
         use crate::org_mode::AgendaViewType;
-        use chrono::{Local, TimeZone};
+        use chrono::{Days, Local};
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
-        let from = Local.with_ymd_and_hms(2025, 10, 20, 0, 0, 0).unwrap();
-        let to = Local.with_ymd_and_hms(2025, 10, 25, 23, 59, 59).unwrap();
+        // Test with a custom range from TODAY+1 to TODAY+6 (should match several fixture tasks)
+        let today = Local::now();
+        let from = today.checked_add_days(Days::new(1)).unwrap();
+        let to = today.checked_add_days(Days::new(6)).unwrap();
 
         let view = org_mode
             .get_agenda_view(AgendaViewType::Custom { from, to }, None, None)
@@ -1778,14 +1850,31 @@ mod list_tasks_tests {
         );
         assert!(view.end_date.is_some(), "Custom view should have end_date");
 
-        // TODO: complete once filters are implemented
+        // Should find tasks scheduled in this range
+        // Based on fixtures: @TODAY+1@, @TODAY+2@, @TODAY+3@, @TODAY+4@, @TODAY+5@, @TODAY+6@
+        assert!(
+            view.items.len() >= 3,
+            "Should find at least 3 tasks in custom range, found {}",
+            view.items.len()
+        );
+
+        // Verify we find expected tasks in this range
+        let has_quarterly_report = view
+            .items
+            .iter()
+            .any(|item| item.heading.contains("Complete quarterly report"));
+
+        assert!(
+            has_quarterly_report,
+            "Should find 'Complete quarterly report' task scheduled for TODAY+1"
+        );
     }
 
     #[test]
     fn test_get_agenda_view_with_filters() {
         use crate::org_mode::AgendaViewType;
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         let _view = org_mode
             .get_agenda_view(
@@ -1803,7 +1892,7 @@ mod list_tasks_tests {
         use crate::org_mode::AgendaViewType;
         use chrono::{Local, TimeZone};
 
-        let org_mode = create_test_org_mode_with_agenda_files();
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
 
         let from = Local.with_ymd_and_hms(2030, 1, 1, 0, 0, 0).unwrap();
         let to = Local.with_ymd_and_hms(2030, 1, 7, 23, 59, 59).unwrap();
@@ -1812,8 +1901,497 @@ mod list_tasks_tests {
             .get_agenda_view(AgendaViewType::Custom { from, to }, None, None)
             .expect("Failed to get agenda view");
 
-        assert!(view.items.is_empty() || !view.items.is_empty());
+        // Far future dates should have no tasks
+        assert!(
+            view.items.is_empty(),
+            "Should have no tasks in far future, found {}",
+            view.items.len()
+        );
+    }
 
-        // TODO: complete once filters are implemented
+    #[test]
+    fn test_agenda_today_finds_scheduled_tasks() {
+        use crate::org_mode::AgendaViewType;
+
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::Today, None, None)
+            .expect("Failed to get today's agenda");
+
+        // Verify tasks scheduled for @TODAY@ are found
+        let review_task = view
+            .items
+            .iter()
+            .find(|item| item.heading.contains("Review pull requests"));
+
+        assert!(
+            review_task.is_some(),
+            "Should find 'Review pull requests' task scheduled for today"
+        );
+
+        if let Some(task) = review_task {
+            assert_eq!(task.todo_state, Some("TODO".to_string()));
+            assert!(task.tags.contains(&"work".to_string()));
+            assert!(task.scheduled.is_some());
+        }
+    }
+
+    #[test]
+    fn test_agenda_today_excludes_future_tasks() {
+        use crate::org_mode::AgendaViewType;
+
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::Today, None, None)
+            .expect("Failed to get today's agenda");
+
+        // Tasks scheduled for @TODAY+1@ or later should not be in today's view
+        let has_future_task = view
+            .items
+            .iter()
+            .any(|item| item.heading.contains("Buy groceries")); // Scheduled for @TODAY+2@
+
+        assert!(
+            !has_future_task,
+            "Today's view should not include tasks scheduled for future dates"
+        );
+    }
+
+    #[test]
+    fn test_agenda_week_includes_all_week_tasks() {
+        use crate::org_mode::AgendaViewType;
+
+        let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+        let view = org_mode
+            .get_agenda_view(AgendaViewType::CurrentWeek, None, None)
+            .expect("Failed to get current week agenda");
+
+        // Week should include tasks from the current week (Monday through Sunday)
+        let task_headings: Vec<String> = view.items.iter().map(|i| i.heading.clone()).collect();
+
+        // At minimum, should include @TODAY@ tasks
+        assert!(
+            !task_headings.is_empty(),
+            "Week view should include at least one task"
+        );
+
+        // Should include today's tasks
+        assert!(
+            task_headings
+                .iter()
+                .any(|h| h.contains("Review pull requests") || h.contains("Team standup")),
+            "Week view should include today's tasks (@TODAY@)"
+        );
+
+        // Note: Future tasks (@TODAY+1@, etc.) may or may not be in the current week
+        // depending on which day of the week "today" is. If today is Sunday,
+        // then @TODAY+1@ tasks are in next week, not this week.
+    }
+}
+
+mod datetime_helpers_tests {
+    use crate::OrgMode;
+    use chrono::{Datelike, Local, NaiveDate, TimeZone, Timelike};
+
+    #[test]
+    fn test_to_start_of_day() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 14, 30, 45).unwrap();
+        let start = OrgMode::to_start_of_day(date);
+
+        assert_eq!(start.hour(), 0);
+        assert_eq!(start.minute(), 0);
+        assert_eq!(start.second(), 0);
+        assert_eq!(start.day(), 15);
+        assert_eq!(start.month(), 6);
+        assert_eq!(start.year(), 2025);
+    }
+
+    #[test]
+    fn test_to_end_of_day() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 14, 30, 45).unwrap();
+        let end = OrgMode::to_end_of_day(date);
+
+        assert_eq!(end.hour(), 23);
+        assert_eq!(end.minute(), 59);
+        assert_eq!(end.second(), 59);
+        assert_eq!(end.day(), 15);
+        assert_eq!(end.month(), 6);
+        assert_eq!(end.year(), 2025);
+    }
+
+    #[test]
+    fn test_naive_date_to_local_valid() {
+        let date = NaiveDate::from_ymd_opt(2025, 6, 15).unwrap();
+        let result = OrgMode::naive_date_to_local(date, 14, 30, 45);
+
+        assert!(result.is_ok());
+        let datetime = result.unwrap();
+        assert_eq!(datetime.day(), 15);
+        assert_eq!(datetime.month(), 6);
+        assert_eq!(datetime.year(), 2025);
+        assert_eq!(datetime.hour(), 14);
+        assert_eq!(datetime.minute(), 30);
+        assert_eq!(datetime.second(), 45);
+    }
+
+    #[test]
+    fn test_naive_date_to_local_midnight() {
+        let date = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let result = OrgMode::naive_date_to_local(date, 0, 0, 0);
+
+        assert!(result.is_ok());
+        let datetime = result.unwrap();
+        assert_eq!(datetime.hour(), 0);
+        assert_eq!(datetime.minute(), 0);
+        assert_eq!(datetime.second(), 0);
+    }
+
+    #[test]
+    fn test_naive_date_to_local_end_of_day() {
+        let date = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let result = OrgMode::naive_date_to_local(date, 23, 59, 59);
+
+        assert!(result.is_ok());
+        let datetime = result.unwrap();
+        assert_eq!(datetime.hour(), 23);
+        assert_eq!(datetime.minute(), 59);
+        assert_eq!(datetime.second(), 59);
+    }
+
+    #[test]
+    fn test_last_day_of_month_regular() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let last_day = OrgMode::last_day_of_month(date);
+
+        assert_eq!(last_day.day(), 30);
+        assert_eq!(last_day.month(), 6);
+        assert_eq!(last_day.year(), 2025);
+    }
+
+    #[test]
+    fn test_last_day_of_month_december() {
+        let date = Local.with_ymd_and_hms(2025, 12, 1, 12, 0, 0).unwrap();
+        let last_day = OrgMode::last_day_of_month(date);
+
+        assert_eq!(last_day.day(), 31);
+        assert_eq!(last_day.month(), 12);
+        assert_eq!(last_day.year(), 2025);
+    }
+
+    #[test]
+    fn test_last_day_of_month_february_non_leap() {
+        let date = Local.with_ymd_and_hms(2025, 2, 10, 12, 0, 0).unwrap();
+        let last_day = OrgMode::last_day_of_month(date);
+
+        assert_eq!(last_day.day(), 28);
+        assert_eq!(last_day.month(), 2);
+    }
+
+    #[test]
+    fn test_last_day_of_month_february_leap() {
+        let date = Local.with_ymd_and_hms(2024, 2, 10, 12, 0, 0).unwrap();
+        let last_day = OrgMode::last_day_of_month(date);
+
+        assert_eq!(last_day.day(), 29);
+        assert_eq!(last_day.month(), 2);
+    }
+}
+
+mod timestamp_conversion_tests {
+    use crate::OrgMode;
+    use chrono::{Datelike, Timelike};
+    use orgize::Org;
+    use orgize::ast::Timestamp;
+    use orgize::export::{Container, Event, from_fn};
+
+    fn find_timestamp(content: &str) -> Option<Timestamp> {
+        let mut found = None;
+        let mut handler = from_fn(|event| {
+            if let Event::Enter(Container::Headline(h)) = event
+                && let Some(ts) = h.scheduled()
+            {
+                found = Some(ts);
+            }
+        });
+        Org::parse(content).traverse(&mut handler);
+        found
+    }
+
+    #[test]
+    fn test_timestamp_to_chrono_start() {
+        let content = "* TODO Task\nSCHEDULED: <2025-06-15 Sun 14:30>";
+        let ts = find_timestamp(content).expect("Should find timestamp");
+
+        let result = OrgMode::start_to_chrono(&ts);
+        assert!(result.is_some());
+
+        let datetime = result.unwrap();
+        assert_eq!(datetime.year(), 2025);
+        assert_eq!(datetime.month(), 6);
+        assert_eq!(datetime.day(), 15);
+        assert_eq!(datetime.hour(), 14);
+        assert_eq!(datetime.minute(), 30);
+    }
+
+    #[test]
+    fn test_timestamp_to_chrono_without_time() {
+        let content = "* TODO Task\nSCHEDULED: <2025-06-15 Sun>";
+        let ts = find_timestamp(content).expect("Should find timestamp");
+
+        let result = OrgMode::start_to_chrono(&ts);
+        assert!(result.is_some());
+
+        let datetime = result.unwrap();
+        assert_eq!(datetime.year(), 2025);
+        assert_eq!(datetime.month(), 6);
+        assert_eq!(datetime.day(), 15);
+        assert_eq!(datetime.hour(), 0);
+        assert_eq!(datetime.minute(), 0);
+    }
+}
+
+mod repeater_calculations_tests {
+    use crate::OrgMode;
+    use chrono::{Datelike, Local, TimeZone, Timelike};
+    use orgize::ast::TimeUnit;
+
+    #[test]
+    fn test_add_repeater_duration_hour() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 14, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 2, &TimeUnit::Hour);
+
+        assert_eq!(result.hour(), 16);
+        assert_eq!(result.day(), 15);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_day() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 5, &TimeUnit::Day);
+
+        assert_eq!(result.day(), 20);
+        assert_eq!(result.month(), 6);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_week() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 2, &TimeUnit::Week);
+
+        assert_eq!(result.day(), 29);
+        assert_eq!(result.month(), 6);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_month() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 3, &TimeUnit::Month);
+
+        assert_eq!(result.month(), 9);
+        assert_eq!(result.day(), 15);
+        assert_eq!(result.year(), 2025);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_year() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 2, &TimeUnit::Year);
+
+        assert_eq!(result.year(), 2027);
+        assert_eq!(result.month(), 6);
+        assert_eq!(result.day(), 15);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_month_boundary() {
+        let date = Local.with_ymd_and_hms(2025, 10, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 3, &TimeUnit::Month);
+
+        assert_eq!(result.year(), 2026);
+        assert_eq!(result.month(), 1);
+        assert_eq!(result.day(), 15);
+    }
+}
+
+mod agenda_item_creation_tests {
+    use crate::OrgMode;
+    use orgize::Org;
+    use orgize::ast::Headline;
+    use orgize::export::{Container, Event, from_fn};
+
+    fn find_headline(content: &str) -> Option<Headline> {
+        let mut found = None;
+        let mut handler = from_fn(|event| {
+            if let Event::Enter(Container::Headline(h)) = event {
+                found = Some(h);
+            }
+        });
+        Org::parse(content).traverse(&mut handler);
+        found
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_basic() {
+        let content = "* TODO Basic Task";
+        let headline = find_headline(content).expect("Should find headline");
+
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        assert_eq!(item.file_path, "test.org");
+        assert_eq!(item.heading, "Basic Task");
+        assert_eq!(item.level, 1);
+        assert_eq!(item.todo_state, Some("TODO".to_string()));
+        assert_eq!(item.priority, None);
+        assert!(item.tags.is_empty());
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_with_priority() {
+        let content = "* TODO [#A] High Priority Task";
+        let headline = find_headline(content).expect("Should find headline");
+
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        assert_eq!(item.heading, "High Priority Task");
+        assert_eq!(item.priority, Some("A".to_string()));
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_with_tags() {
+        let content = "* TODO Task with Tags :work:urgent:";
+        let headline = find_headline(content).expect("Should find headline");
+
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        // Note: orgize includes trailing space before tags in title_raw()
+        assert_eq!(item.heading.trim(), "Task with Tags");
+        assert!(item.tags.contains(&"work".to_string()));
+        assert!(item.tags.contains(&"urgent".to_string()));
+        assert_eq!(item.tags.len(), 2);
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_with_scheduled() {
+        let content = "* TODO Scheduled Task\nSCHEDULED: <2025-06-15 Sun>";
+        let headline = find_headline(content).expect("Should find headline");
+
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        assert!(item.scheduled.is_some());
+        assert!(item.scheduled.unwrap().contains("2025-06-15"));
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_with_deadline() {
+        let content = "* TODO Task with Deadline\nDEADLINE: <2025-06-20 Fri>";
+        let headline = find_headline(content).expect("Should find headline");
+
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        assert!(item.deadline.is_some());
+        assert!(item.deadline.unwrap().contains("2025-06-20"));
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_nested() {
+        let content = "* Parent\n** TODO Nested Task";
+        let org = Org::parse(content);
+        let mut found = None;
+        let mut handler = from_fn(|event| {
+            if let Event::Enter(Container::Headline(h)) = event
+                && h.level() == 2
+            {
+                found = Some(h);
+            }
+        });
+        org.traverse(&mut handler);
+
+        let headline = found.expect("Should find nested headline");
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        assert_eq!(item.level, 2);
+        assert_eq!(item.heading, "Nested Task");
+    }
+
+    #[test]
+    fn test_headline_to_agenda_item_position() {
+        let content = "* TODO Task";
+        let headline = find_headline(content).expect("Should find headline");
+
+        let item = OrgMode::headline_to_agenda_item(&headline, "test.org".to_string());
+
+        assert!(item.position.is_some());
+        let pos = item.position.unwrap();
+        assert!(pos.start < pos.end);
+    }
+}
+
+mod date_parsing_tests {
+    use crate::{OrgMode, OrgModeError};
+    use chrono::Datelike;
+
+    #[test]
+    fn test_parse_date_string_valid() {
+        let result = OrgMode::parse_date_string("2025-06-15", "test date");
+        assert!(result.is_ok());
+
+        let date = result.unwrap();
+        assert_eq!(date.year(), 2025);
+        assert_eq!(date.month(), 6);
+        assert_eq!(date.day(), 15);
+    }
+
+    #[test]
+    fn test_parse_date_string_invalid_format() {
+        let result = OrgMode::parse_date_string("15-06-2025", "test date");
+        assert!(result.is_err());
+
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid test date"));
+            assert!(msg.contains("15-06-2025"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_parse_date_string_invalid_date() {
+        let result = OrgMode::parse_date_string("2025-13-40", "test date");
+        assert!(result.is_err());
+
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("Invalid test date"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
+    }
+
+    #[test]
+    fn test_parse_date_string_leap_year() {
+        let result = OrgMode::parse_date_string("2024-02-29", "leap date");
+        assert!(result.is_ok());
+
+        let date = result.unwrap();
+        assert_eq!(date.year(), 2024);
+        assert_eq!(date.month(), 2);
+        assert_eq!(date.day(), 29);
+    }
+
+    #[test]
+    fn test_parse_date_string_non_leap_year_invalid() {
+        let result = OrgMode::parse_date_string("2025-02-29", "non-leap date");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_date_string_context_in_error() {
+        let result = OrgMode::parse_date_string("invalid", "from date");
+        assert!(result.is_err());
+
+        if let Err(OrgModeError::InvalidAgendaViewType(msg)) = result {
+            assert!(msg.contains("from date"));
+        } else {
+            panic!("Expected InvalidAgendaViewType error");
+        }
     }
 }

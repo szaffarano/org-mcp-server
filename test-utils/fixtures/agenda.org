@@ -1,17 +1,17 @@
 #+TITLE: Agenda Test File
 #+AUTHOR: Test User
-#+DATE: 2025-10-19
+#+DATE: @TODAY@
 
 * Work Tasks
 ** TODO [#A] Complete quarterly report                                                        :work:
-   SCHEDULED: <2025-10-20 Mon> DEADLINE: <2025-10-25 Fri>
+   SCHEDULED: <@TODAY+1@ Mon> DEADLINE: <@TODAY+6@ Fri>
    :PROPERTIES:
    :ID: work-task-001
    :END:
    Need to finish Q3 report for the board meeting.
 
 ** TODO [#B] Review pull requests                                                      :work:triage:
-   SCHEDULED: <2025-10-19 Sat>
+   SCHEDULED: <@TODAY@ Sat>
    :PROPERTIES:
    :ID: work-task-002
    :END:
@@ -19,15 +19,15 @@
    - Review frontend updates
 
 ** DONE [#C] Update documentation
-   CLOSED: [2025-10-18 Fri 14:30] SCHEDULED: <2025-10-18 Fri>
+   CLOSED: [@TODAY-1@ Fri 14:30] SCHEDULED: <@TODAY-1@ Fri>
    :PROPERTIES:
    :ID: work-task-003
    :END:
    Documentation has been updated with latest API changes.
 
 * Personal Tasks :personal:
-** TODO Buy groceries
-   DEADLINE: <2025-10-21 Sun>
+** TODO [#C] Buy groceries
+   DEADLINE: <@TODAY+2@ Sun>
    :PROPERTIES:
    :ID: personal-task-001
    :END:
@@ -35,14 +35,14 @@
    - Bread
    - Eggs
 
-** TODO Call dentist
+** TODO Call dentist                                                                          :work:
    :PROPERTIES:
    :ID: personal-task-002
    :END:
    Schedule annual checkup appointment.
 
 ** DONE Read book chapter
-   CLOSED: [2025-10-17 Thu 22:00]
+   CLOSED: [@TODAY-2@ Thu 22:00]
    :PROPERTIES:
    :ID: personal-task-003
    :END:
@@ -50,17 +50,17 @@
 
 * Project Planning :project:work:
 ** TODO [#A] Design database schema
-   SCHEDULED: <2025-10-22 Tue> DEADLINE: <2025-10-28 Mon>
+   SCHEDULED: <@TODAY+3@ Tue> DEADLINE: <@TODAY+9@ Mon>
    :PROPERTIES:
    :ID: project-task-001
    :END:
 *** TODO Define user tables
 *** TODO Define relationship mappings
 *** DONE Research database options
-    CLOSED: [2025-10-16 Wed 16:00]
+    CLOSED: [@TODAY-3@ Wed 16:00]
 
 ** TODO Set up CI/CD pipeline
-   SCHEDULED: <2025-10-23 Wed>
+   SCHEDULED: <@TODAY+4@ Wed>
    :PROPERTIES:
    :ID: project-task-002
    :END:
@@ -68,14 +68,14 @@
 
 * Meetings
 ** TODO [#A] Team standup
-   SCHEDULED: <2025-10-19 Sat 10:00>
+   SCHEDULED: <@TODAY@ Sat 10:00>
    :PROPERTIES:
    :ID: meeting-001
    :END:
    Daily standup meeting with the development team.
 
 ** TODO Client presentation
-   SCHEDULED: <2025-10-24 Thu 14:00> DEADLINE: <2025-10-24 Thu 14:00>
+   SCHEDULED: <@TODAY+5@ Thu 14:00> DEADLINE: <@TODAY+5@ Thu 14:00>
    :PROPERTIES:
    :ID: meeting-002
    :END:
@@ -93,3 +93,31 @@
    :ID: maybe-002
    :END:
    Take online course on ML fundamentals.
+
+* Tagged Tasks
+** TODO Review documentation :work:review:
+   SCHEDULED: <@TODAY+7@ Sat>
+   :PROPERTIES:
+   :ID: tagged-task-001
+   :END:
+   Review and update project documentation.
+
+** TODO Plan weekend :personal:planning:
+   :PROPERTIES:
+   :ID: tagged-task-002
+   :END:
+   Plan activities for the weekend.
+
+** TODO [#A] Code review session :work:review:urgent:
+   DEADLINE: <@TODAY+6@ Fri>
+   :PROPERTIES:
+   :ID: tagged-task-003
+   :END:
+   Critical code review needed before deployment.
+
+** DONE Write blog post :personal:writing:
+   CLOSED: [@TODAY-1@ Fri 20:00]
+   :PROPERTIES:
+   :ID: tagged-task-004
+   :END:
+   Published blog post about Rust async.

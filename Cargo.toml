@@ -25,6 +25,7 @@ nucleo-matcher = "0.3"
 org-core = { version = "0.0.1", path = "../org-core" }
 orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
 predicates = "3.1"
+regex = "1.11"
 rmcp = { version = "0.8.0", features = [
   "transport-io",
   "transport-child-process",
@@ -32,11 +33,13 @@ rmcp = { version = "0.8.0", features = [
   "transport-worker",
   "client",
 ] }
+rowan = "0.15"
 serde_json = "1.0.145"
 serde = { version = "1.0", features = ["derive"] }
 serial_test = "3.2.0"
 shellexpand = "3.1.1"
 tempfile = "3.23"
+temp-env = "0.3.6"
 tokio-test = "0.4"
 tokio = { version = "1", features = [
   "io-std",

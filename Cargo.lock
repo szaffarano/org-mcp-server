@@ -1075,6 +1075,8 @@ dependencies = [
  "ignore",
  "nucleo-matcher",
  "orgize",
+ "regex",
+ "rowan",
  "serde",
  "serde_json",
  "serial_test",
@@ -1120,6 +1122,7 @@ checksum = "b747231437c1d8e68355427250c167d3e4d94874727923511e4572b7f5fecd51"
 dependencies = [
  "bytecount",
  "cfg-if",
+ "chrono",
  "jetscii",
  "memchr",
  "nom",
@@ -1782,6 +1785,8 @@ checksum = "8f50febec83f5ee1df3015341d8bd429f2d1cc62bcba7ea2076759d315084683"
 name = "test-utils"
 version = "0.0.3"
 dependencies = [
+ "chrono",
+ "regex",
  "tempfile",
 ]
 

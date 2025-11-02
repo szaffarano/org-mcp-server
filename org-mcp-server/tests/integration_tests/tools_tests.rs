@@ -515,8 +515,6 @@ async fn test_org_agenda_tool_list_mode() -> Result<(), Box<dyn std::error::Erro
     service.cancel().await?;
     info!("org-agenda list mode test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
-
     Ok(())
 }
 
@@ -567,7 +565,6 @@ async fn test_org_agenda_tool_list_with_states() -> Result<(), Box<dyn std::erro
     service.cancel().await?;
     info!("org-agenda with states test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -603,8 +600,6 @@ async fn test_org_agenda_tool_list_with_tags() -> Result<(), Box<dyn std::error:
 
     service.cancel().await?;
     info!("org-agenda with tags test completed successfully");
-
-    // TODO: review once complete agenda view is implemented
 
     Ok(())
 }
@@ -651,8 +646,6 @@ async fn test_org_agenda_tool_list_with_priority() -> Result<(), Box<dyn std::er
 
     service.cancel().await?;
     info!("org-agenda with priority test completed successfully");
-
-    // TODO: review once complete agenda view is implemented
 
     Ok(())
 }
@@ -702,7 +695,6 @@ async fn test_org_agenda_tool_list_with_limit() -> Result<(), Box<dyn std::error
     service.cancel().await?;
     info!("org-agenda with limit test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -748,7 +740,6 @@ async fn test_org_agenda_tool_view_mode_default() -> Result<(), Box<dyn std::err
     service.cancel().await?;
     info!("org-agenda view mode test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -796,7 +787,6 @@ async fn test_org_agenda_tool_view_mode_custom_range() -> Result<(), Box<dyn std
     service.cancel().await?;
     info!("org-agenda custom range test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -827,7 +817,6 @@ async fn test_org_agenda_tool_invalid_mode() -> Result<(), Box<dyn std::error::E
     service.cancel().await?;
     info!("org-agenda invalid mode test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -859,7 +848,6 @@ async fn test_org_agenda_tool_invalid_priority() -> Result<(), Box<dyn std::erro
     service.cancel().await?;
     info!("org-agenda invalid priority test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -896,7 +884,6 @@ async fn test_org_agenda_tool_invalid_date_format() -> Result<(), Box<dyn std::e
     service.cancel().await?;
     info!("org-agenda invalid date test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }
 
@@ -954,6 +941,5 @@ async fn test_org_agenda_tool_all_parameters() -> Result<(), Box<dyn std::error:
     service.cancel().await?;
     info!("org-agenda all parameters test completed successfully");
 
-    // TODO: review once complete agenda view is implemented
     Ok(())
 }

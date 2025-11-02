@@ -1,6 +1,6 @@
 use std::fs;
 
-use org_core::AgendaItem;
+use org_core::{AgendaItem, org_mode::Position};
 use orgize::{
     ParseConfig,
     export::{Container, Event, Traverser},
@@ -44,7 +44,7 @@ impl Traverser for TodoList {
                 deadline: headline.deadline().map(|d| d.raw()),
                 scheduled: headline.scheduled().map(|d| d.raw()),
                 tags: vec![],
-                line_number: Some(8),
+                position: Some(Position { start: 10, end: 20 }),
             };
             self.tasks.push(task);
         }

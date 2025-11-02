@@ -8,6 +8,8 @@ publish = false
 
 [dependencies]
 tempfile.workspace = true
+chrono.workspace = true
+regex.workspace = true
 
 [lib]
 path = "src/lib.rs"

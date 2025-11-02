@@ -4,7 +4,9 @@
 //! test environments for org-cli and org-mcp-server integration tests.
 
 pub mod config;
+pub mod dates;
 
+use chrono::NaiveDate;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
@@ -118,6 +120,69 @@ pub fn copy_specific_fixtures(
         }
 
         fs::copy(&src, &dst)?;
+    }
+
+    Ok(())
+}
+
+/// Copies all test fixtures to a temporary directory with date placeholder replacement.
+///
+/// This function copies the entire fixtures directory structure, replacing date placeholders
+/// like `@TODAY@`, `@TODAY+N@`, etc. with actual dates relative to the provided base date.
+///
+/// # Arguments
+/// * `temp_dir` - The temporary directory to copy fixtures into
+/// * `base_date` - The base date to use for placeholder replacement
+///
+/// # Returns
+/// * `Result<(), Box<dyn std::error::Error>>` - Success or error
+///
+/// # Example
+/// ```no_run
+/// use tempfile::TempDir;
+/// use test_utils::copy_fixtures_with_dates;
+/// use chrono::Local;
+///
+/// let temp_dir = TempDir::new()?;
+/// let today = Local::now().date_naive();
+/// copy_fixtures_with_dates(&temp_dir, today)?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+pub fn copy_fixtures_with_dates(
+    temp_dir: &TempDir,
+    base_date: NaiveDate,
+) -> Result<(), Box<dyn std::error::Error>> {
+    copy_dir_with_date_replacement(Path::new(FIXTURES_DIR), temp_dir.path(), base_date)?;
+    Ok(())
+}
+
+/// Copies a directory and all its contents recursively, replacing date placeholders in .org files.
+fn copy_dir_with_date_replacement(
+    src: &Path,
+    dst: &Path,
+    base_date: NaiveDate,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !dst.exists() {
+        fs::create_dir_all(dst)?;
+    }
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+
+        if file_type.is_dir() {
+            copy_dir_with_date_replacement(&src_path, &dst_path, base_date)?;
+        } else if src_path.extension().and_then(|s| s.to_str()) == Some("org") {
+            // Read .org file, replace dates, and write to destination
+            let content = fs::read_to_string(&src_path)?;
+            let modified_content = dates::replace_dates_in_content(&content, base_date);
+            fs::write(&dst_path, modified_content)?;
+        } else {
+            // Copy non-.org files directly
+            fs::copy(&src_path, &dst_path)?;
+        }
     }
 
     Ok(())

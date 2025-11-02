@@ -133,7 +133,7 @@ impl AgendaCommand {
                                     .map(|p| format!("[#{p:?}]"))
                                     .unwrap_or_default();
                                 println!(
-                                    "  {}{} {} ({}:{})",
+                                    "  {}{} {} ({}:[{}])",
                                     state_str,
                                     if priority_str.is_empty() {
                                         String::new()
@@ -142,7 +142,9 @@ impl AgendaCommand {
                                     },
                                     task.heading,
                                     task.file_path,
-                                    task.line_number.map(|n| n.to_string()).unwrap_or_default()
+                                    task.position
+                                        .map(|p| format!("{}:{}", p.start, p.end))
+                                        .unwrap_or_default()
                                 );
                                 if let Some(ref deadline) = task.deadline {
                                     println!("    DEADLINE: {deadline}");
