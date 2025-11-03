@@ -125,12 +125,12 @@ impl AgendaCommand {
                                 let state_str = task
                                     .todo_state
                                     .as_ref()
-                                    .map(|s| format!("{s:?}"))
+                                    .map(|s| s.to_string())
                                     .unwrap_or_default();
                                 let priority_str = task
                                     .priority
                                     .as_ref()
-                                    .map(|p| format!("[#{p:?}]"))
+                                    .map(|p| format!("[#{p}]"))
                                     .unwrap_or_default();
                                 println!(
                                     "  {}{} {} ({}:[{}])",
