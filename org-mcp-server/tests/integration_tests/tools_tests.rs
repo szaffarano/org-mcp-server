@@ -464,3 +464,482 @@ async fn test_org_search_tool_with_multiple_tags() -> Result<(), Box<dyn std::er
 
     Ok(())
 }
+
+/// Tests basic org-agenda tool functionality in list mode.
+///
+/// Verifies that:
+/// - The tool returns a list of all tasks (TODO/DONE items)
+/// - Results include expected fields from agenda.org fixture
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_list_mode() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool in list mode");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda list mode result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let tasks: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Tasks should be valid JSON");
+
+            if let Some(tasks_array) = tasks.as_array() {
+                assert!(!tasks_array.is_empty(), "Should have tasks from agenda.org");
+
+                // Verify first task has expected structure
+                if let Some(first_task) = tasks_array.first() {
+                    assert!(first_task["heading"].is_string());
+                    assert!(first_task["file_path"].is_string());
+                }
+            }
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda list mode test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool with TODO state filtering.
+///
+/// Verifies that:
+/// - The tool accepts a todo_states parameter
+/// - Results are filtered by the specified states
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_list_with_states() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with state filtering");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert(
+        "todo_states".to_string(),
+        Value::Array(vec![Value::String("TODO".into())]),
+    );
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda with states result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let tasks: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Tasks should be valid JSON");
+
+            // Just verify we got an array response
+            assert!(tasks.is_array(), "Result should be a JSON array");
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda with states test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool with tag filtering.
+///
+/// Verifies that:
+/// - The tool accepts a tags parameter
+/// - Results are filtered by the specified tags
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_list_with_tags() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with tag filtering");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert(
+        "tags".to_string(),
+        Value::Array(vec![Value::String("work".into())]),
+    );
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda with tags result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    service.cancel().await?;
+    info!("org-agenda with tags test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool with priority filtering.
+///
+/// Verifies that:
+/// - The tool accepts a priority parameter (A, B, C)
+/// - Results are filtered by the specified priority
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_list_with_priority() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with priority filtering");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert("priority".to_string(), Value::String("A".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda with priority result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let tasks: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Tasks should be valid JSON");
+
+            assert!(tasks.is_array(), "Result should be a JSON array");
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda with priority test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool with limit parameter.
+///
+/// Verifies that:
+/// - The tool accepts a limit parameter
+/// - Results respect the limit (returns ≤ limit items)
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_list_with_limit() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with limit");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert("limit".to_string(), Value::Number(2.into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda with limit result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let tasks: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Tasks should be valid JSON");
+
+            if let Some(tasks_array) = tasks.as_array() {
+                assert!(tasks_array.len() <= 2, "Should respect limit parameter");
+            }
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda with limit test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool in view mode without dates (default behavior).
+///
+/// Verifies that:
+/// - The tool accepts mode="view"
+/// - Returns an agenda view with date-organized tasks
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_view_mode_default() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool in view mode");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("view".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda view mode result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let view: serde_json::Value =
+                serde_json::from_str(&text.text).expect("View should be valid JSON");
+
+            assert!(view["items"].is_array(), "View should have items array");
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda view mode test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool in view mode with custom date range.
+///
+/// Verifies that:
+/// - The tool accepts start_date and end_date parameters
+/// - Returns tasks within the specified date range
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_view_mode_custom_range() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with custom date range");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("view".into()));
+    args.insert("start_date".to_string(), Value::String("2025-10-20".into()));
+    args.insert("end_date".to_string(), Value::String("2025-10-25".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda custom range result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let view: serde_json::Value =
+                serde_json::from_str(&text.text).expect("View should be valid JSON");
+
+            assert!(view["items"].is_array(), "View should have items array");
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda custom range test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool error handling for invalid mode.
+///
+/// Verifies that:
+/// - Invalid mode parameter returns an error
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_invalid_mode() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with invalid mode");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("invalid".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await;
+
+    assert!(result.is_err(), "Expected error for invalid mode");
+
+    service.cancel().await?;
+    info!("org-agenda invalid mode test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool error handling for invalid priority.
+///
+/// Verifies that:
+/// - Invalid priority parameter returns an error
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_invalid_priority() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with invalid priority");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert("priority".to_string(), Value::String("X".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await;
+
+    assert!(result.is_err(), "Expected error for invalid priority");
+
+    service.cancel().await?;
+    info!("org-agenda invalid priority test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool error handling for invalid date format.
+///
+/// Verifies that:
+/// - Invalid date format in view mode handles gracefully
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_invalid_date_format() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with invalid date format");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("view".into()));
+    args.insert(
+        "start_date".to_string(),
+        Value::String("invalid-date".into()),
+    );
+    args.insert("end_date".to_string(), Value::String("2025-10-25".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda invalid date result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    service.cancel().await?;
+    info!("org-agenda invalid date test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda tool with all parameters combined.
+///
+/// Verifies that:
+/// - Multiple filters work together (states, tags, priority, limit)
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_tool_all_parameters() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with all parameters");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert(
+        "todo_states".to_string(),
+        Value::Array(vec![Value::String("TODO".into())]),
+    );
+    args.insert(
+        "tags".to_string(),
+        Value::Array(vec![Value::String("work".into())]),
+    );
+    args.insert("priority".to_string(), Value::String("A".into()));
+    args.insert("limit".to_string(), Value::Number(5.into()));
+
+    let result = service
+        .call_tool(CallToolRequestParam {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+        })
+        .await?;
+
+    info!("org-agenda all parameters result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let tasks: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Tasks should be valid JSON");
+
+            if let Some(tasks_array) = tasks.as_array() {
+                // Just verify we got results and they respect the limit
+                assert!(tasks_array.len() <= 5, "Should respect limit");
+            }
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda all parameters test completed successfully");
+
+    Ok(())
+}

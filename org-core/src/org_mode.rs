@@ -1,15 +1,54 @@
-use std::{fs, io, path::PathBuf};
+use std::collections::HashSet;
+use std::path::Path;
+use std::{convert::TryFrom, fs, io, path::PathBuf};
 
+use chrono::{DateTime, Datelike, Days, Duration, Local, Months, NaiveDate, TimeZone};
+use globset::{Glob, GlobSetBuilder};
+use ignore::{Walk, WalkBuilder};
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config as NucleoConfig, Matcher};
-use orgize::Org;
-use orgize::ast::PropertyDrawer;
+use orgize::ast::{Headline, PropertyDrawer, Timestamp};
 use orgize::export::{Container, Event, from_fn, from_fn_with_ctx};
+use orgize::{Org, ParseConfig};
+use rowan::ast::AstNode;
 use serde::{Deserialize, Serialize};
-use walkdir::WalkDir;
+use shellexpand::tilde;
 
 use crate::OrgModeError;
 use crate::config::{OrgConfig, load_org_config};
+use crate::utils::tags_match;
+
+/// Macro to convert org-mode Timestamp to chrono::NaiveDateTime
+///
+/// Takes a timestamp and a prefix (start/end) and automatically constructs
+/// the appropriate method calls (year_start/year_end, etc.).
+macro_rules! convert_timestamp {
+    ($ts:expr, $prefix:ident) => {{
+        paste::paste! {
+            let year = $ts.[<year_ $prefix>]()?;
+            let month = $ts.[<month_ $prefix>]()?;
+            let day = $ts.[<day_ $prefix>]()?;
+            let hour = $ts.[<hour_ $prefix>]();
+            let minute = $ts.[<minute_ $prefix>]();
+
+            Some(chrono::NaiveDateTime::new(
+                chrono::NaiveDate::from_ymd_opt(
+                    year.parse().ok()?,
+                    month.parse().ok()?,
+                    day.parse().ok()?,
+                )?,
+                chrono::NaiveTime::from_hms_opt(
+                    hour.map(|v| v.parse().unwrap_or_default())
+                        .unwrap_or_default(),
+                    minute
+                        .map(|v| v.parse().unwrap_or_default())
+                        .unwrap_or_default(),
+                    0,
+                )?,
+            ))
+        }
+    }};
+}
 
 #[cfg(test)]
 #[path = "org_mode_tests.rs"]
@@ -37,6 +76,72 @@ pub struct SearchResult {
     pub score: u32,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TodoState {
+    Todo,
+    Done,
+    Other(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Priority {
+    A,
+    B,
+    C,
+    None,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Position {
+    pub start: u32,
+    pub end: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgendaItem {
+    pub file_path: String,
+    pub heading: String,
+    pub level: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    // TODO: review type (string vs enum)
+    pub todo_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    // TODO: review type (string vs enum)
+    pub priority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deadline: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub position: Option<Position>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgendaView {
+    pub items: Vec<AgendaItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_date: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_date: Option<String>,
+}
+
+#[derive(Default)]
+pub enum AgendaViewType {
+    Today,
+    Day(DateTime<Local>),
+    #[default]
+    CurrentWeek,
+    Week(u8),
+    CurrentMonth,
+    Month(u32),
+    Custom {
+        from: DateTime<Local>,
+        to: DateTime<Local>,
+    },
 }
 
 impl TreeNode {
@@ -98,8 +203,7 @@ impl OrgMode {
         tags: Option<&[String]>,
         limit: Option<usize>,
     ) -> Result<Vec<String>, OrgModeError> {
-        WalkDir::new(&self.config.org_directory)
-            .into_iter()
+        Walk::new(&self.config.org_directory)
             .filter_map(|entry| match entry {
                 Ok(dir_entry) => {
                     let path = dir_entry.path();
@@ -115,7 +219,7 @@ impl OrgMode {
                         None
                     }
                 }
-                Err(e) => Some(Err(OrgModeError::WalkDirError(e))),
+                Err(e) => Some(Err(OrgModeError::WalkError(e))),
             })
             .collect::<Result<Vec<String>, OrgModeError>>()
             .map(|files| {
@@ -373,5 +477,504 @@ impl OrgMode {
         Org::parse(&content).traverse(&mut handler);
 
         Ok(tags)
+    }
+
+    fn files_in_path(&self, path: &str) -> Result<impl Iterator<Item = PathBuf>, OrgModeError> {
+        let org_root = PathBuf::from(&self.config.org_directory);
+
+        let path = tilde(&path).into_owned();
+        let path = if PathBuf::from(&path).is_absolute() {
+            path.to_string()
+        } else {
+            org_root.join(&path).to_str().unwrap_or(&path).to_string()
+        };
+
+        let root = path
+            .split_once('*')
+            .map(|(prefix, _)| prefix)
+            .unwrap_or(&path);
+
+        let globset = GlobSetBuilder::new().add(Glob::new(&path)?).build()?;
+
+        let iter = WalkBuilder::new(root)
+            .build()
+            .flatten()
+            .filter(move |e| e.path().is_file() && globset.is_match(e.path()))
+            .map(|e| e.path().to_path_buf());
+
+        Ok(iter)
+    }
+
+    fn agenda_tasks(&self) -> impl Iterator<Item = (Headline, String)> {
+        self.config
+            .org_agenda_files
+            .iter()
+            .filter_map(|loc| self.files_in_path(loc).ok())
+            .flatten()
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .flat_map(|file| {
+                let config = ParseConfig {
+                    todo_keywords: (
+                        self.config.unfinished_keywords(),
+                        self.config.finished_keywords(),
+                    ),
+                    ..Default::default()
+                };
+                // TODO: handle file read errors
+                let org = config.parse(fs::read_to_string(&file).unwrap_or_default());
+
+                let org_root = Path::new(&self.config.org_directory);
+
+                let mut tasks = Vec::new();
+                let mut handler = from_fn(|event| {
+                    if let Event::Enter(container) = event
+                        && let Container::Headline(headline) = container
+                        && (headline.is_todo() || headline.is_done())
+                    {
+                        let file_path = file
+                            .strip_prefix(org_root)
+                            .unwrap_or(&file)
+                            .to_string_lossy()
+                            .to_string();
+                        tasks.push((headline, file_path));
+                    }
+                });
+                org.traverse(&mut handler);
+                tasks
+            })
+    }
+
+    /// List all tasks (TODO/DONE items) across all org files
+    ///
+    /// # Arguments
+    /// * `todo_states` - Optional filter for specific TODO states (e.g., ["TODO", "DONE"])
+    /// * `tags` - Optional filter by tags
+    /// * `priority` - Optional filter by priority level
+    /// * `limit` - Maximum number of items to return
+    ///
+    /// # Returns
+    /// Vector of `AgendaItem` containing task information
+    pub fn list_tasks(
+        &self,
+        todo_states: Option<&[String]>,
+        tags: Option<&[String]>,
+        priority: Option<Priority>,
+        limit: Option<usize>,
+    ) -> Result<Vec<AgendaItem>, OrgModeError> {
+        let tasks = self
+            .agenda_tasks()
+            .filter(|(headline, _)| {
+                headline.is_todo()
+                    && tags
+                        .map(|tags| {
+                            tags_match(
+                                &headline.tags().map(|s| s.to_string()).collect::<Vec<_>>(),
+                                tags,
+                            )
+                        })
+                        .unwrap_or(true)
+                    && priority
+                        .as_ref()
+                        .map(|p| {
+                            if let Some(prio) = headline.priority() {
+                                let prio = prio.to_string();
+                                matches!(
+                                    (p, prio.as_str()),
+                                    (Priority::A, "A") | (Priority::B, "B") | (Priority::C, "C")
+                                )
+                            } else {
+                                *p == Priority::None
+                            }
+                        })
+                        .unwrap_or(true)
+                    && todo_states
+                        .map(|states| {
+                            headline
+                                .todo_keyword()
+                                .map(|kw| states.contains(&kw.to_string()))
+                                .unwrap_or(false)
+                        })
+                        .unwrap_or(true)
+            })
+            .map(|(headline, file_path)| Self::headline_to_agenda_item(&headline, file_path))
+            .take(limit.unwrap_or(usize::MAX))
+            .collect::<Vec<_>>();
+
+        Ok(tasks)
+    }
+
+    /// Get agenda view organized by date
+    ///
+    /// # Arguments
+    /// * `agenda_view_type` - Type of agenda view (e.g., Today, CurrentWeek, Custom range)
+    /// * `todo_states` - Optional filter for specific TODO states
+    /// * `tags` - Optional filter by tags
+    ///
+    /// # Returns
+    /// `AgendaView` containing items within the date range
+    pub fn get_agenda_view(
+        &self,
+        agenda_view_type: AgendaViewType,
+        todo_states: Option<&[String]>,
+        tags: Option<&[String]>,
+    ) -> Result<AgendaView, OrgModeError> {
+        let items = self
+            .agenda_tasks()
+            .filter(|(headline, _)| {
+                tags.map(|tags| {
+                    tags_match(
+                        &headline.tags().map(|s| s.to_string()).collect::<Vec<_>>(),
+                        tags,
+                    )
+                })
+                .unwrap_or(true)
+                    && todo_states
+                        .map(|states| {
+                            headline
+                                .todo_keyword()
+                                .map(|kw| states.contains(&kw.to_string()))
+                                .unwrap_or(false)
+                        })
+                        .unwrap_or(true)
+                    && self.is_in_agenda_range(headline, &agenda_view_type)
+            })
+            .map(|(headline, file_path)| Self::headline_to_agenda_item(&headline, file_path))
+            .collect::<Vec<_>>();
+
+        Ok(AgendaView {
+            items,
+            start_date: Some(agenda_view_type.start_date().format("%Y-%m-%d").to_string()),
+            end_date: Some(agenda_view_type.end_date().format("%Y-%m-%d").to_string()),
+        })
+    }
+
+    // TODO: support recurrent tasks
+    fn is_in_agenda_range(&self, headline: &Headline, agenda_view_type: &AgendaViewType) -> bool {
+        let start_date = agenda_view_type.start_date();
+        let end_date = agenda_view_type.end_date();
+
+        let timestamps = headline
+            .syntax()
+            .children()
+            .filter(|c| !Headline::can_cast(c.kind()))
+            .flat_map(|node| node.descendants().filter_map(Timestamp::cast))
+            .filter(|ts| ts.is_active())
+            .filter(|ts| {
+                headline.scheduled().map(|s| &s != ts).unwrap_or(true)
+                    && headline.deadline().map(|s| &s != ts).unwrap_or(true)
+            })
+            .collect::<Vec<_>>();
+
+        let is_within_range = |ts_opt: Option<Timestamp>| {
+            // more info https://orgmode.org/org.html#Repeated-tasks
+            if let Some(ts) = ts_opt
+                && let Some(date) = OrgMode::start_to_chrono(&ts)
+                && let Some(date) = Local.from_local_datetime(&date).single()
+            {
+                if let Some(repeater_value) = ts.repeater_value()
+                    && let Some(repeater_unit) = ts.repeater_unit()
+                {
+                    let value = repeater_value as u64;
+                    let mut current_date =
+                        OrgMode::add_repeater_duration(date, value, &repeater_unit);
+
+                    while current_date < start_date {
+                        current_date =
+                            OrgMode::add_repeater_duration(current_date, value, &repeater_unit);
+                    }
+
+                    current_date >= start_date && current_date <= end_date
+                } else {
+                    date >= start_date && date <= end_date
+                }
+            } else {
+                false
+            }
+        };
+
+        is_within_range(headline.scheduled())
+            || is_within_range(headline.deadline())
+            || timestamps.into_iter().any(|ts| is_within_range(Some(ts)))
+    }
+
+    pub fn start_to_chrono(ts: &Timestamp) -> Option<chrono::NaiveDateTime> {
+        convert_timestamp!(ts, start)
+    }
+
+    pub fn end_to_chrono(ts: &Timestamp) -> Option<chrono::NaiveDateTime> {
+        convert_timestamp!(ts, end)
+    }
+}
+
+// DateTime helper functions
+impl OrgMode {
+    /// Convert a DateTime to start of day (00:00:00)
+    fn to_start_of_day(date: DateTime<Local>) -> DateTime<Local> {
+        date.date_naive()
+            .and_hms_opt(0, 0, 0)
+            .and_then(|dt| Local.from_local_datetime(&dt).single())
+            .unwrap_or(date)
+    }
+
+    /// Convert a DateTime to end of day (23:59:59.999)
+    fn to_end_of_day(date: DateTime<Local>) -> DateTime<Local> {
+        date.date_naive()
+            .and_hms_opt(23, 59, 59)
+            .and_then(|dt| Local.from_local_datetime(&dt).single())
+            .unwrap_or(date)
+    }
+
+    /// Convert NaiveDate to local DateTime with specified time
+    fn naive_date_to_local(
+        date: NaiveDate,
+        hour: u32,
+        min: u32,
+        sec: u32,
+    ) -> Result<DateTime<Local>, OrgModeError> {
+        date.and_hms_opt(hour, min, sec)
+            .and_then(|dt| Local.from_local_datetime(&dt).single())
+            .ok_or_else(|| {
+                OrgModeError::InvalidAgendaViewType(format!(
+                    "Could not convert date '{}' to local timezone",
+                    date
+                ))
+            })
+    }
+
+    /// Get the last day of the month for a given date
+    fn last_day_of_month(date: DateTime<Local>) -> DateTime<Local> {
+        let month = date.month();
+        let year = date.year();
+
+        // Get first day of next month
+        let (next_month, next_year) = if month == 12 {
+            (1, year + 1)
+        } else {
+            (month + 1, year)
+        };
+
+        // First day of next month at midnight
+        let next_month_first = Self::to_start_of_day(
+            date.with_year(next_year)
+                .unwrap()
+                .with_month(next_month)
+                .unwrap()
+                .with_day(1)
+                .unwrap(),
+        );
+
+        // Subtract one day to get last day of current month
+        next_month_first - Duration::days(1)
+    }
+
+    /// Add a repeater duration to a date based on org-mode time units
+    ///
+    /// # Arguments
+    /// * `date` - The starting date
+    /// * `value` - The numeric value for the duration
+    /// * `unit` - The time unit (Hour, Day, Week, Month, Year)
+    fn add_repeater_duration(
+        date: DateTime<Local>,
+        value: u64,
+        unit: &orgize::ast::TimeUnit,
+    ) -> DateTime<Local> {
+        match unit {
+            orgize::ast::TimeUnit::Hour => Some(date + Duration::hours(value as i64)),
+            orgize::ast::TimeUnit::Day => date.checked_add_days(Days::new(value)),
+            orgize::ast::TimeUnit::Week => date.checked_add_days(Days::new(value * 7)),
+            orgize::ast::TimeUnit::Month => date.checked_add_months(Months::new(value as u32)),
+            orgize::ast::TimeUnit::Year => date.checked_add_months(Months::new(value as u32 * 12)),
+        }
+        .unwrap_or(date)
+    }
+
+    /// Convert a Headline to an AgendaItem
+    ///
+    /// # Arguments
+    /// * `headline` - The org-mode headline to convert
+    /// * `file_path` - The file path containing the headline
+    fn headline_to_agenda_item(headline: &Headline, file_path: String) -> AgendaItem {
+        AgendaItem {
+            file_path,
+            heading: headline.title_raw(),
+            level: headline.level(),
+            todo_state: headline.todo_keyword().map(|t| t.to_string()),
+            priority: headline.priority().map(|p| p.to_string()),
+            deadline: headline.deadline().map(|d| d.raw()),
+            scheduled: headline.scheduled().map(|d| d.raw()),
+            tags: headline.tags().map(|s| s.to_string()).collect(),
+            position: Some(Position {
+                start: headline.start().into(),
+                end: headline.end().into(),
+            }),
+        }
+    }
+
+    /// Parse a date string in YYYY-MM-DD format with contextual error messages
+    ///
+    /// # Arguments
+    /// * `date_str` - The date string to parse
+    /// * `context` - Context for error messages (e.g., "from date", "to date")
+    fn parse_date_string(date_str: &str, context: &str) -> Result<NaiveDate, OrgModeError> {
+        NaiveDate::parse_from_str(date_str, "%Y-%m-%d").map_err(|_| {
+            OrgModeError::InvalidAgendaViewType(format!(
+                "Invalid {context} '{date_str}', expected YYYY-MM-DD"
+            ))
+        })
+    }
+}
+
+// TODO: improve date management
+impl AgendaViewType {
+    pub fn start_date(&self) -> DateTime<Local> {
+        let date = match self {
+            AgendaViewType::Today => Local::now(),
+            AgendaViewType::Day(d) => *d,
+            AgendaViewType::CurrentWeek => {
+                let now = Local::now();
+                let weekday = now.weekday().num_days_from_monday();
+                now - Duration::days(weekday as i64)
+            }
+            AgendaViewType::Week(week_num) => {
+                let now = Local::now();
+                let year_start =
+                    OrgMode::to_start_of_day(now.with_month(1).unwrap().with_day(1).unwrap());
+                year_start + Duration::weeks(*week_num as i64)
+            }
+            AgendaViewType::CurrentMonth => {
+                let now = Local::now();
+                now.with_day(1).unwrap()
+            }
+            AgendaViewType::Month(month) => {
+                let now = Local::now();
+                now.with_month(*month).unwrap_or(now).with_day(1).unwrap()
+            }
+            AgendaViewType::Custom { from, .. } => *from,
+        };
+        OrgMode::to_start_of_day(date)
+    }
+
+    pub fn end_date(&self) -> DateTime<Local> {
+        let date = match self {
+            AgendaViewType::Today => Local::now(),
+            AgendaViewType::Day(d) => *d,
+            AgendaViewType::CurrentWeek => {
+                let now = Local::now();
+                let weekday = now.weekday().num_days_from_monday();
+                let start = now - Duration::days(weekday as i64);
+                start + Duration::days(6)
+            }
+            AgendaViewType::Week(week_num) => {
+                let now = Local::now();
+                let year_start =
+                    OrgMode::to_start_of_day(now.with_month(1).unwrap().with_day(1).unwrap());
+                let target_week_start = year_start + Duration::weeks(*week_num as i64);
+                target_week_start + Duration::days(6)
+            }
+            AgendaViewType::CurrentMonth => {
+                let now = Local::now();
+                OrgMode::last_day_of_month(now)
+            }
+            AgendaViewType::Month(month) => {
+                let now = Local::now();
+                let date_in_month = now.with_month(*month).unwrap_or(now);
+                OrgMode::last_day_of_month(date_in_month)
+            }
+            AgendaViewType::Custom { to, .. } => *to,
+        };
+        OrgMode::to_end_of_day(date)
+    }
+}
+
+/// Possible values to convert
+/// "": default
+/// "today": Today
+/// "day/YYYY-MM-DD": specific day
+/// "week": current week
+/// "week/N": week number N
+/// "month": current month
+/// "month/N": month number N
+/// "query/from/YYYY-MM-DD/to/YYYY-MM-DD": custom range
+impl TryFrom<&str> for AgendaViewType {
+    type Error = OrgModeError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            return Ok(AgendaViewType::default());
+        }
+
+        match value {
+            "today" => Ok(AgendaViewType::Today),
+            "week" => Ok(AgendaViewType::CurrentWeek),
+            "month" => Ok(AgendaViewType::CurrentMonth),
+            _ => {
+                // Try to parse more complex patterns
+                let parts: Vec<&str> = value.split('/').collect();
+
+                match parts.as_slice() {
+                    ["day", date_str] => {
+                        // Parse YYYY-MM-DD format
+                        let parsed_date = OrgMode::parse_date_string(date_str, "date format")?;
+                        let datetime = OrgMode::naive_date_to_local(parsed_date, 0, 0, 0)?;
+                        Ok(AgendaViewType::Day(datetime))
+                    }
+                    ["week", week_str] => {
+                        // Parse week number
+                        let week_num = week_str.parse::<u8>().map_err(|_| {
+                            OrgModeError::InvalidAgendaViewType(format!(
+                                "Invalid week number '{}', expected 0-53",
+                                week_str
+                            ))
+                        })?;
+                        if week_num > 53 {
+                            return Err(OrgModeError::InvalidAgendaViewType(format!(
+                                "Week number {} out of range, expected 0-53",
+                                week_num
+                            )));
+                        }
+                        Ok(AgendaViewType::Week(week_num))
+                    }
+                    ["month", month_str] => {
+                        // Parse month number
+                        let month_num = month_str.parse::<u32>().map_err(|_| {
+                            OrgModeError::InvalidAgendaViewType(format!(
+                                "Invalid month number '{}', expected 1-12",
+                                month_str
+                            ))
+                        })?;
+                        if !(1..=12).contains(&month_num) {
+                            return Err(OrgModeError::InvalidAgendaViewType(format!(
+                                "Month number {} out of range, expected 1-12",
+                                month_num
+                            )));
+                        }
+                        Ok(AgendaViewType::Month(month_num))
+                    }
+                    ["query", "from", from_str, "to", to_str] => {
+                        // Parse custom date range
+                        let from_date = OrgMode::parse_date_string(from_str, "from date")?;
+                        let to_date = OrgMode::parse_date_string(to_str, "to date")?;
+
+                        let from_datetime = OrgMode::naive_date_to_local(from_date, 0, 0, 0)?;
+                        let to_datetime = OrgMode::naive_date_to_local(to_date, 23, 59, 59)?;
+
+                        if from_datetime > to_datetime {
+                            return Err(OrgModeError::InvalidAgendaViewType(
+                                "From date must be before to date".into(),
+                            ));
+                        }
+                        Ok(AgendaViewType::Custom {
+                            from: from_datetime,
+                            to: to_datetime,
+                        })
+                    }
+                    _ => Err(OrgModeError::InvalidAgendaViewType(format!(
+                        "Unknown agenda view type format: '{}'",
+                        value
+                    ))),
+                }
+            }
+        }
     }
 }

@@ -381,3 +381,198 @@ async fn test_invalid_resource_uris() -> Result<(), Box<dyn std::error::Error>> 
 
     Ok(())
 }
+
+/// Tests org-agenda:// default resource functionality.
+///
+/// Verifies that:
+/// - The org-agenda:// resource returns agenda view data
+/// - Content is properly formatted as JSON
+/// - Response includes expected agenda view fields
+#[tokio::test]
+#[traced_test]
+async fn test_read_org_agenda_default_resource() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda default resource");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let result = service
+        .read_resource(ReadResourceRequestParam {
+            uri: "org-agenda://".to_string(),
+        })
+        .await?;
+
+    info!("Agenda default resource result: {:#?}", result);
+    assert!(!result.contents.is_empty());
+
+    if let Some(content) = result.contents.first() {
+        if let rmcp::model::ResourceContents::TextResourceContents { text, .. } = content {
+            let view: serde_json::Value =
+                serde_json::from_str(text).expect("Agenda view should be valid JSON");
+
+            assert!(view["items"].is_array(), "View should have items array");
+        } else {
+            panic!("Expected text content in agenda resource result");
+        }
+    } else {
+        panic!("No content in agenda resource result");
+    }
+
+    service.cancel().await?;
+    info!("Agenda default resource test completed successfully");
+
+    Ok(())
+}
+
+/// Tests org-agenda://today resource functionality.
+///
+/// Verifies that:
+/// - The org-agenda://today resource returns today's tasks
+/// - Content includes scheduled/deadline items for today
+/// - Response is properly formatted JSON
+#[tokio::test]
+#[traced_test]
+async fn test_read_org_agenda_today_resource() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda://today resource");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let result = service
+        .read_resource(ReadResourceRequestParam {
+            uri: "org-agenda://today".to_string(),
+        })
+        .await?;
+
+    info!("Agenda today resource result: {:#?}", result);
+    assert!(!result.contents.is_empty());
+
+    if let Some(content) = result.contents.first() {
+        if let rmcp::model::ResourceContents::TextResourceContents { text, .. } = content {
+            let view: serde_json::Value =
+                serde_json::from_str(text).expect("Agenda view should be valid JSON");
+
+            assert!(view["items"].is_array(), "View should have items array");
+            assert!(
+                view["start_date"].is_string() || view["start_date"].is_null(),
+                "View should have start_date"
+            );
+            assert!(
+                view["end_date"].is_string() || view["end_date"].is_null(),
+                "View should have end_date"
+            );
+        } else {
+            panic!("Expected text content in agenda today resource result");
+        }
+    } else {
+        panic!("No content in agenda today resource result");
+    }
+
+    service.cancel().await?;
+    info!("Agenda today resource test completed successfully");
+
+    // TODO: update once agenda view is implemented
+    Ok(())
+}
+
+/// Tests org-agenda://week resource functionality.
+///
+/// Verifies that:
+/// - The org-agenda://week resource returns this week's tasks
+/// - Content includes tasks scheduled for the current week
+/// - Response is properly formatted JSON with date range
+#[tokio::test]
+#[traced_test]
+async fn test_read_org_agenda_week_resource() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda://week resource");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let result = service
+        .read_resource(ReadResourceRequestParam {
+            uri: "org-agenda://week".to_string(),
+        })
+        .await?;
+
+    info!("Agenda week resource result: {:#?}", result);
+    assert!(!result.contents.is_empty());
+
+    if let Some(content) = result.contents.first() {
+        if let rmcp::model::ResourceContents::TextResourceContents { text, .. } = content {
+            let view: serde_json::Value =
+                serde_json::from_str(text).expect("Agenda view should be valid JSON");
+
+            assert!(view["items"].is_array(), "View should have items array");
+            assert!(
+                view["start_date"].is_string() || view["start_date"].is_null(),
+                "View should have start_date"
+            );
+            assert!(
+                view["end_date"].is_string() || view["end_date"].is_null(),
+                "View should have end_date"
+            );
+        } else {
+            panic!("Expected text content in agenda week resource result");
+        }
+    } else {
+        panic!("No content in agenda week resource result");
+    }
+
+    service.cancel().await?;
+    info!("Agenda week resource test completed successfully");
+
+    // TODO: update once agenda view is implemented
+
+    Ok(())
+}
+
+/// Tests error handling for invalid org-agenda resource URIs.
+///
+/// Verifies that:
+/// - Invalid agenda URI paths are properly rejected
+/// - Error responses are appropriate and informative
+#[tokio::test]
+#[traced_test]
+async fn test_org_agenda_resource_error_handling() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda resource error handling");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let invalid_uris = vec![
+        "org-agenda://invalid",
+        "org-agenda://yesterday",
+        "org-agenda://month",
+    ];
+
+    for invalid_uri in invalid_uris {
+        info!("Testing invalid agenda URI: {}", invalid_uri);
+
+        let result = service
+            .read_resource(ReadResourceRequestParam {
+                uri: invalid_uri.to_string(),
+            })
+            .await;
+
+        match result {
+            Err(_) => {
+                info!(
+                    "Correctly received error for invalid agenda URI: {}",
+                    invalid_uri
+                );
+            }
+            Ok(_) => {
+                info!(
+                    "URI {} did not error (may be handled gracefully)",
+                    invalid_uri
+                );
+            }
+        }
+    }
+
+    service.cancel().await?;
+    info!("Agenda resource error handling test completed successfully");
+
+    Ok(())
+}

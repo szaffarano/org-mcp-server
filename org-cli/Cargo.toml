@@ -2,6 +2,7 @@
 org-core = { version = "0.0.3", path = "../org-core" }
 clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
+chrono = { workspace = true }
 config = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

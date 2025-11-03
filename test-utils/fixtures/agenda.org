@@ -1,0 +1,123 @@
+#+TITLE: Agenda Test File
+#+AUTHOR: Test User
+#+DATE: @TODAY@
+
+* Work Tasks
+** TODO [#A] Complete quarterly report                                                        :work:
+   SCHEDULED: <@TODAY+1@ Mon> DEADLINE: <@TODAY+6@ Fri>
+   :PROPERTIES:
+   :ID: work-task-001
+   :END:
+   Need to finish Q3 report for the board meeting.
+
+** TODO [#B] Review pull requests                                                      :work:triage:
+   SCHEDULED: <@TODAY@ Sat>
+   :PROPERTIES:
+   :ID: work-task-002
+   :END:
+   - Check backend changes
+   - Review frontend updates
+
+** DONE [#C] Update documentation
+   CLOSED: [@TODAY-1@ Fri 14:30] SCHEDULED: <@TODAY-1@ Fri>
+   :PROPERTIES:
+   :ID: work-task-003
+   :END:
+   Documentation has been updated with latest API changes.
+
+* Personal Tasks :personal:
+** TODO [#C] Buy groceries
+   DEADLINE: <@TODAY+2@ Sun>
+   :PROPERTIES:
+   :ID: personal-task-001
+   :END:
+   - Milk
+   - Bread
+   - Eggs
+
+** TODO Call dentist                                                                          :work:
+   :PROPERTIES:
+   :ID: personal-task-002
+   :END:
+   Schedule annual checkup appointment.
+
+** DONE Read book chapter
+   CLOSED: [@TODAY-2@ Thu 22:00]
+   :PROPERTIES:
+   :ID: personal-task-003
+   :END:
+   Finished chapter 5 of "Clean Code".
+
+* Project Planning :project:work:
+** TODO [#A] Design database schema
+   SCHEDULED: <@TODAY+3@ Tue> DEADLINE: <@TODAY+9@ Mon>
+   :PROPERTIES:
+   :ID: project-task-001
+   :END:
+*** TODO Define user tables
+*** TODO Define relationship mappings
+*** DONE Research database options
+    CLOSED: [@TODAY-3@ Wed 16:00]
+
+** TODO Set up CI/CD pipeline
+   SCHEDULED: <@TODAY+4@ Wed>
+   :PROPERTIES:
+   :ID: project-task-002
+   :END:
+   Configure GitHub Actions for automated testing and deployment.
+
+* Meetings
+** TODO [#A] Team standup
+   SCHEDULED: <@TODAY@ Sat 10:00>
+   :PROPERTIES:
+   :ID: meeting-001
+   :END:
+   Daily standup meeting with the development team.
+
+** TODO Client presentation
+   SCHEDULED: <@TODAY+5@ Thu 14:00> DEADLINE: <@TODAY+5@ Thu 14:00>
+   :PROPERTIES:
+   :ID: meeting-002
+   :END:
+   Present Q3 results and Q4 roadmap to client.
+
+* Someday/Maybe
+** Research new framework
+   :PROPERTIES:
+   :ID: maybe-001
+   :END:
+   Look into Rust web frameworks for future projects.
+
+** Learn machine learning
+   :PROPERTIES:
+   :ID: maybe-002
+   :END:
+   Take online course on ML fundamentals.
+
+* Tagged Tasks
+** TODO Review documentation :work:review:
+   SCHEDULED: <@TODAY+7@ Sat>
+   :PROPERTIES:
+   :ID: tagged-task-001
+   :END:
+   Review and update project documentation.
+
+** TODO Plan weekend :personal:planning:
+   :PROPERTIES:
+   :ID: tagged-task-002
+   :END:
+   Plan activities for the weekend.
+
+** TODO [#A] Code review session :work:review:urgent:
+   DEADLINE: <@TODAY+6@ Fri>
+   :PROPERTIES:
+   :ID: tagged-task-003
+   :END:
+   Critical code review needed before deployment.
+
+** DONE Write blog post :personal:writing:
+   CLOSED: [@TODAY-1@ Fri 20:00]
+   :PROPERTIES:
+   :ID: tagged-task-004
+   :END:
+   Published blog post about Rust async.

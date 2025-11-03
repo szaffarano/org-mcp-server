@@ -28,6 +28,6 @@ impl OrgModeRouter {
     }
 
     fn tool_router() -> ToolRouter<Self> {
-        Self::tool_router_list_files() + Self::tool_router_search()
+        Self::tool_router_list_files() + Self::tool_router_search() + Self::tool_router_agenda()
     }
 }

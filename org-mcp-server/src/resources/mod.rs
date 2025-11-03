@@ -1,3 +1,4 @@
+mod org_agenda;
 mod org_file;
 mod org_file_list;
 mod org_heading;
@@ -8,6 +9,7 @@ mod utils;
 #[cfg(test)]
 mod resource_tests;
 
+use org_core::org_mode::AgendaViewType;
 use rmcp::model::{
     AnnotateAble, Implementation, InitializeRequestParam, InitializeResult,
     ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParam, RawResource,
@@ -31,6 +33,7 @@ pub enum OrgResource {
     OrgOutline { path: String },
     OrgHeading { path: String, heading: String },
     OrgId { id: String },
+    OrgAgenda { agenda_view_type: AgendaViewType },
 }
 
 #[tool_handler]
@@ -40,12 +43,17 @@ impl ServerHandler for OrgModeRouter {
             "This server provides org-mode tools and resources.\n\n",
             "Tools:\n",
             "- org-file-list\n",
+            "- org-search\n",
+            "- org-agenda\n",
             "Resources:\n",
             "- org:// (List all org-mode files in the configured directory tree)\n",
             "- org://{file} (Access the raw content of an allowed Org file)\n",
             "- org-outline://{file} (Get the hierarchical structure of an Org file)\n",
             "- org-heading://{file}#{heading} (Access the content of a specific headline by its path)\n",
             "- org-id://{uuid} (Access Org node content by its unique ID property)\n",
+            "- org-agenda:// (List all agenda items/tasks)\n",
+            "- org-agenda://today (Today's scheduled tasks)\n",
+            "- org-agenda://week (This week's scheduled tasks)\n",
         );
 
         ServerInfo {
@@ -75,6 +83,36 @@ impl ServerHandler for OrgModeRouter {
                     description: Some(
                         "List all org-mode files in the configured directory tree".to_string(),
                     ),
+                    size: None,
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResource {
+                    uri: "org-agenda://".to_string(),
+                    name: "org-agenda".to_string(),
+                    title: None,
+                    icons: None,
+                    description: Some("List all agenda items and tasks".to_string()),
+                    size: None,
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResource {
+                    uri: "org-agenda://today".to_string(),
+                    name: "org-agenda-today".to_string(),
+                    title: None,
+                    icons: None,
+                    description: Some("Today's scheduled agenda items".to_string()),
+                    size: None,
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResource {
+                    uri: "org-agenda://week".to_string(),
+                    name: "org-agenda-week".to_string(),
+                    title: None,
+                    icons: None,
+                    description: Some("This week's scheduled agenda items".to_string()),
                     size: None,
                     mime_type: Some("application/json".to_string()),
                 }
@@ -121,7 +159,7 @@ impl ServerHandler for OrgModeRouter {
                         "Access the content of a specific heading within an org-mode file"
                             .to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
@@ -132,7 +170,47 @@ impl ServerHandler for OrgModeRouter {
                         "Access the content of any org-mode element by its unique ID property"
                             .to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("plain/text".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-agenda://day/{date}".to_string(),
+                    name: "org-agenda-day".to_string(),
+                    title: None,
+                    description: Some(
+                        "Access the agenda items for a specific day (YYYY-MM-DD)".to_string(),
+                    ),
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-agenda://week/{num}".to_string(),
+                    name: "org-agenda-week".to_string(),
+                    title: None,
+                    description: Some(
+                        "Access the agenda items for the specified week number".to_string(),
+                    ),
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-agenda://month/{num}".to_string(),
+                    name: "org-agenda-month".to_string(),
+                    title: None,
+                    description: Some(
+                        "Access the agenda items for the specified month number".to_string(),
+                    ),
+                    mime_type: Some("application/json".to_string()),
+                }
+                .no_annotation(),
+                RawResourceTemplate {
+                    uri_template: "org-agenda://query/from/{from}/to/{to}".to_string(),
+                    name: "org-agenda-query".to_string(),
+                    title: None,
+                    description: Some(
+                        "Access the agenda items for the specified date range".to_string(),
+                    ),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
             ],
@@ -152,6 +230,9 @@ impl ServerHandler for OrgModeRouter {
                 self.heading(uri, path, heading).await
             }
             Some(OrgResource::OrgId { id }) => self.id(uri, id).await,
+            Some(OrgResource::OrgAgenda { agenda_view_type }) => {
+                self.read_agenda(uri, agenda_view_type).await
+            }
 
             None => Err(McpError::resource_not_found(
                 format!("Invalid resource URI format: {}", uri),
@@ -201,6 +282,13 @@ impl OrgModeRouter {
                 path: path.to_string(),
                 heading: heading.to_string(),
             })
+        } else if let Some(remainder) = uri.strip_prefix("org-agenda://") {
+            let agenda_view_type = if remainder.is_empty() {
+                AgendaViewType::default()
+            } else {
+                remainder.try_into().unwrap_or_default()
+            };
+            Some(OrgResource::OrgAgenda { agenda_view_type })
         } else {
             None
         }
