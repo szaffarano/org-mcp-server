@@ -76,7 +76,7 @@ pub fn setup_test_org_files() -> Result<TempDir, Box<dyn error::Error>> {
     Ok(temp_dir)
 }
 
-/// Creates a temporary directory with all test fixtures with placeholder repacement.
+/// Creates a temporary directory with all test fixtures with placeholder replacement.
 ///
 /// This is a convenience function that combines `TempDir::new()` and
 /// `copy_fixtures_with_dates()`.
