@@ -1075,6 +1075,7 @@ dependencies = [
  "ignore",
  "nucleo-matcher",
  "orgize",
+ "paste",
  "regex",
  "rowan",
  "serde",

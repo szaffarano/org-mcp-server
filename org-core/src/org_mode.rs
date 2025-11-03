@@ -18,6 +18,38 @@ use crate::OrgModeError;
 use crate::config::{OrgConfig, load_org_config};
 use crate::utils::tags_match;
 
+/// Macro to convert org-mode Timestamp to chrono::NaiveDateTime
+///
+/// Takes a timestamp and a prefix (start/end) and automatically constructs
+/// the appropriate method calls (year_start/year_end, etc.).
+macro_rules! convert_timestamp {
+    ($ts:expr, $prefix:ident) => {{
+        paste::paste! {
+            let year = $ts.[<year_ $prefix>]()?;
+            let month = $ts.[<month_ $prefix>]()?;
+            let day = $ts.[<day_ $prefix>]()?;
+            let hour = $ts.[<hour_ $prefix>]();
+            let minute = $ts.[<minute_ $prefix>]();
+
+            Some(chrono::NaiveDateTime::new(
+                chrono::NaiveDate::from_ymd_opt(
+                    year.parse().ok()?,
+                    month.parse().ok()?,
+                    day.parse().ok()?,
+                )?,
+                chrono::NaiveTime::from_hms_opt(
+                    hour.map(|v| v.parse().unwrap_or_default())
+                        .unwrap_or_default(),
+                    minute
+                        .map(|v| v.parse().unwrap_or_default())
+                        .unwrap_or_default(),
+                    0,
+                )?,
+            ))
+        }
+    }};
+}
+
 #[cfg(test)]
 #[path = "org_mode_tests.rs"]
 mod org_mode_tests;
@@ -666,53 +698,12 @@ impl OrgMode {
             || timestamps.into_iter().any(|ts| is_within_range(Some(ts)))
     }
 
-    /// Convert a Timestamp to NaiveDateTime
-    ///
-    /// # Arguments
-    /// * `ts` - The timestamp to convert
-    /// * `use_start` - If true, use start date/time; if false, use end date/time
-    fn timestamp_to_chrono(ts: &Timestamp, use_start: bool) -> Option<chrono::NaiveDateTime> {
-        let (year, month, day, hour, minute) = if use_start {
-            (
-                ts.year_start()?,
-                ts.month_start()?,
-                ts.day_start()?,
-                ts.hour_start(),
-                ts.minute_start(),
-            )
-        } else {
-            (
-                ts.year_end()?,
-                ts.month_end()?,
-                ts.day_end()?,
-                ts.hour_end(),
-                ts.minute_end(),
-            )
-        };
-
-        Some(chrono::NaiveDateTime::new(
-            chrono::NaiveDate::from_ymd_opt(
-                year.parse().ok()?,
-                month.parse().ok()?,
-                day.parse().ok()?,
-            )?,
-            chrono::NaiveTime::from_hms_opt(
-                hour.map(|v| v.parse().unwrap_or_default())
-                    .unwrap_or_default(),
-                minute
-                    .map(|v| v.parse().unwrap_or_default())
-                    .unwrap_or_default(),
-                0,
-            )?,
-        ))
-    }
-
     pub fn start_to_chrono(ts: &Timestamp) -> Option<chrono::NaiveDateTime> {
-        Self::timestamp_to_chrono(ts, true)
+        convert_timestamp!(ts, start)
     }
 
     pub fn end_to_chrono(ts: &Timestamp) -> Option<chrono::NaiveDateTime> {
-        Self::timestamp_to_chrono(ts, false)
+        convert_timestamp!(ts, end)
     }
 }
 

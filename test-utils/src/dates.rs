@@ -6,12 +6,9 @@
 use chrono::{Datelike, Days, NaiveDate, Weekday};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::sync::Mutex;
 
-static DATE_PLACEHOLDER_REGEX: Lazy<std::sync::Mutex<Regex>> = Lazy::new(|| {
-    let re = Regex::new(r"<(@[A-Z_+\-0-9]+@)\s+[A-Za-z]{3}(\s+\d{1,2}:\d{2})?>").unwrap();
-    Mutex::new(re)
-});
+static DATE_PLACEHOLDER_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"<(@[A-Z_+\-0-9]+@)\s+[A-Za-z]{3}(\s+\d{1,2}:\d{2})?>").unwrap());
 
 /// Format a date in org-mode format: <YYYY-MM-DD DayOfWeek>
 pub fn format_org_date(date: NaiveDate, include_time: Option<&str>) -> String {
@@ -65,8 +62,8 @@ pub fn replace_dates_in_content(content: &str, base_date: NaiveDate) -> String {
     // Regex to match org-mode timestamps with placeholders
     // Matches: <@PLACEHOLDER@ [DayOfWeek] [Time]>
     // let re = Regex::new(r"<(@[A-Z_+\-0-9]+@)\s+[A-Za-z]{3}(\s+\d{1,2}:\d{2})?>").unwrap();
-    if let Ok(re) = DATE_PLACEHOLDER_REGEX.lock() {
-        re.replace_all(content, |caps: &regex::Captures| {
+    DATE_PLACEHOLDER_REGEX
+        .replace_all(content, |caps: &regex::Captures| {
             let placeholder = &caps[1];
             let time = caps.get(2).map(|m| m.as_str().trim());
 
@@ -74,9 +71,6 @@ pub fn replace_dates_in_content(content: &str, base_date: NaiveDate) -> String {
             format_org_date(date, time)
         })
         .to_string()
-    } else {
-        content.to_string()
-    }
 }
 
 /// Parse a placeholder string to get the corresponding date
