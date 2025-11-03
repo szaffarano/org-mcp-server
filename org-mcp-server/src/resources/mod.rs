@@ -170,7 +170,7 @@ impl ServerHandler for OrgModeRouter {
                         "Access the content of any org-mode element by its unique ID property"
                             .to_string(),
                     ),
-                    mime_type: Some("application/json".to_string()),
+                    mime_type: Some("plain/text".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
