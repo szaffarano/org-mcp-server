@@ -159,7 +159,7 @@ impl ServerHandler for OrgModeRouter {
                         "Access the content of a specific heading within an org-mode file"
                             .to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
@@ -170,7 +170,7 @@ impl ServerHandler for OrgModeRouter {
                         "Access the content of any org-mode element by its unique ID property"
                             .to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
@@ -180,7 +180,7 @@ impl ServerHandler for OrgModeRouter {
                     description: Some(
                         "Access the agenda items for a specific day (YYYY-MM-DD)".to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
@@ -190,7 +190,7 @@ impl ServerHandler for OrgModeRouter {
                     description: Some(
                         "Access the agenda items for the specified week number".to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
@@ -200,7 +200,7 @@ impl ServerHandler for OrgModeRouter {
                     description: Some(
                         "Access the agenda items for the specified month number".to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
                 RawResourceTemplate {
@@ -210,7 +210,7 @@ impl ServerHandler for OrgModeRouter {
                     description: Some(
                         "Access the agenda items for the specified date range".to_string(),
                     ),
-                    mime_type: Some("text/org".to_string()),
+                    mime_type: Some("application/json".to_string()),
                 }
                 .no_annotation(),
             ],

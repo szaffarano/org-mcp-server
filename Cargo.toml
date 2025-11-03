@@ -22,6 +22,7 @@ dirs = "6"
 globset = "0.4"
 ignore = "0.4"
 nucleo-matcher = "0.3"
+once_cell = "1.21.3"
 org-core = { version = "0.0.1", path = "../org-core" }
 orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
 predicates = "3.1"

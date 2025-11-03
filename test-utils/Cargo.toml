@@ -10,6 +10,7 @@ publish = false
 tempfile.workspace = true
 chrono.workspace = true
 regex.workspace = true
+once_cell.workspace = true
 
 [lib]
 path = "src/lib.rs"

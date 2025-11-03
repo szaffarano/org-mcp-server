@@ -462,10 +462,7 @@ impl OrgMode {
             .map(|(prefix, _)| prefix)
             .unwrap_or(&path);
 
-        let globset = GlobSetBuilder::new()
-            .add(Glob::new(&path)?)
-            .build()
-            .unwrap();
+        let globset = GlobSetBuilder::new().add(Glob::new(&path)?).build()?;
 
         let iter = WalkBuilder::new(root)
             .build()
@@ -732,10 +729,8 @@ impl OrgMode {
     /// Convert a DateTime to end of day (23:59:59.999)
     fn to_end_of_day(date: DateTime<Local>) -> DateTime<Local> {
         date.date_naive()
-            .succ_opt()
-            .and_then(|tomorrow| tomorrow.and_hms_opt(0, 0, 0))
+            .and_hms_opt(23, 59, 59)
             .and_then(|dt| Local.from_local_datetime(&dt).single())
-            .map(|tomorrow| tomorrow - Duration::milliseconds(1))
             .unwrap_or(date)
     }
 
@@ -794,16 +789,13 @@ impl OrgMode {
         unit: &orgize::ast::TimeUnit,
     ) -> DateTime<Local> {
         match unit {
-            orgize::ast::TimeUnit::Hour => date + Duration::hours(value as i64),
-            orgize::ast::TimeUnit::Day => date.checked_add_days(Days::new(value)).unwrap(),
-            orgize::ast::TimeUnit::Week => date.checked_add_days(Days::new(value * 7)).unwrap(),
-            orgize::ast::TimeUnit::Month => {
-                date.checked_add_months(Months::new(value as u32)).unwrap()
-            }
-            orgize::ast::TimeUnit::Year => date
-                .checked_add_months(Months::new(value as u32 * 12))
-                .unwrap(),
+            orgize::ast::TimeUnit::Hour => Some(date + Duration::hours(value as i64)),
+            orgize::ast::TimeUnit::Day => date.checked_add_days(Days::new(value)),
+            orgize::ast::TimeUnit::Week => date.checked_add_days(Days::new(value * 7)),
+            orgize::ast::TimeUnit::Month => date.checked_add_months(Months::new(value as u32)),
+            orgize::ast::TimeUnit::Year => date.checked_add_months(Months::new(value as u32 * 12)),
         }
+        .unwrap_or(date)
     }
 
     /// Convert a Headline to an AgendaItem
