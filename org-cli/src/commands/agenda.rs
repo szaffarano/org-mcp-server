@@ -200,7 +200,7 @@ impl AgendaCommand {
 
                 let to = NaiveDate::parse_from_str(end, "%Y-%m-%d")
                     .map_err(|e| anyhow::anyhow!("Failed to parse end date '{}': {}", end, e))?
-                    .and_hms_opt(0, 0, 0)
+                    .and_hms_opt(23, 59, 59)
                     .ok_or_else(|| anyhow::anyhow!("Invalid time components for date '{}'", end))?;
 
                 let to = Local.from_local_datetime(&to).single().ok_or_else(|| {
