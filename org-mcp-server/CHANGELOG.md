@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.3...org-mcp-server-v0.0.4)
+
+### ✨ Features
+
+
+- Implement agenda view functionality ([#86](https://github.com/szaffarano/org-mcp-server/pull/86)) - ([87e412d](https://github.com/szaffarano/org-mcp-server/commit/87e412dbcf5136972afb74ee0dd97400e3f883a3))
+
+### Other changes
+
+
+- Add cargo install and GitHub releases to setup instructions ([#81](https://github.com/szaffarano/org-mcp-server/pull/81)) - ([2b543ed](https://github.com/szaffarano/org-mcp-server/commit/2b543edfe29cc1d652f9b1880a09eecb4a41f432))
+
+
 ## [0.0.3](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.2...org-mcp-server-v0.0.3)
 
 ### ✨ Features

@@ -1,5 +1,5 @@
 [dependencies]
-org-core = { version = "0.0.3", path = "../org-core" }
+org-core = { version = "0.0.4", path = "../org-core" }
 clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
 chrono = { workspace = true }
