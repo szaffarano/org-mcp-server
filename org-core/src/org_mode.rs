@@ -974,3 +974,67 @@ impl TryFrom<&str> for AgendaViewType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Timelike;
+    use orgize::ast::TimeUnit;
+
+    #[test]
+    fn test_add_repeater_duration_hour() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 14, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 2, &TimeUnit::Hour);
+
+        assert_eq!(result.hour(), 16);
+        assert_eq!(result.day(), 15);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_day() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 5, &TimeUnit::Day);
+
+        assert_eq!(result.day(), 20);
+        assert_eq!(result.month(), 6);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_week() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 2, &TimeUnit::Week);
+
+        assert_eq!(result.day(), 29);
+        assert_eq!(result.month(), 6);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_month() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 3, &TimeUnit::Month);
+
+        assert_eq!(result.month(), 9);
+        assert_eq!(result.day(), 15);
+        assert_eq!(result.year(), 2025);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_year() {
+        let date = Local.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 2, &TimeUnit::Year);
+
+        assert_eq!(result.year(), 2027);
+        assert_eq!(result.month(), 6);
+        assert_eq!(result.day(), 15);
+    }
+
+    #[test]
+    fn test_add_repeater_duration_month_boundary() {
+        let date = Local.with_ymd_and_hms(2025, 10, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::add_repeater_duration(date, 3, &TimeUnit::Month);
+
+        assert_eq!(result.year(), 2026);
+        assert_eq!(result.month(), 1);
+        assert_eq!(result.day(), 15);
+    }
+}
