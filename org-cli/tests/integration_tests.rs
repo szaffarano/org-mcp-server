@@ -2,18 +2,11 @@ use assert_cmd::cargo;
 use predicates::prelude::*;
 use std::fs;
 use tempfile::TempDir;
-use test_utils::copy_fixtures_with_dates;
-
-fn create_test_org_files(temp_dir: &TempDir) -> Result<(), Box<dyn std::error::Error>> {
-    let today = chrono::Local::now().date_naive();
-    copy_fixtures_with_dates(temp_dir, today)?;
-    Ok(())
-}
+use test_utils::fixtures::setup_test_org_files_with_dates;
 
 #[test]
 fn test_list_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -21,7 +14,7 @@ fn test_list_command_basic() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Found 10 .org files"))
+        .stdout(predicate::str::contains("Found 20 .org files"))
         .stdout(predicate::str::contains("basic.org"))
         .stdout(predicate::str::contains("with_doc_id.org"))
         .stdout(predicate::str::contains("search_test.org"))
@@ -31,8 +24,7 @@ fn test_list_command_basic() {
 
 #[test]
 fn test_list_command_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -42,7 +34,7 @@ fn test_list_command_json_format() {
         .arg("json")
         .assert()
         .success()
-        .stdout(predicate::str::contains("\"count\": 10"))
+        .stdout(predicate::str::contains("\"count\": 20"))
         .stdout(predicate::str::contains("\"files\""))
         .stdout(predicate::str::contains("{"))
         .stdout(predicate::str::contains("}"));
@@ -74,8 +66,7 @@ fn test_list_command_invalid_directory() {
 
 #[test]
 fn test_read_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -105,8 +96,7 @@ fn test_read_command_nonexistent_file() {
 
 #[test]
 fn test_outline_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -122,8 +112,7 @@ fn test_outline_command_basic() {
 
 #[test]
 fn test_outline_command_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -141,8 +130,7 @@ fn test_outline_command_json_format() {
 
 #[test]
 fn test_heading_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -160,8 +148,7 @@ fn test_heading_command_basic() {
 
 #[test]
 fn test_heading_command_nested() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -177,8 +164,7 @@ fn test_heading_command_nested() {
 
 #[test]
 fn test_heading_command_nonexistent() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -193,8 +179,7 @@ fn test_heading_command_nonexistent() {
 
 #[test]
 fn test_element_by_id_command_heading() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -211,8 +196,7 @@ fn test_element_by_id_command_heading() {
 
 #[test]
 fn test_element_by_id_command_document_level() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -227,8 +211,7 @@ fn test_element_by_id_command_document_level() {
 
 #[test]
 fn test_element_by_id_command_nonexistent() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -275,8 +258,7 @@ fn test_invalid_command() {
 
 #[test]
 fn test_search_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -292,8 +274,7 @@ fn test_search_command_basic() {
 
 #[test]
 fn test_search_command_with_limit() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -309,8 +290,7 @@ fn test_search_command_with_limit() {
 
 #[test]
 fn test_search_command_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -332,8 +312,7 @@ fn test_search_command_json_format() {
 
 #[test]
 fn test_search_command_custom_snippet_size() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -351,8 +330,7 @@ fn test_search_command_custom_snippet_size() {
 
 #[test]
 fn test_search_command_no_results() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -366,8 +344,7 @@ fn test_search_command_no_results() {
 
 #[test]
 fn test_search_command_empty_query() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -393,8 +370,7 @@ fn test_search_command_invalid_directory() {
 
 #[test]
 fn test_search_command_all_parameters() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -466,8 +442,7 @@ fn test_config_init_file_already_exists() {
 
 #[test]
 fn test_config_show_displays_config() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .env("ORG_ORG__ORG_DIRECTORY", temp_dir.path().to_str().unwrap())
@@ -547,8 +522,7 @@ fn test_config_init_file_already_exists_with_explicit_path() {
 
 #[test]
 fn test_config_show_with_explicit_path() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("test-config.toml");
     // Convert path to forward slashes for TOML compatibility on Windows
@@ -597,8 +571,7 @@ fn test_config_path_with_explicit_flag() {
 
 #[test]
 fn test_config_file_affects_list_output() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     // Convert path to forward slashes for TOML compatibility on Windows
@@ -628,8 +601,7 @@ default_format = "json"
 
 #[test]
 fn test_config_hierarchy_file_env_cli() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_dir = TempDir::new().unwrap();
     let config_path = config_dir.path().join("config.toml");
@@ -724,7 +696,6 @@ fn test_config_init_with_home_env() {
 fn test_config_show_with_home_env() {
     let temp_home = TempDir::new().unwrap();
     let temp_org = TempDir::new().unwrap();
-    create_test_org_files(&temp_org).unwrap();
 
     // Create the appropriate config directory for each platform
     #[cfg(target_os = "macos")]
@@ -766,8 +737,7 @@ level = "trace"
 
 #[test]
 fn test_list_command_with_single_tag() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -785,8 +755,7 @@ fn test_list_command_with_single_tag() {
 
 #[test]
 fn test_list_command_with_multiple_tags() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -801,8 +770,7 @@ fn test_list_command_with_multiple_tags() {
 
 #[test]
 fn test_list_command_with_tags_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -821,8 +789,7 @@ fn test_list_command_with_tags_json_format() {
 
 #[test]
 fn test_list_command_with_nonexistent_tag() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -840,8 +807,7 @@ fn test_list_command_with_nonexistent_tag() {
 
 #[test]
 fn test_search_command_with_single_tag() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -857,8 +823,7 @@ fn test_search_command_with_single_tag() {
 
 #[test]
 fn test_search_command_with_multiple_tags() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -873,8 +838,7 @@ fn test_search_command_with_multiple_tags() {
 
 #[test]
 fn test_search_command_with_tags_and_limit() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -891,8 +855,7 @@ fn test_search_command_with_tags_and_limit() {
 
 #[test]
 fn test_search_command_with_tags_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -912,8 +875,7 @@ fn test_search_command_with_tags_json_format() {
 
 #[test]
 fn test_search_command_with_tags_no_match() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -929,8 +891,7 @@ fn test_search_command_with_tags_no_match() {
 
 #[test]
 fn test_search_command_with_tags_all_parameters() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     cargo::cargo_bin_cmd!("org-cli")
         .arg("--root-directory")
@@ -953,8 +914,7 @@ fn test_search_command_with_tags_all_parameters() {
 
 #[test]
 fn test_agenda_list_command_basic() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -981,8 +941,7 @@ org_agenda_files = ["agenda.org", "project.org"]
 
 #[test]
 fn test_agenda_list_command_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1014,8 +973,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_command_with_limit() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1043,8 +1001,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_today_command() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1070,8 +1027,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_week_command() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1097,8 +1053,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_range_command() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1134,8 +1089,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_range_command_invalid_start() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1165,8 +1119,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_range_command_invalid_end() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1196,8 +1149,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_filter_by_states() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1225,8 +1177,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_filter_by_priority() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1254,8 +1205,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_filter_by_tags() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1282,8 +1232,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_empty_agenda_files() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1312,8 +1261,7 @@ org_agenda_files = ["empty.org"]
 
 #[test]
 fn test_agenda_range_invalid_date() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1356,8 +1304,7 @@ fn test_agenda_help() {
 
 #[test]
 fn test_agenda_list_no_matching_priority() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1386,8 +1333,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_multiple_filters() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1420,10 +1366,8 @@ org_agenda_files = ["agenda.org"]
 }
 
 #[test]
-#[ignore = "TODO: Tag filtering in agenda queries is not working correctly - separate bug to fix"]
 fn test_agenda_today_with_tags() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1443,7 +1387,7 @@ org_agenda_files = ["agenda.org"]
         .arg("agenda")
         .arg("today")
         .arg("--tags")
-        .arg("work,personal")
+        .arg("work,triage")
         .assert()
         .success()
         .stdout(predicate::str::contains("Agenda"));
@@ -1451,8 +1395,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_week_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1482,8 +1425,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_combined_states() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1511,8 +1453,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_with_limit_edge_case() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1545,8 +1486,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_today_plain_format_explicit() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1577,8 +1517,7 @@ default_format = "plain"
 
 #[test]
 fn test_agenda_week_plain_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1606,8 +1545,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_today_json_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
@@ -1636,8 +1574,7 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_list_plain_format() {
-    let temp_dir = TempDir::new().unwrap();
-    create_test_org_files(&temp_dir).unwrap();
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
 
     let config_path = temp_dir.path().join("config.toml");
     let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");

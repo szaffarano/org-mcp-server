@@ -106,5 +106,5 @@ pub fn target_dir() -> path::PathBuf {
 /// - `rust-programming-401`: Rust Programming section
 /// - `archived-ideas-501`: Archived Ideas section
 pub fn setup_test_org_files() -> Result<TempDir, Box<dyn std::error::Error>> {
-    test_utils::setup_test_org_files()
+    test_utils::fixtures::setup_test_org_files()
 }
