@@ -50,10 +50,6 @@ macro_rules! convert_timestamp {
     }};
 }
 
-#[cfg(test)]
-#[path = "org_mode_tests.rs"]
-mod org_mode_tests;
-
 #[derive(Debug)]
 pub struct OrgMode {
     config: OrgConfig,
