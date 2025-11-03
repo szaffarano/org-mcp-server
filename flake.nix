@@ -135,6 +135,7 @@
               curl
               git
               jq
+              just
               pkgs.alejandra
               pkgs.deadnix
               pkgs.statix
