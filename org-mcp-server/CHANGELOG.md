@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.4...org-mcp-server-v0.0.5)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Consolidate test fixtures into test-utils crate ([#99](https://github.com/szaffarano/org-mcp-server/pull/99)) - ([6101d25](https://github.com/szaffarano/org-mcp-server/commit/6101d25baa9429deb8b7343767cdb7a5016fbaec))
+- Update flakes ([#96](https://github.com/szaffarano/org-mcp-server/pull/96)) - ([eeeb11e](https://github.com/szaffarano/org-mcp-server/commit/eeeb11e4667946deffa108cee3c4eef15a1548c5))
+
+
 ## [0.0.4](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.3...org-mcp-server-v0.0.4)
 
 ### ✨ Features
