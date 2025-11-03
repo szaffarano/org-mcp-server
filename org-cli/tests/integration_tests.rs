@@ -968,8 +968,8 @@ org_agenda_files = ["agenda.org", "project.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -996,8 +996,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1029,8 +1029,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1058,8 +1058,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("today")
@@ -1085,8 +1085,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("week")
@@ -1118,8 +1118,8 @@ org_agenda_files = ["agenda.org"]
     let start_date = today.format("%Y-%m-%d").to_string();
     let end_date = week_later.format("%Y-%m-%d").to_string();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("range")
@@ -1149,8 +1149,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("range")
@@ -1180,8 +1180,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("range")
@@ -1211,8 +1211,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1240,8 +1240,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1269,8 +1269,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1297,8 +1297,8 @@ org_agenda_files = ["empty.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1327,8 +1327,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("range")
@@ -1342,8 +1342,8 @@ org_agenda_files = ["agenda.org"]
 
 #[test]
 fn test_agenda_help() {
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("agenda")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("agenda")
         .arg("--help")
         .assert()
         .success()
@@ -1371,8 +1371,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1401,8 +1401,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1437,8 +1437,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("today")
@@ -1466,8 +1466,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("week")
@@ -1497,8 +1497,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1527,8 +1527,8 @@ org_agenda_files = ["agenda.org"]
     fs::write(&config_path, config_content).unwrap();
 
     // Test with limit of 1
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
@@ -1563,8 +1563,8 @@ default_format = "plain"
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("today")
@@ -1592,8 +1592,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("week")
@@ -1621,8 +1621,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("today")
@@ -1651,8 +1651,8 @@ org_agenda_files = ["agenda.org"]
     );
     fs::write(&config_path, config_content).unwrap();
 
-    let mut cmd = Command::cargo_bin("org-cli").unwrap();
-    cmd.arg("--config")
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
         .arg(config_path.to_str().unwrap())
         .arg("agenda")
         .arg("list")
