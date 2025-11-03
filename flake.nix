@@ -122,7 +122,6 @@
             shellHook = ''
               ${config.pre-commit.installationScript}
             '';
-            # inputsFrom = [self'.packages.org-mcp-server];
             inherit (self'.checks) pre-commit;
             packages = with pkgsWithOverlay; [
               cargo-bloat
