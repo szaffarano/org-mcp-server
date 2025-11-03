@@ -26,9 +26,35 @@ references for org-mode files.
 - `cargo run --bin org-cli` — Run CLI tool
 - `cargo run --bin org-mcp-server` — Run MCP server
 
+## Just Commands
+
+Development tasks are managed with [just](https://github.com/casey/just) (available in nix devShell).
+
+**Common commands:**
+- `just` — Show all available commands
+- `just build` — Build all crates
+- `just test` — Run all tests
+- `just dev` — Development workflow (format, lint, test, coverage)
+- `just coverage-html` — Generate HTML coverage report
+- `just lint` — Run clippy linter
+- `just fmt` — Format code
+
+**Coverage targets:**
+- `just coverage` — Generate all coverage formats
+- `just coverage-html` — HTML report in `coverage/html/`
+- `just coverage-summary` — Terminal summary
+- `just coverage-ci` — LCOV for CI
+- `just coverage-json` — JSON format
+
+**Quality checks:**
+- `just check` — Run all quality checks (format check, lint, test, coverage)
+- `just fmt-check` — Check code formatting without modifying
+
+Run `just` to see all available commands with descriptions.
+
 ## Code Style & Preferences
 
-- **Formatting**: Always use `cargo fmt` before commits
+- **Formatting**: Always use `just fmt` or `cargo fmt` before commits
 - **Error handling**: Prefer explicit `Result<T, E>` over panics
 - **String formatting**: Use `"string {var}"` over `"string {}", var`
 - **Imports**: Standard library before external crates
