@@ -280,7 +280,7 @@ fn test_start_date_and_end_date_current_month() {
 #[test]
 fn test_start_date_and_end_date_specific_month() {
     let result = AgendaViewType::try_from("month/2");
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "Month parsing failed");
     let view_type = result.unwrap();
 
     let start = view_type.start_date();

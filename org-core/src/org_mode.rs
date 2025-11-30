@@ -843,7 +843,8 @@ impl AgendaViewType {
                 now.with_day(1).unwrap()
             }
             AgendaViewType::Month(month) => {
-                let now = Local::now();
+                // FIXME: improve error handling
+                let now = Local::now().with_day(1).unwrap_or(Local::now());
                 now.with_month(*month).unwrap_or(now).with_day(1).unwrap()
             }
             AgendaViewType::Custom { from, .. } => *from,
@@ -873,7 +874,8 @@ impl AgendaViewType {
                 OrgMode::last_day_of_month(now)
             }
             AgendaViewType::Month(month) => {
-                let now = Local::now();
+                // FIXME: improve error handling
+                let now = Local::now().with_day(1).unwrap_or(Local::now());
                 let date_in_month = now.with_month(*month).unwrap_or(now);
                 OrgMode::last_day_of_month(date_in_month)
             }
