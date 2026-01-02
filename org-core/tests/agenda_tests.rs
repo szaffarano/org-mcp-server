@@ -393,8 +393,13 @@ fn test_list_tasks_scheduled_deadline() {
     assert!(has_deadline, "Should have tasks with deadline dates");
 
     let scheduled_task = tasks.iter().find(|t| t.scheduled.is_some()).unwrap();
+    let today = Local::now();
     assert!(
-        scheduled_task.scheduled.as_ref().unwrap().contains("2025"),
+        scheduled_task
+            .scheduled
+            .as_ref()
+            .unwrap()
+            .contains(format!("{}", today.year()).as_str()),
         "Scheduled date should contain year"
     );
 }
