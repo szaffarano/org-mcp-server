@@ -80,6 +80,7 @@ impl ServerHandler for OrgModeRouter {
                     name: "org".to_string(),
                     title: None,
                     icons: None,
+                    meta: None,
                     description: Some(
                         "List all org-mode files in the configured directory tree".to_string(),
                     ),
@@ -92,6 +93,7 @@ impl ServerHandler for OrgModeRouter {
                     name: "org-agenda".to_string(),
                     title: None,
                     icons: None,
+                    meta: None,
                     description: Some("List all agenda items and tasks".to_string()),
                     size: None,
                     mime_type: Some("application/json".to_string()),
@@ -102,6 +104,7 @@ impl ServerHandler for OrgModeRouter {
                     name: "org-agenda-today".to_string(),
                     title: None,
                     icons: None,
+                    meta: None,
                     description: Some("Today's scheduled agenda items".to_string()),
                     size: None,
                     mime_type: Some("application/json".to_string()),
@@ -112,6 +115,7 @@ impl ServerHandler for OrgModeRouter {
                     name: "org-agenda-week".to_string(),
                     title: None,
                     icons: None,
+                    meta: None,
                     description: Some("This week's scheduled agenda items".to_string()),
                     size: None,
                     mime_type: Some("application/json".to_string()),
@@ -119,6 +123,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
             ],
             next_cursor: None,
+            meta: None,
         })
     }
 
@@ -129,6 +134,7 @@ impl ServerHandler for OrgModeRouter {
     ) -> Result<ListResourceTemplatesResult, McpError> {
         Ok(ListResourceTemplatesResult {
             next_cursor: None,
+            meta: None,
             resource_templates: vec![
                 RawResourceTemplate {
                     uri_template: "org://{file}".to_string(),
