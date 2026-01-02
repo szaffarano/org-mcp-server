@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.4...org-core-v0.0.5)
+
+### 🐛 Bug Fixes
+
+
+- Update integration test ([#117](https://github.com/szaffarano/org-mcp-server/pull/117)) - ([b282630](https://github.com/szaffarano/org-mcp-server/commit/b2826308cff22c5ac424f2a6ea769f885d18718e))
+- Update integration test flakiness ([#108](https://github.com/szaffarano/org-mcp-server/pull/108)) - ([3c2aee1](https://github.com/szaffarano/org-mcp-server/commit/3c2aee153453d9e47bc29d13d217fa6e7d50e88e))
+
+### 🚜 Refactor
+
+
+- Move integration tests to tests/ directory ([#100](https://github.com/szaffarano/org-mcp-server/pull/100)) - ([4cb31b1](https://github.com/szaffarano/org-mcp-server/commit/4cb31b180b6f6b87155a6a9e49c849fb57e1525b))
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Consolidate test fixtures into test-utils crate ([#99](https://github.com/szaffarano/org-mcp-server/pull/99)) - ([6101d25](https://github.com/szaffarano/org-mcp-server/commit/6101d25baa9429deb8b7343767cdb7a5016fbaec))
+
+
 ## [0.0.4](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.3...org-core-v0.0.4)
 
 ### ✨ Features
