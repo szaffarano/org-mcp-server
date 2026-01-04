@@ -54,7 +54,7 @@ linking capabilities for your org-mode files through the MCP protocol.
 ## Configuration
 
 The project uses a TOML configuration file located at
-`~/.config/org-mcp-server.toml` (or `$XDG_CONFIG_HOME/org-mcp-server.toml`).
+`~/.config/org-mcp/config.toml` (or `$XDG_CONFIG_HOME/org-mcp/config.toml`).
 
 ### Configuration Hierarchy
 
@@ -70,13 +70,18 @@ Configuration is resolved in the following order (highest priority first):
 ```toml
 [org]
 # Root directory containing org-mode files
-root_directory = "~/org/"
+org_directory = "~/org/"
 # Default notes file for new notes
-default_notes_file = "notes.org"
+org_default_notes_file = "notes.org"
 # Agenda files to include
-agenda_files = ["agenda.org", "projects.org"]
+org_agenda_files = ["agenda.org", "projects.org"]
 # Extra files for text search beyond regular org files
-agenda_text_search_extra_files = ["archive.org"]
+org_agenda_text_search_extra_files = ["archive.org"]
+org_todo_keywords = [
+    "TODO",
+    "|",
+    "DONE",
+]
 
 [logging]
 # Log level: trace, debug, info, warn, error
