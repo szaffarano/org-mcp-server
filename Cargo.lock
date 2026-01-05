@@ -985,7 +985,7 @@ dependencies = [
 
 [[package]]
 name = "org-cli"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1006,7 +1006,7 @@ dependencies = [
 
 [[package]]
 name = "org-core"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "chrono",
  "config",
@@ -1032,7 +1032,7 @@ dependencies = [
 
 [[package]]
 name = "org-mcp-server"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "chrono",
  "clap",
@@ -1721,7 +1721,7 @@ checksum = "8f50febec83f5ee1df3015341d8bd429f2d1cc62bcba7ea2076759d315084683"
 
 [[package]]
 name = "test-utils"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "chrono",
  "once_cell",

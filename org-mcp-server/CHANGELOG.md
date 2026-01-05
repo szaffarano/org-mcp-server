@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.4...org-mcp-server-v0.0.5)
+
+### 🐛 Bug Fixes
+
+
+- *(deps)* Update rust crate rmcp to 0.12.0 ([#110](https://github.com/szaffarano/org-mcp-server/pull/110)) - ([eba6077](https://github.com/szaffarano/org-mcp-server/commit/eba6077fe2251dfb78df7940557bea06ca2dfef5))
+- *(deps)* Update rust crate rmcp to 0.10.0 ([#109](https://github.com/szaffarano/org-mcp-server/pull/109)) - ([0346c10](https://github.com/szaffarano/org-mcp-server/commit/0346c10bfec17e92f475501c8497e5509ad4bebb))
+- *(deps)* Update rust crate rmcp to 0.9.0 ([#105](https://github.com/szaffarano/org-mcp-server/pull/105)) - ([7ec1dd3](https://github.com/szaffarano/org-mcp-server/commit/7ec1dd3f1e0f78f7948e1da5c94da1662b2dad1c))
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Consolidate test fixtures into test-utils crate ([#99](https://github.com/szaffarano/org-mcp-server/pull/99)) - ([6101d25](https://github.com/szaffarano/org-mcp-server/commit/6101d25baa9429deb8b7343767cdb7a5016fbaec))
+- Update flakes ([#96](https://github.com/szaffarano/org-mcp-server/pull/96)) - ([eeeb11e](https://github.com/szaffarano/org-mcp-server/commit/eeeb11e4667946deffa108cee3c4eef15a1548c5))
+
+### Other changes
+
+
+- Update configuration sample and path in README ([#120](https://github.com/szaffarano/org-mcp-server/pull/120)) - ([fa9ad89](https://github.com/szaffarano/org-mcp-server/commit/fa9ad89043f4ff2e38703f84daaef72d8c664b35))
+
+
 ## [0.0.4](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.3...org-mcp-server-v0.0.4)
 
 ### ✨ Features
