@@ -3,7 +3,7 @@
 //! This module contains tests that verify the functionality of tools exposed
 //! by the org-mcp-server, including org-file-list and org-search tools.
 
-use rmcp::model::CallToolRequestParam;
+use rmcp::model::CallToolRequestParams;
 use serde_json::{Map, Value};
 use tracing::{info, warn};
 use tracing_test::traced_test;
@@ -57,9 +57,11 @@ async fn test_org_file_list_tool() -> Result<(), Box<dyn std::error::Error>> {
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-file-list".into(),
             arguments: None,
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -107,9 +109,11 @@ async fn test_org_file_list_tool_with_tags() -> Result<(), Box<dyn std::error::E
     );
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-file-list".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -153,9 +157,11 @@ async fn test_org_file_list_tool_with_limit() -> Result<(), Box<dyn std::error::
     args.insert("limit".to_string(), Value::Number(2.into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-file-list".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -203,9 +209,11 @@ async fn test_org_file_list_tool_with_tags_and_limit() -> Result<(), Box<dyn std
     args.insert("limit".to_string(), Value::Number(1.into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-file-list".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -251,9 +259,11 @@ async fn test_org_search_tool() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = Map::new();
     args.insert("query".to_string(), Value::String("Daily Tasks".into()));
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-search".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -300,9 +310,11 @@ async fn test_org_search_tool_with_parameters() -> Result<(), Box<dyn std::error
     args.insert("snippet_max_size".to_string(), Value::Number(50.into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-search".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -363,9 +375,11 @@ async fn test_org_search_tool_with_tags() -> Result<(), Box<dyn std::error::Erro
     );
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-search".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -425,9 +439,11 @@ async fn test_org_search_tool_with_multiple_tags() -> Result<(), Box<dyn std::er
     );
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-search".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -482,9 +498,11 @@ async fn test_org_agenda_tool_list_mode() -> Result<(), Box<dyn std::error::Erro
     args.insert("mode".to_string(), Value::String("list".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -539,9 +557,11 @@ async fn test_org_agenda_tool_list_with_states() -> Result<(), Box<dyn std::erro
     );
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -589,9 +609,11 @@ async fn test_org_agenda_tool_list_with_tags() -> Result<(), Box<dyn std::error:
     );
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -622,9 +644,11 @@ async fn test_org_agenda_tool_list_with_priority() -> Result<(), Box<dyn std::er
     args.insert("priority".to_string(), Value::String("A".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -668,9 +692,11 @@ async fn test_org_agenda_tool_list_with_limit() -> Result<(), Box<dyn std::error
     args.insert("limit".to_string(), Value::Number(2.into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -715,9 +741,11 @@ async fn test_org_agenda_tool_view_mode_default() -> Result<(), Box<dyn std::err
     args.insert("mode".to_string(), Value::String("view".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -762,9 +790,11 @@ async fn test_org_agenda_tool_view_mode_custom_range() -> Result<(), Box<dyn std
     args.insert("end_date".to_string(), Value::String("2025-10-25".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -806,9 +836,11 @@ async fn test_org_agenda_tool_invalid_mode() -> Result<(), Box<dyn std::error::E
     args.insert("mode".to_string(), Value::String("invalid".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await;
 
@@ -837,9 +869,11 @@ async fn test_org_agenda_tool_invalid_priority() -> Result<(), Box<dyn std::erro
     args.insert("priority".to_string(), Value::String("X".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await;
 
@@ -872,9 +906,11 @@ async fn test_org_agenda_tool_invalid_date_format() -> Result<(), Box<dyn std::e
     args.insert("end_date".to_string(), Value::String("2025-10-25".into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 
@@ -913,9 +949,11 @@ async fn test_org_agenda_tool_all_parameters() -> Result<(), Box<dyn std::error:
     args.insert("limit".to_string(), Value::Number(5.into()));
 
     let result = service
-        .call_tool(CallToolRequestParam {
+        .call_tool(CallToolRequestParams {
             name: "org-agenda".into(),
             arguments: Some(args),
+            meta: None,
+            task: None,
         })
         .await?;
 

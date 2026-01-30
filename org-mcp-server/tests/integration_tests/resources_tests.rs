@@ -4,7 +4,7 @@
 //! by the org-mcp-server, including directory listing, file content access,
 //! outline structures, heading access, and ID-based lookups.
 
-use rmcp::model::ReadResourceRequestParam;
+use rmcp::model::ReadResourceRequestParams;
 use tracing::info;
 use tracing_test::traced_test;
 
@@ -110,8 +110,9 @@ async fn test_read_org_directory_resource() -> Result<(), Box<dyn std::error::Er
 
     // Read the org:// directory listing resource
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org://".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -155,8 +156,9 @@ async fn test_read_org_file_resource() -> Result<(), Box<dyn std::error::Error>>
 
     // Read a specific org file resource
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org://notes.org".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -201,8 +203,9 @@ async fn test_read_org_outline_resource() -> Result<(), Box<dyn std::error::Erro
 
     // Read the outline structure of a specific org file
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org-outline://project.org".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -255,8 +258,9 @@ async fn test_read_org_heading_resource() -> Result<(), Box<dyn std::error::Erro
 
     // Read a specific heading from an org file
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org-heading://notes.org#Daily Tasks".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -301,8 +305,9 @@ async fn test_read_org_id_resource() -> Result<(), Box<dyn std::error::Error>> {
 
     // Read content by ID property
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org-id://daily-tasks-123".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -360,8 +365,9 @@ async fn test_invalid_resource_uris() -> Result<(), Box<dyn std::error::Error>> 
         info!("Testing invalid URI: {}", invalid_uri);
 
         let result = service
-            .read_resource(ReadResourceRequestParam {
+            .read_resource(ReadResourceRequestParams {
                 uri: invalid_uri.to_string(),
+                meta: None,
             })
             .await;
 
@@ -397,8 +403,9 @@ async fn test_read_org_agenda_default_resource() -> Result<(), Box<dyn std::erro
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org-agenda://".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -439,8 +446,9 @@ async fn test_read_org_agenda_today_resource() -> Result<(), Box<dyn std::error:
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org-agenda://today".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -490,8 +498,9 @@ async fn test_read_org_agenda_week_resource() -> Result<(), Box<dyn std::error::
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .read_resource(ReadResourceRequestParam {
+        .read_resource(ReadResourceRequestParams {
             uri: "org-agenda://week".to_string(),
+            meta: None,
         })
         .await?;
 
@@ -550,8 +559,9 @@ async fn test_org_agenda_resource_error_handling() -> Result<(), Box<dyn std::er
         info!("Testing invalid agenda URI: {}", invalid_uri);
 
         let result = service
-            .read_resource(ReadResourceRequestParam {
+            .read_resource(ReadResourceRequestParams {
                 uri: invalid_uri.to_string(),
+                meta: None,
             })
             .await;
 
