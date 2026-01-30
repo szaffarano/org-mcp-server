@@ -754,9 +754,9 @@ impl OrgMode {
         let next_month_first = Self::to_start_of_day(
             date.with_year(next_year)
                 .unwrap()
-                .with_month(next_month)
-                .unwrap()
                 .with_day(1)
+                .unwrap()
+                .with_month(next_month)
                 .unwrap(),
         );
 
@@ -1038,5 +1038,34 @@ mod tests {
         assert_eq!(result.year(), 2026);
         assert_eq!(result.month(), 1);
         assert_eq!(result.day(), 15);
+    }
+
+    #[test]
+    fn test_last_day_of_month_from_day_31() {
+        // This tests the bug fix: when on day 31, getting last day of a month
+        // with fewer days (like February) should work correctly
+        let date = Local.with_ymd_and_hms(2025, 1, 31, 12, 0, 0).unwrap();
+        let result = OrgMode::last_day_of_month(date);
+
+        assert_eq!(result.month(), 1);
+        assert_eq!(result.day(), 31);
+    }
+
+    #[test]
+    fn test_last_day_of_month_february() {
+        let date = Local.with_ymd_and_hms(2025, 2, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::last_day_of_month(date);
+
+        assert_eq!(result.month(), 2);
+        assert_eq!(result.day(), 28);
+    }
+
+    #[test]
+    fn test_last_day_of_month_leap_year() {
+        let date = Local.with_ymd_and_hms(2024, 2, 15, 12, 0, 0).unwrap();
+        let result = OrgMode::last_day_of_month(date);
+
+        assert_eq!(result.month(), 2);
+        assert_eq!(result.day(), 29);
     }
 }
