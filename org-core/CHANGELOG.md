@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.5...org-core-v0.0.6)
+
+### 🐛 Bug Fixes
+
+
+- Correct method call order in last_day_of_month ([#129](https://github.com/szaffarano/org-mcp-server/pull/129)) - ([8fabc3e](https://github.com/szaffarano/org-mcp-server/commit/8fabc3e889dc6e2021589beadeb7479d6e5fd7cc))
+
+
 ## [0.0.5](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.4...org-core-v0.0.5)
 
 ### 🐛 Bug Fixes
