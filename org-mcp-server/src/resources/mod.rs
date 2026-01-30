@@ -11,9 +11,9 @@ mod resource_tests;
 
 use org_core::org_mode::AgendaViewType;
 use rmcp::model::{
-    AnnotateAble, Implementation, InitializeRequestParam, InitializeResult,
-    ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParam, RawResource,
-    RawResourceTemplate, ReadResourceRequestParam, ReadResourceResult,
+    AnnotateAble, Implementation, InitializeRequestParams, InitializeResult,
+    ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams, RawResource,
+    RawResourceTemplate, ReadResourceRequestParams, ReadResourceResult,
 };
 use rmcp::service::RequestContext;
 use rmcp::{
@@ -70,7 +70,7 @@ impl ServerHandler for OrgModeRouter {
 
     async fn list_resources(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
         _: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         Ok(ListResourcesResult {
@@ -129,7 +129,7 @@ impl ServerHandler for OrgModeRouter {
 
     async fn list_resource_templates(
         &self,
-        _: Option<PaginatedRequestParam>,
+        _: Option<PaginatedRequestParams>,
         _: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, McpError> {
         Ok(ListResourceTemplatesResult {
@@ -138,6 +138,7 @@ impl ServerHandler for OrgModeRouter {
             resource_templates: vec![
                 RawResourceTemplate {
                     uri_template: "org://{file}".to_string(),
+                    icons: None,
                     name: "org-file".to_string(),
                     title: None,
                     description: Some(
@@ -148,6 +149,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-outline://{file}".to_string(),
+                    icons: None,
                     name: "org-outline-file".to_string(),
                     title: None,
                     description: Some(
@@ -159,6 +161,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-heading://{file}#{heading}".to_string(),
+                    icons: None,
                     name: "org-heading-file".to_string(),
                     title: None,
                     description: Some(
@@ -170,6 +173,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-id://{id}".to_string(),
+                    icons: None,
                     name: "org-element-by-id".to_string(),
                     title: None,
                     description: Some(
@@ -181,6 +185,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-agenda://day/{date}".to_string(),
+                    icons: None,
                     name: "org-agenda-day".to_string(),
                     title: None,
                     description: Some(
@@ -191,6 +196,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-agenda://week/{num}".to_string(),
+                    icons: None,
                     name: "org-agenda-week".to_string(),
                     title: None,
                     description: Some(
@@ -201,6 +207,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-agenda://month/{num}".to_string(),
+                    icons: None,
                     name: "org-agenda-month".to_string(),
                     title: None,
                     description: Some(
@@ -211,6 +218,7 @@ impl ServerHandler for OrgModeRouter {
                 .no_annotation(),
                 RawResourceTemplate {
                     uri_template: "org-agenda://query/from/{from}/to/{to}".to_string(),
+                    icons: None,
                     name: "org-agenda-query".to_string(),
                     title: None,
                     description: Some(
@@ -225,7 +233,7 @@ impl ServerHandler for OrgModeRouter {
 
     async fn read_resource(
         &self,
-        ReadResourceRequestParam { uri }: ReadResourceRequestParam,
+        ReadResourceRequestParams { uri, .. }: ReadResourceRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
         match OrgModeRouter::parse_resource(uri.clone()) {
@@ -249,7 +257,7 @@ impl ServerHandler for OrgModeRouter {
 
     async fn initialize(
         &self,
-        _request: InitializeRequestParam,
+        _request: InitializeRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<InitializeResult, McpError> {
         Ok(self.get_info())
