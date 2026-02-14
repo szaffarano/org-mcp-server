@@ -996,6 +996,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
+name = "memoffset"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1136,7 +1145,7 @@ dependencies = [
  "orgize",
  "paste",
  "regex",
- "rowan",
+ "rowan 0.16.1",
  "serde",
  "serde_json",
  "serial_test",
@@ -1176,7 +1185,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/szaffarano/orgize/?rev=c4b38cb#c4b38cb59131b4776e4edd52a1580737acb9df30"
+source = "git+https://github.com/szaffarano/orgize/?rev=5f26c94dcec2a33b37b1c880ace053b29b5d021e#5f26c94dcec2a33b37b1c880ace053b29b5d021e"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -1184,7 +1193,7 @@ dependencies = [
  "jetscii",
  "memchr",
  "nom",
- "rowan",
+ "rowan 0.15.17",
  "tracing",
 ]
 
@@ -1523,6 +1532,19 @@ dependencies = [
  "serde_derive",
  "typeid",
  "unicode-ident",
+]
+
+[[package]]
+name = "rowan"
+version = "0.15.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4f1e4a001f863f41ea8d0e6a0c34b356d5b733db50dadab3efef640bafb779b"
+dependencies = [
+ "countme",
+ "hashbrown 0.14.5",
+ "memoffset",
+ "rustc-hash",
+ "text-size",
 ]
 
 [[package]]
