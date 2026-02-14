@@ -28,7 +28,7 @@ orgize = { version = "0.10.0-alpha.10", features = ["tracing"] }
 paste = "1.0"
 predicates = "3.1"
 regex = "1.11"
-rmcp = { version = "0.14.0", features = [
+rmcp = { version = "0.15.0", features = [
   "transport-io",
   "transport-child-process",
   "transport-streamable-http-server",
