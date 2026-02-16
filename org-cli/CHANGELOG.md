@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-cli-v0.0.6...org-cli-v0.0.7)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Update Cargo.toml dependencies - ([0000000](https://github.com/szaffarano/org-mcp-server/commit/0000000))
+
+
 ## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-cli-v0.0.5...org-cli-v0.0.6)
 
 ### ⚙️ Miscellaneous Tasks

@@ -3,7 +3,7 @@ name = "org-mcp-server"
 path = "src/main.rs"
 
 [dependencies]
-org-core = { version = "0.0.6", path = "../org-core" }
+org-core = { version = "0.0.7", path = "../org-core" }
 rmcp = { version = "0.15.0", features = [
   "transport-io",
   "transport-child-process",
