@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.6...org-mcp-server-v0.0.7)
+
+### 🐛 Bug Fixes
+
+
+- *(deps)* Update rust crate rmcp to 0.15.0 ([#138](https://github.com/szaffarano/org-mcp-server/pull/138)) - ([984fa36](https://github.com/szaffarano/org-mcp-server/commit/984fa36441824710081dcbf1f3f81c2e7d1176be))
+
+
 ## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.5...org-mcp-server-v0.0.6)
 
 ### 🐛 Bug Fixes
