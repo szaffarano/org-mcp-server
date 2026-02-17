@@ -30,7 +30,7 @@ orgize = { git = "https://github.com/szaffarano/orgize/", rev = "c4b38cb59131b47
 paste = "1.0"
 predicates = "3.1"
 regex = "1.11"
-rmcp = { version = "0.15.0", features = [
+rmcp = { version = "0.16.0", features = [
   "transport-io",
   "transport-child-process",
   "transport-streamable-http-server",

@@ -4,7 +4,7 @@ path = "src/main.rs"
 
 [dependencies]
 org-core = { version = "0.0.6", path = "../org-core" }
-rmcp = { version = "0.15.0", features = [
+rmcp = { version = "0.16.0", features = [
   "transport-io",
   "transport-child-process",
   "transport-streamable-http-server",
