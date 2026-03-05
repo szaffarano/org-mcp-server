@@ -52,7 +52,7 @@
         packages = {
           default = self'.packages.org-mcp;
           org-mcp = pkgsWithOverlay.rustPlatform.buildRustPackage rec {
-            pname = "org-mcp";
+            pname = "org-mcp-server";
             version = let
               cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
             in
