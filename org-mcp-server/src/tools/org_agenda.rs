@@ -28,6 +28,10 @@ pub struct AgendaRequest {
     #[schemars(description = "Filter by priority level (optional: A, B, or C)")]
     pub priority: Option<String>,
     #[schemars(description = "Maximum number of items to return (optional)")]
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::deserialize_string_or_number"
+    )]
     pub limit: Option<usize>,
     #[schemars(
         description = "View mode: 'list' for all tasks, 'view' for date-organized agenda (default: 'list')"
@@ -39,7 +43,7 @@ pub struct AgendaRequest {
 impl OrgModeRouter {
     #[tool(
         name = "org-agenda",
-        description = "Query agenda items (TODO/DONE tasks) with support for filtering by dates, states, tags, and priorities. Use 'list' mode to get all tasks, or 'view' mode for calendar-like agenda organized by scheduled/deadline dates.",
+        description = "Query agenda items (TODO/DONE tasks) with support for filtering by dates, states, tags, and priorities. You can also specify a limit to the number of results returned to save context window space. Use 'list' mode to get all tasks, or 'view' mode for calendar-like agenda organized by scheduled/deadline dates.",
         annotations(title = "org-agenda tool")
     )]
     async fn tool_agenda(
@@ -133,6 +137,7 @@ impl OrgModeRouter {
                     agenda_view_type,
                     todo_states.as_deref(),
                     tags.as_deref(),
+                    limit,
                 );
 
                 match view {

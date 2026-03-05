@@ -485,6 +485,12 @@ impl OrgMode {
             org_root.join(&path).to_str().unwrap_or(&path).to_string()
         };
 
+        let path = if PathBuf::from(&path).is_dir() {
+            format!("{}/**/*.org", path.trim_end_matches('/'))
+        } else {
+            path
+        };
+
         let root = path
             .split_once('*')
             .map(|(prefix, _)| prefix)
@@ -614,8 +620,9 @@ impl OrgMode {
         agenda_view_type: AgendaViewType,
         todo_states: Option<&[String]>,
         tags: Option<&[String]>,
+        limit: Option<usize>,
     ) -> Result<AgendaView, OrgModeError> {
-        let items = self
+        let mut items = self
             .agenda_tasks()
             .filter(|(headline, _)| {
                 tags.map(|tags| {
@@ -637,6 +644,10 @@ impl OrgMode {
             })
             .map(|(headline, file_path)| Self::headline_to_agenda_item(&headline, file_path))
             .collect::<Vec<_>>();
+
+        if let Some(limit) = limit {
+            items.truncate(limit);
+        }
 
         Ok(AgendaView {
             items,
@@ -666,7 +677,18 @@ impl OrgMode {
             // more info https://orgmode.org/org.html#Repeated-tasks
             if let Some(ts) = ts_opt
                 && let Some(date) = OrgMode::start_to_chrono(&ts)
-                && let Some(date) = Local.from_local_datetime(&date).single()
+                && let Some(date) = match Local.from_local_datetime(&date) {
+                    chrono::LocalResult::Single(t) => Some(t),
+                    chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                    chrono::LocalResult::None => {
+                        let dt_plus_1 = date + chrono::Duration::hours(1);
+                        match Local.from_local_datetime(&dt_plus_1) {
+                            chrono::LocalResult::Single(t) => Some(t),
+                            chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                            chrono::LocalResult::None => None,
+                        }
+                    }
+                }
             {
                 if let Some(repeater_value) = ts.repeater_value()
                     && let Some(repeater_unit) = ts.repeater_unit()
@@ -709,7 +731,18 @@ impl OrgMode {
     fn to_start_of_day(date: DateTime<Local>) -> DateTime<Local> {
         date.date_naive()
             .and_hms_opt(0, 0, 0)
-            .and_then(|dt| Local.from_local_datetime(&dt).single())
+            .and_then(|dt| match Local.from_local_datetime(&dt) {
+                chrono::LocalResult::Single(t) => Some(t),
+                chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                chrono::LocalResult::None => {
+                    let dt_plus_1 = dt + chrono::Duration::hours(1);
+                    match Local.from_local_datetime(&dt_plus_1) {
+                        chrono::LocalResult::Single(t) => Some(t),
+                        chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                        chrono::LocalResult::None => None,
+                    }
+                }
+            })
             .unwrap_or(date)
     }
 
@@ -717,7 +750,18 @@ impl OrgMode {
     fn to_end_of_day(date: DateTime<Local>) -> DateTime<Local> {
         date.date_naive()
             .and_hms_opt(23, 59, 59)
-            .and_then(|dt| Local.from_local_datetime(&dt).single())
+            .and_then(|dt| match Local.from_local_datetime(&dt) {
+                chrono::LocalResult::Single(t) => Some(t),
+                chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                chrono::LocalResult::None => {
+                    let dt_minus_1 = dt - chrono::Duration::hours(1);
+                    match Local.from_local_datetime(&dt_minus_1) {
+                        chrono::LocalResult::Single(t) => Some(t),
+                        chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                        chrono::LocalResult::None => None,
+                    }
+                }
+            })
             .unwrap_or(date)
     }
 
@@ -729,7 +773,18 @@ impl OrgMode {
         sec: u32,
     ) -> Result<DateTime<Local>, OrgModeError> {
         date.and_hms_opt(hour, min, sec)
-            .and_then(|dt| Local.from_local_datetime(&dt).single())
+            .and_then(|dt| match Local.from_local_datetime(&dt) {
+                chrono::LocalResult::Single(t) => Some(t),
+                chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                chrono::LocalResult::None => {
+                    let dt_plus_1 = dt + chrono::Duration::hours(1);
+                    match Local.from_local_datetime(&dt_plus_1) {
+                        chrono::LocalResult::Single(t) => Some(t),
+                        chrono::LocalResult::Ambiguous(t, _) => Some(t),
+                        chrono::LocalResult::None => None,
+                    }
+                }
+            })
             .ok_or_else(|| {
                 OrgModeError::InvalidAgendaViewType(format!(
                     "Could not convert date '{}' to local timezone",

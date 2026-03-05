@@ -171,6 +171,7 @@ impl AgendaCommand {
                     AgendaViewType::Today,
                     None,
                     tags.as_ref().map(|v| v.as_slice()),
+                    self.limit,
                 )?;
 
                 self.print_agenda_view(view, format, &org_mode)?;
@@ -181,6 +182,7 @@ impl AgendaCommand {
                     AgendaViewType::CurrentWeek,
                     None,
                     tags.as_ref().map(|v| v.as_slice()),
+                    self.limit,
                 )?;
 
                 self.print_agenda_view(view, format, &org_mode)?;
@@ -211,6 +213,7 @@ impl AgendaCommand {
                     AgendaViewType::Custom { from, to },
                     None,
                     tags.as_ref().map(|v| v.as_slice()),
+                    self.limit,
                 )?;
 
                 self.print_agenda_view(view, format, &org_mode)?;

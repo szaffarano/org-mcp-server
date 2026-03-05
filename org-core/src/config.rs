@@ -267,7 +267,7 @@ pub fn default_notes_file() -> String {
 }
 
 pub fn default_agenda_files() -> Vec<String> {
-    vec!["agenda.org".to_string()]
+    vec!["**/*.org".to_string()]
 }
 
 pub fn default_todo_keywords() -> Vec<String> {
@@ -294,7 +294,7 @@ mod tests {
         let config = OrgConfig::default();
         assert_eq!(config.org_directory, "~/org/");
         assert_eq!(config.org_default_notes_file, "notes.org");
-        assert_eq!(config.org_agenda_files, vec!["agenda.org"]);
+        assert_eq!(config.org_agenda_files, vec!["**/*.org"]);
         assert!(config.org_agenda_text_search_extra_files.is_empty());
     }
 

@@ -864,7 +864,7 @@ fn test_list_tasks_no_match_filters() {
 fn test_get_agenda_view_today() {
     let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
     let view = org_mode
-        .get_agenda_view(AgendaViewType::Today, None, None)
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
         .expect("Failed to get today's agenda view");
 
     assert!(
@@ -901,7 +901,7 @@ fn test_get_agenda_view_today() {
 fn test_get_agenda_view_current_week() {
     let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
     let view = org_mode
-        .get_agenda_view(AgendaViewType::CurrentWeek, None, None)
+        .get_agenda_view(AgendaViewType::CurrentWeek, None, None, None)
         .expect("Failed to get current week agenda view");
 
     assert!(
@@ -935,7 +935,7 @@ fn test_get_agenda_view_current_week() {
 fn test_get_agenda_view_custom_week() {
     let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
     let view = org_mode
-        .get_agenda_view(AgendaViewType::Week(9), None, None)
+        .get_agenda_view(AgendaViewType::Week(9), None, None, None)
         .expect("Failed to get current week agenda view");
 
     assert!(
@@ -957,7 +957,7 @@ fn test_get_agenda_view_custom_range() {
     let to = today.checked_add_days(Days::new(6)).unwrap();
 
     let view = org_mode
-        .get_agenda_view(AgendaViewType::Custom { from, to }, None, None)
+        .get_agenda_view(AgendaViewType::Custom { from, to }, None, None, None)
         .expect("Failed to get custom range agenda view");
 
     assert!(
@@ -995,6 +995,7 @@ fn test_get_agenda_view_with_filters() {
             AgendaViewType::Today,
             Some(&["TODO".to_string()]),
             Some(&["work".to_string()]),
+            None,
         )
         .expect("Failed to get filtered agenda view");
 
@@ -1009,7 +1010,7 @@ fn test_get_agenda_view_empty_results() {
     let to = Local.with_ymd_and_hms(2030, 1, 7, 23, 59, 59).unwrap();
 
     let view = org_mode
-        .get_agenda_view(AgendaViewType::Custom { from, to }, None, None)
+        .get_agenda_view(AgendaViewType::Custom { from, to }, None, None, None)
         .expect("Failed to get agenda view");
 
     // Far future dates should have no tasks
@@ -1024,7 +1025,7 @@ fn test_get_agenda_view_empty_results() {
 fn test_agenda_today_finds_scheduled_tasks() {
     let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
     let view = org_mode
-        .get_agenda_view(AgendaViewType::Today, None, None)
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
         .expect("Failed to get today's agenda");
 
     // Verify tasks scheduled for @TODAY@ are found
@@ -1049,7 +1050,7 @@ fn test_agenda_today_finds_scheduled_tasks() {
 fn test_agenda_today_excludes_future_tasks() {
     let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
     let view = org_mode
-        .get_agenda_view(AgendaViewType::Today, None, None)
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
         .expect("Failed to get today's agenda");
 
     // Tasks scheduled for @TODAY+1@ or later should not be in today's view
@@ -1068,7 +1069,7 @@ fn test_agenda_today_excludes_future_tasks() {
 fn test_agenda_week_includes_all_week_tasks() {
     let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
     let view = org_mode
-        .get_agenda_view(AgendaViewType::CurrentWeek, None, None)
+        .get_agenda_view(AgendaViewType::CurrentWeek, None, None, None)
         .expect("Failed to get current week agenda");
 
     // Week should include tasks from the current week (Monday through Sunday)

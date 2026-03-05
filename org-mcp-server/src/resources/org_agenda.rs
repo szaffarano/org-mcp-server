@@ -15,7 +15,7 @@ impl OrgModeRouter {
         let org_mode = self.org_mode.lock().await;
 
         let result = org_mode
-            .get_agenda_view(agenda_view_type, None, None)
+            .get_agenda_view(agenda_view_type, None, None, None)
             .map(|tasks| json!(tasks).to_string());
 
         match result {
