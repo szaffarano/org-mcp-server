@@ -1,5 +1,6 @@
 /target
 .direnv
+.idea/
 .pre-commit-config.yaml
 
 # Coverage reports
