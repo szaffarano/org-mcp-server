@@ -5,5 +5,12 @@
   ],
   "nix": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["rowan"],
+      "allowedVersions": "0.15"
+    }
+  ]
 }
