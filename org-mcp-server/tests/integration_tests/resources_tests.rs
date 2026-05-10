@@ -110,10 +110,7 @@ async fn test_read_org_directory_resource() -> Result<(), Box<dyn std::error::Er
 
     // Read the org:// directory listing resource
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org://".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new("org://".to_string()))
         .await?;
 
     info!("Directory resource result: {:#?}", result);
@@ -156,10 +153,9 @@ async fn test_read_org_file_resource() -> Result<(), Box<dyn std::error::Error>>
 
     // Read a specific org file resource
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org://notes.org".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new(
+            "org://notes.org".to_string(),
+        ))
         .await?;
 
     info!("File resource result: {:#?}", result);
@@ -203,10 +199,9 @@ async fn test_read_org_outline_resource() -> Result<(), Box<dyn std::error::Erro
 
     // Read the outline structure of a specific org file
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org-outline://project.org".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new(
+            "org-outline://project.org".to_string(),
+        ))
         .await?;
 
     info!("Outline resource result: {:#?}", result);
@@ -258,10 +253,9 @@ async fn test_read_org_heading_resource() -> Result<(), Box<dyn std::error::Erro
 
     // Read a specific heading from an org file
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org-heading://notes.org#Daily Tasks".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new(
+            "org-heading://notes.org#Daily Tasks".to_string(),
+        ))
         .await?;
 
     info!("Heading resource result: {:#?}", result);
@@ -305,10 +299,9 @@ async fn test_read_org_id_resource() -> Result<(), Box<dyn std::error::Error>> {
 
     // Read content by ID property
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org-id://daily-tasks-123".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new(
+            "org-id://daily-tasks-123".to_string(),
+        ))
         .await?;
 
     info!("ID resource result: {:#?}", result);
@@ -365,10 +358,7 @@ async fn test_invalid_resource_uris() -> Result<(), Box<dyn std::error::Error>> 
         info!("Testing invalid URI: {}", invalid_uri);
 
         let result = service
-            .read_resource(ReadResourceRequestParams {
-                uri: invalid_uri.to_string(),
-                meta: None,
-            })
+            .read_resource(ReadResourceRequestParams::new(invalid_uri.to_string()))
             .await;
 
         // Should get an error for invalid URIs
@@ -403,10 +393,7 @@ async fn test_read_org_agenda_default_resource() -> Result<(), Box<dyn std::erro
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org-agenda://".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new("org-agenda://".to_string()))
         .await?;
 
     info!("Agenda default resource result: {:#?}", result);
@@ -446,10 +433,9 @@ async fn test_read_org_agenda_today_resource() -> Result<(), Box<dyn std::error:
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org-agenda://today".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new(
+            "org-agenda://today".to_string(),
+        ))
         .await?;
 
     info!("Agenda today resource result: {:#?}", result);
@@ -498,10 +484,9 @@ async fn test_read_org_agenda_week_resource() -> Result<(), Box<dyn std::error::
     let service = create_mcp_service!(&temp_dir);
 
     let result = service
-        .read_resource(ReadResourceRequestParams {
-            uri: "org-agenda://week".to_string(),
-            meta: None,
-        })
+        .read_resource(ReadResourceRequestParams::new(
+            "org-agenda://week".to_string(),
+        ))
         .await?;
 
     info!("Agenda week resource result: {:#?}", result);
@@ -559,10 +544,7 @@ async fn test_org_agenda_resource_error_handling() -> Result<(), Box<dyn std::er
         info!("Testing invalid agenda URI: {}", invalid_uri);
 
         let result = service
-            .read_resource(ReadResourceRequestParams {
-                uri: invalid_uri.to_string(),
-                meta: None,
-            })
+            .read_resource(ReadResourceRequestParams::new(invalid_uri.to_string()))
             .await;
 
         match result {

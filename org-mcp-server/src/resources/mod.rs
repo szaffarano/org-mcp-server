@@ -56,16 +56,15 @@ impl ServerHandler for OrgModeRouter {
             "- org-agenda://week (This week's scheduled tasks)\n",
         );
 
-        ServerInfo {
-            instructions: Some(INSTRUCTIONS.into()),
-            capabilities: ServerCapabilities::builder()
+        ServerInfo::new(
+            ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
                 .enable_completions()
                 .build(),
-            server_info: Implementation::from_build_env(),
-            ..Default::default()
-        }
+        )
+        .with_instructions(INSTRUCTIONS)
+        .with_server_info(Implementation::from_build_env())
     }
 
     async fn list_resources(

@@ -19,9 +19,9 @@ impl OrgModeRouter {
             .map(|tasks| json!(tasks).to_string());
 
         match result {
-            Ok(content) => Ok(ReadResourceResult {
-                contents: vec![ResourceContents::text(content, uri)],
-            }),
+            Ok(content) => Ok(ReadResourceResult::new(vec![ResourceContents::text(
+                content, uri,
+            )])),
             Err(e) => Err(McpError {
                 code: ErrorCode::INTERNAL_ERROR,
                 message: format!("Failed to read agenda: {e}").into(),

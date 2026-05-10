@@ -14,9 +14,9 @@ impl OrgModeRouter {
     ) -> Result<ReadResourceResult, McpError> {
         let org_mode = self.org_mode.lock().await;
         match org_mode.get_heading(&path, &heading) {
-            Ok(content) => Ok(ReadResourceResult {
-                contents: vec![ResourceContents::text(content, uri)],
-            }),
+            Ok(content) => Ok(ReadResourceResult::new(vec![ResourceContents::text(
+                content, uri,
+            )])),
             Err(e) => Err(McpError {
                 code: ErrorCode::INTERNAL_ERROR,
                 message: format!("Failed to get heading '{}' from '{}': {}", heading, path, e)
