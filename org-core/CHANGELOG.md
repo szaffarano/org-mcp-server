@@ -7,19 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.6...org-core-v0.0.7)
-
-### ⚙️ Miscellaneous Tasks
-
-
-- Some fixes to flake and agenda ([#158](https://github.com/szaffarano/org-mcp-server/pull/158)) - ([3d96b65](https://github.com/szaffarano/org-mcp-server/commit/3d96b65fe5be59ab6f1a666c5f15fba7dfa45db9))
-
-### ⬆️ Dependency updates
-
-
-- *(deps)* Update rust crate tracing-subscriber to v0.3.23 ([#160](https://github.com/szaffarano/org-mcp-server/pull/160)) - ([ad65a54](https://github.com/szaffarano/org-mcp-server/commit/ad65a54c0dc6cd4af4280f8c0572b2ec09717d90))
-
-
 ## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.5...org-core-v0.0.6)
 
 ### 🐛 Bug Fixes

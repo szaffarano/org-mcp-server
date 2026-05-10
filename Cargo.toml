@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.0.7"
+version = "0.0.6"
 edition = "2024"
 authors = ["Sebastián Zaffarano <sebastian.zaffarano@elastic.co>"]
 license = "MIT"
