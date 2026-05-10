@@ -5,8 +5,8 @@ use org_core::OrgMode;
 mod commands;
 mod config;
 use commands::{
-    AgendaCommand, ConfigCommand, ElementByIdCommand, HeadingCommand, ListCommand, OutlineCommand,
-    ReadCommand, SearchCommand,
+    AgendaCommand, CaptureCommand, ConfigCommand, ElementByIdCommand, HeadingCommand, ListCommand,
+    OutlineCommand, ReadCommand, SearchCommand,
 };
 use config::CliAppConfig;
 
@@ -31,6 +31,8 @@ struct Cli {
 enum Commands {
     /// Agenda views and task management
     Agenda(AgendaCommand),
+    /// Capture a new heading into an org file
+    Capture(Box<CaptureCommand>),
     /// Configuration management
     Config(ConfigCommand),
     /// List all .org files in a directory
@@ -63,6 +65,7 @@ fn main() -> Result<()> {
             let org_mode = OrgMode::new(config.org)?;
             match cli.command {
                 Commands::Agenda(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::Capture(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::Config(_) => unreachable!(),
                 Commands::List(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::Read(cmd) => cmd.execute(org_mode, config.cli),

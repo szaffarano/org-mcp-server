@@ -1,4 +1,5 @@
 pub mod agenda;
+pub mod capture;
 pub mod config;
 pub mod element_by_id;
 pub mod heading;
@@ -8,6 +9,7 @@ pub mod read;
 pub mod search;
 
 pub use agenda::AgendaCommand;
+pub use capture::CaptureCommand;
 pub use config::ConfigCommand;
 pub use element_by_id::ElementByIdCommand;
 pub use heading::HeadingCommand;

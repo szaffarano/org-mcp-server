@@ -31,6 +31,10 @@ linking capabilities for your org-mode files through the MCP protocol.
 - `org-file-list` — List all org files in configured directories
 - `org-search` — Search for text content across all org files using fuzzy matching
 - `org-agenda` — Query agenda items with filtering by dates, states, tags, and priorities
+- `org-capture` — Append a fully-formed heading to an org file. Supports TODO state,
+  priority, tags, body, SCHEDULED/DEADLINE/CLOSED timestamps (with optional repeater
+  and warning suffixes), property drawer entries, and Year/Month/Day datetree expansion.
+  Can target a specific heading or append to end of file.
 
 ### CLI Tool
 
@@ -50,6 +54,8 @@ linking capabilities for your org-mode files through the MCP protocol.
 - `org-cli agenda today` — Show today's scheduled tasks
 - `org-cli agenda week` — Show this week's scheduled tasks
 - `org-cli agenda range` — Show tasks in custom date range
+- `org-cli capture` — Append a new heading to an org file with optional TODO state,
+  priority, tags, body, planning timestamps, property drawer, and datetree expansion
 
 ## Configuration
 
@@ -82,6 +88,9 @@ org_todo_keywords = [
     "|",
     "DONE",
 ]
+# When true, capture automatically prepends `:CREATED: [<now>]` to the property
+# drawer of new entries. User-supplied CREATED (case-insensitive) wins.
+org_auto_created_property = true
 
 [logging]
 # Log level: trace, debug, info, warn, error
@@ -101,6 +110,7 @@ default_format = "plain"  # plain | json
 - `ORG_ORG__ORG_DEFAULT_NOTES_FILE` — Default notes file name
 - `ORG_ORG__ORG_AGENDA_FILES` — Comma-separated list of agenda files
 - `ORG_ORG__ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES` — Comma-separated extra search files
+- `ORG_ORG__ORG_AUTO_CREATED_PROPERTY` — `true`/`false`; auto-add `:CREATED:` on capture (default: true)
 
 #### Logging Configuration
 - `ORG_LOGGING__LEVEL` — Log level (debug, info, warn, error, trace)
@@ -173,6 +183,61 @@ org agenda range --start 2025-10-20 --end 2025-10-27
 # JSON output for agenda
 org agenda list --format json --limit 10
 ```
+
+### Capture Commands
+
+```bash
+# Quick capture into the default notes file
+org capture "Review PR #42"
+
+# Capture a TODO with priority and tags
+org capture "Fix login bug" \
+    --todo-state TODO --priority A --tags work,urgent
+
+# Capture under a target heading (creates missing levels)
+org capture "Migrate database" \
+    --file projects.org --target-heading "Projects/Backend"
+
+# Capture with planning fields (SCHEDULED, DEADLINE, optional CLOSED)
+org capture "Ship v2 release" \
+    --scheduled "2026-05-15" \
+    --deadline "2026-05-20 17:00"
+
+# Recurring task: SCHEDULED with a repeater (++1w means weekly)
+org capture "Weekly review" --scheduled "2026-05-15 ++1w"
+
+# DEADLINE with a 3-day warning lead
+org capture "Submit report" --deadline "2026-05-20 -3d"
+
+# Property drawer entries (repeatable; KEY=VALUE)
+org capture "Quarterly planning" \
+    --property "CATEGORY=planning" \
+    --property "EFFORT=2h"
+
+# Datetree journaling: lands under <today's> Year/Month/Day under "Logs"
+org capture "Standup notes" \
+    --file journal.org --target-heading Logs --datetree
+
+# Backfill an entry under a specific past day
+org capture "Retro reflection" \
+    --file journal.org --datetree --datetree-date 2026-04-01
+
+# Body content via --body
+org capture "Idea" --body "Use a Bloom filter for dedup."
+```
+
+Timestamp grammar (used by `--scheduled`, `--deadline`, `--closed`):
+
+```
+YYYY-MM-DD [HH:MM] [REPEATER] [WARNING]
+```
+
+- Repeater: `+N{u}`, `++N{u}`, or `.+N{u}` where `N` is a positive integer and
+  `u ∈ {h, d, w, m, y}` (e.g., `++1w`, `.+3m`).
+- Warning: `-N{u}` (e.g., `-3d`).
+
+CLOSED renders with inactive brackets `[...]`; SCHEDULED and DEADLINE use
+active brackets `<...>`. The day-of-week abbreviation is added automatically.
 
 ## Architecture
 
@@ -340,9 +405,11 @@ cargo run --example <name>
 - [ ] Link following and backlink discovery (org-roam support)
 - [ ] Metadata caching for performance
 
-### Phase 3: Extended Capabilities 📋
+### Phase 3: Extended Capabilities 🚧
 
-- [ ] Content creation and modification tools
+- [x] Content creation via `org-capture` (heading + planning + properties + datetree)
+- [ ] Content modification (edit existing TODOs: state changes, planning updates,
+      property updates, CLOCK / LOGBOOK entries)
 - [ ] Media file reference handling
 - [ ] Integration with org-roam databases
 - [ ] Real-time file watching and updates
