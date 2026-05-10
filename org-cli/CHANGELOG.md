@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-cli-v0.0.6...org-cli-v0.0.7)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Some fixes to flake and agenda ([#158](https://github.com/szaffarano/org-mcp-server/pull/158)) - ([3d96b65](https://github.com/szaffarano/org-mcp-server/commit/3d96b65fe5be59ab6f1a666c5f15fba7dfa45db9))
+
+
 ## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-cli-v0.0.5...org-cli-v0.0.6)
 
 ### ⚙️ Miscellaneous Tasks
