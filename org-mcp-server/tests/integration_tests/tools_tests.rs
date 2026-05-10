@@ -981,3 +981,93 @@ async fn test_org_agenda_tool_all_parameters() -> Result<(), Box<dyn std::error:
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_org_agenda_tool_view_mode_with_limit() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool view mode with limit");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("view".into()));
+    args.insert("limit".to_string(), Value::Number(1.into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+            meta: None,
+            task: None,
+        })
+        .await?;
+
+    info!("org-agenda view with limit result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let view: serde_json::Value =
+                serde_json::from_str(&text.text).expect("View should be valid JSON");
+
+            let items = view["items"].as_array().expect("Should have items array");
+            assert!(
+                items.len() <= 1,
+                "Should respect limit parameter, got {}",
+                items.len()
+            );
+        } else {
+            panic!("Expected text content in org-agenda result");
+        }
+    } else {
+        panic!("No content in org-agenda result");
+    }
+
+    service.cancel().await?;
+    info!("org-agenda view mode with limit test completed successfully");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_org_agenda_tool_limit_as_string() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-agenda tool with string limit");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("mode".to_string(), Value::String("list".into()));
+    args.insert("limit".to_string(), Value::String("2".into())); // Provided as string
+
+    let result = service
+        .call_tool(CallToolRequestParams {
+            name: "org-agenda".into(),
+            arguments: Some(args),
+            meta: None,
+            task: None,
+        })
+        .await?;
+
+    info!("org-agenda string limit result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let tasks: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Tasks should be valid JSON");
+
+            if let Some(tasks_array) = tasks.as_array() {
+                assert!(
+                    tasks_array.len() <= 2,
+                    "Should respect string limit parameter"
+                );
+            }
+        } else {
+            panic!("Expected text content");
+        }
+    }
+
+    service.cancel().await?;
+    Ok(())
+}

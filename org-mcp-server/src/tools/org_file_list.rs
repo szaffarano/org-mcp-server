@@ -13,6 +13,10 @@ pub struct ListFilesRequest {
     #[schemars(description = "Filter results by tags (optional)")]
     pub tags: Option<Vec<String>>,
     #[schemars(description = "Maximum number of files to return (optional)")]
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::deserialize_string_or_number"
+    )]
     pub limit: Option<usize>,
 }
 
@@ -20,7 +24,7 @@ pub struct ListFilesRequest {
 impl OrgModeRouter {
     #[tool(
         name = "org-file-list",
-        description = "List all the org files defined in the org-mode configuration",
+        description = "List all the org files defined in the org-mode configuration. You can optionally use the 'limit' parameter to control how many files are returned.",
         annotations(title = "org-file-list tool")
     )]
     async fn tool_list_files(

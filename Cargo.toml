@@ -14,7 +14,7 @@ members = ["org-mcp-server", "org-cli", "org-core", "test-utils"]
 
 [workspace.dependencies]
 anyhow = "1.0"
-assert_cmd = "2.0"
+assert_cmd = "2.1"
 chrono = "0.4"
 clap = { version = "4.5", features = ["derive"] }
 config = "0.15"
@@ -29,8 +29,8 @@ orgize = { git = "https://github.com/szaffarano/orgize/", rev = "c4b38cb59131b47
 ] }
 paste = "1.0"
 predicates = "3.1"
-regex = "1.11"
-rmcp = { version = "0.15.0", features = [
+regex = "1.12"
+rmcp = { version = "1.1.0", features = [
   "transport-io",
   "transport-child-process",
   "transport-streamable-http-server",
@@ -38,11 +38,11 @@ rmcp = { version = "0.15.0", features = [
   "client",
 ] }
 rowan = "0.16"
-serde_json = "1.0.145"
+serde_json = "1.0.149"
 serde = { version = "1.0", features = ["derive"] }
-serial_test = "3.2.0"
-shellexpand = "3.1.1"
-tempfile = "3.23"
+serial_test = "3.4.0"
+shellexpand = "3.1.2"
+tempfile = "3.26"
 temp-env = "0.3.6"
 tokio-test = "0.4"
 tokio = { version = "1", features = [
@@ -54,14 +54,14 @@ tokio = { version = "1", features = [
   "signal",
 ] }
 toml = "1.0"
-tracing = "0.1.41"
-tracing-appender = "0.2.3"
-tracing-subscriber = { version = "0.3.20", features = [
+tracing = "0.1.44"
+tracing-appender = "0.2.4"
+tracing-subscriber = { version = "0.3.22", features = [
   "env-filter",
   "std",
   "fmt",
 ] }
-tracing-test = { version = "0.2.5", features = ["no-env-filter"] }
+tracing-test = { version = "0.2.6", features = ["no-env-filter"] }
 urlencoding = "2.1"
 
 [workspace.metadata.coverage]

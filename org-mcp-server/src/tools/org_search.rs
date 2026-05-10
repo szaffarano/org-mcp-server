@@ -13,8 +13,16 @@ pub struct SearchRequest {
     #[schemars(description = "Search query string to find in org file content")]
     pub query: String,
     #[schemars(description = "Maximum number of search results to return (optional)")]
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::deserialize_string_or_number"
+    )]
     pub limit: Option<usize>,
     #[schemars(description = "Maximum snippet size in characters (optional, default: 100)")]
+    #[serde(
+        default,
+        deserialize_with = "crate::utils::deserialize_string_or_number"
+    )]
     pub snippet_max_size: Option<usize>,
     #[schemars(
         description = "Filter results by tags (optional, matches any of the provided tags)"
@@ -26,7 +34,7 @@ pub struct SearchRequest {
 impl OrgModeRouter {
     #[tool(
         name = "org-search",
-        description = "Search for text content across all org files using fuzzy matching",
+        description = "Search for text content across all org files using fuzzy matching. You can optionally specify a limit to the number of results returned.",
         annotations(title = "org-search tool")
     )]
     async fn tool_search(

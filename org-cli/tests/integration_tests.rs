@@ -461,6 +461,7 @@ fn test_config_show_displays_config() {
 fn test_config_show_fallback_to_default() {
     cargo::cargo_bin_cmd!("org-cli")
         .env("XDG_CONFIG_HOME", "/nonexistent/path")
+        .env("HOME", "/nonexistent/home")
         .arg("config")
         .arg("show")
         .assert()
