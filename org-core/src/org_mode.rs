@@ -277,7 +277,7 @@ impl OrgMode {
             }
         }
 
-        all_results.sort_by(|a, b| b.score.cmp(&a.score));
+        all_results.sort_by_key(|b| std::cmp::Reverse(b.score));
         all_results.truncate(limit.unwrap_or(all_results.len()));
 
         Ok(all_results)
