@@ -21,6 +21,8 @@ pub struct OrgConfig {
     pub org_agenda_text_search_extra_files: Vec<String>,
     #[serde(default = "default_todo_keywords")]
     pub org_todo_keywords: Vec<String>,
+    #[serde(default = "default_org_auto_created_property")]
+    pub org_auto_created_property: bool,
 }
 
 /// Logging configuration (shared across CLI and server)
@@ -40,6 +42,7 @@ impl Default for OrgConfig {
             org_agenda_files: default_agenda_files(),
             org_agenda_text_search_extra_files: Vec::default(),
             org_todo_keywords: default_todo_keywords(),
+            org_auto_created_property: default_org_auto_created_property(),
         }
     }
 }
@@ -213,7 +216,11 @@ pub fn load_org_config(
     let builder = ConfigRs::builder()
         .set_default("org.org_directory", default_org_directory())?
         .set_default("org.org_default_notes_file", default_notes_file())?
-        .set_default("org.org_agenda_files", default_agenda_files())?;
+        .set_default("org.org_agenda_files", default_agenda_files())?
+        .set_default(
+            "org.org_auto_created_property",
+            default_org_auto_created_property(),
+        )?;
 
     let config = build_config_with_file_and_env(config_file, builder)?;
 
@@ -282,12 +289,22 @@ pub fn default_log_file() -> String {
     "~/.local/share/org-mcp-server/logs/server.log".to_string()
 }
 
+pub fn default_org_auto_created_property() -> bool {
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serial_test::serial;
     use temp_env::with_vars;
     use tempfile::tempdir;
+
+    #[test]
+    fn test_org_auto_created_property_defaults_true() {
+        let config = OrgConfig::default();
+        assert!(config.org_auto_created_property);
+    }
 
     #[test]
     fn test_default_org_config() {

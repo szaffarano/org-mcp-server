@@ -11,6 +11,17 @@ pub enum OrgModeError {
     IoError(std::io::Error),
     ShellExpansionError(String),
     ConfigError(String),
+    InvalidTodoKeyword(String),
+    InvalidPriority(String),
+    InvalidTitle(String),
+    InvalidLevel(usize),
+    InvalidTag(String),
+    InvalidTimestamp { field: &'static str, value: String },
+    InvalidPropertyKey(String),
+    InvalidPropertyValue { key: String, reason: String },
+    DuplicatePropertyKey(String),
+    InvalidDatetreeDate(String),
+    DatetreeDateWithoutFlag,
 }
 
 impl fmt::Display for OrgModeError {
@@ -33,6 +44,37 @@ impl fmt::Display for OrgModeError {
             OrgModeError::IoError(err) => write!(f, "IO error: {err}"),
             OrgModeError::ShellExpansionError(path) => write!(f, "Failed to expand path: {path}"),
             OrgModeError::ConfigError(msg) => write!(f, "Configuration error: {msg}"),
+            OrgModeError::InvalidTodoKeyword(kw) => {
+                write!(f, "Invalid TODO keyword: {kw}")
+            }
+            OrgModeError::InvalidPriority(p) => write!(f, "Invalid priority: {p}"),
+            OrgModeError::InvalidTitle(reason) => write!(f, "Invalid heading title: {reason}"),
+            OrgModeError::InvalidLevel(level) => {
+                write!(f, "Invalid heading level: {level} (must be 1..=19)")
+            }
+            OrgModeError::InvalidTag(tag) => {
+                write!(f, "Invalid tag '{tag}': tags must match [A-Za-z0-9_@]+")
+            }
+            OrgModeError::InvalidTimestamp { field, value } => write!(
+                f,
+                "Invalid timestamp for {field}: '{value}', expected YYYY-MM-DD or YYYY-MM-DD HH:MM"
+            ),
+            OrgModeError::InvalidPropertyKey(key) => write!(
+                f,
+                "Invalid property key '{key}': must be non-empty and contain only [A-Za-z0-9_-]"
+            ),
+            OrgModeError::InvalidPropertyValue { key, reason } => {
+                write!(f, "Invalid property value for key '{key}': {reason}")
+            }
+            OrgModeError::DuplicatePropertyKey(key) => {
+                write!(f, "Duplicate property key: '{key}'")
+            }
+            OrgModeError::InvalidDatetreeDate(value) => {
+                write!(f, "Invalid datetree date '{value}': expected YYYY-MM-DD")
+            }
+            OrgModeError::DatetreeDateWithoutFlag => {
+                write!(f, "Datetree date specified without enabling datetree")
+            }
         }
     }
 }

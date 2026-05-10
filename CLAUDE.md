@@ -1,94 +1,103 @@
-# Claude Guidelines for org-mcp-server
+# CLAUDE.md
 
-## Project Context
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This is a GitHub repository hosted in https://github.com/szaffarano/org-mcp-server/
+## Project Overview
 
-MCP server for org-mode/roam knowledge base management in Rust. Multi-crate
-workspace with:
+GitHub repo: <https://github.com/szaffarano/org-mcp-server/>
 
-- `org-core` — Business logic and org-mode functionality
-- `org-mcp-server` — MCP protocol implementation
-- `org-cli` — CLI tool for testing and direct usage
-
-**Goal**: Provide search, content creation, and note linking with media
-references for org-mode files.
+MCP server for org-mode knowledge management in Rust. Provides search, content access, agenda views, and note linking for org-mode files through the [Model Context Protocol](https://modelcontextprotocol.io/).
 
 ## Development Commands
 
-- `cargo build` — Build all crates
-- `cargo test` — Run all tests
-- `cargo test <test_name>` — Run specific test
-- `cargo test -p <crate_name>` — Test specific crate
-- `cargo clippy` — Run linter
-- `cargo fmt` — Format code
-- `cargo run --example <name>` — Run playground examples
-- `cargo run --bin org-cli` — Run CLI tool
-- `cargo run --bin org-mcp-server` — Run MCP server
+```bash
+cargo build                          # Build all crates (~47s, never cancel)
+cargo test                           # Run all tests
+cargo test <test_name>               # Run specific test
+cargo test -p <crate_name>           # Test specific crate (org-core, org-mcp-server, org-cli)
+cargo test --test integration_tests  # Run MCP server integration tests
+cargo clippy --all-targets --all-features -- -D warnings  # Lint
+cargo fmt --all                      # Format code
+cargo run --bin org-cli -- --help    # Run CLI tool
+cargo run --bin org-mcp-server       # Run MCP server (needs valid org directory)
+cargo run --example <name>           # Run playground examples (in org-core/examples/)
+```
 
-## Just Commands
+### Just Commands (available in nix devShell)
 
-Development tasks are managed with [just](https://github.com/casey/just) (available in nix devShell).
-
-**Common commands:**
-- `just` — Show all available commands
-- `just build` — Build all crates
-- `just test` — Run all tests
-- `just dev` — Development workflow (format, lint, test, coverage)
-- `just coverage-html` — Generate HTML coverage report
-- `just lint` — Run clippy linter
-- `just fmt` — Format code
-
-**Coverage targets:**
-- `just coverage` — Generate all coverage formats
-- `just coverage-html` — HTML report in `coverage/html/`
-- `just coverage-summary` — Terminal summary
-- `just coverage-ci` — LCOV for CI
-- `just coverage-json` — JSON format
-
-**Quality checks:**
-- `just check` — Run all quality checks (format check, lint, test, coverage)
-- `just fmt-check` — Check code formatting without modifying
-
-Run `just` to see all available commands with descriptions.
-
-## Code Style & Preferences
-
-- **Formatting**: Always use `just fmt` or `cargo fmt` before commits
-- **Error handling**: Prefer explicit `Result<T, E>` over panics
-- **String formatting**: Use `"string {var}"` over `"string {}", var`
-- **Imports**: Standard library before external crates
-- **Testing**: Use `assert_eq!` over `assert!`, add `#[cfg(test)]` modules
-- **Functions**: Keep focused and well-documented
+```bash
+just dev          # Full workflow: format, lint, test, coverage
+just check        # Quality gate: fmt-check, lint, test, coverage
+just test         # Run all tests
+just lint         # Clippy with -D warnings
+just fmt          # Format code
+just coverage-html # HTML coverage in coverage/html/
+```
 
 ## Architecture
 
-- **Rust 2024 edition** with async-first design using `tokio`
-- **Examples** in `org-core/examples/` for dependency experimentation
-- **Test fixtures** in `tests/fixtures/` for org/roam files
-- **Key deps**: `orgize` (parsing), `walkdir` (file traversal), `clap` (CLI)
+Rust 2024 edition, multi-crate workspace with async-first design (`tokio`).
+
+### Crate Dependency Flow
+
+```text
+org-core  <--  org-mcp-server
+org-core  <--  org-cli
+test-utils <-- org-core (dev), org-mcp-server (dev), org-cli (dev)
+```
+
+- **`org-core`** — All business logic: org-mode parsing (`orgize`), file discovery (`ignore` crate's `Walk`), fuzzy search (`nucleo-matcher`), agenda/task querying, configuration loading (`config` crate with TOML/YAML/JSON + env vars). Central type is `OrgMode` struct (`org-core/src/org_mode.rs`) which holds an `OrgConfig` and provides all operations. Custom error type `OrgModeError` in `org-core/src/error.rs`.
+
+- **`org-mcp-server`** — MCP protocol layer using `rmcp`. `OrgModeRouter` (`src/core.rs`) wraps `Arc<Mutex<OrgMode>>` and a `ToolRouter`. Resources (`src/resources/mod.rs`) implement `ServerHandler` with URI-based routing (org://, org-outline://, org-heading://, org-id://, org-agenda://). Tools (`src/tools/`) expose org-file-list, org-search, org-agenda, org-capture. Server runs over stdio transport.
+
+- **`org-cli`** — CLI using `clap` with subcommands: config, list, read, outline, heading, element-by-id, search, agenda, capture. Each command in `src/commands/`. Delegates to `OrgMode` from org-core. The `Commands::Capture` enum variant is boxed (`Box<CaptureCommand>`) to keep the enum size small.
+
+- **`test-utils`** — Shared test infrastructure. Fixtures in `test-utils/fixtures/` (20 .org files). Key helpers: `setup_test_org_files()` copies fixtures to temp dir, `setup_test_org_files_with_dates()` replaces date placeholders (`@TODAY@`, `@TODAY+N@`) for time-sensitive agenda tests.
+
+### Key Dependencies
+
+- `orgize` (custom fork) — org-mode parsing, traversal via `from_fn`/`from_fn_with_ctx` handlers
+- `rmcp` — MCP protocol (tools, resources, stdio transport)
+- `nucleo-matcher` — fuzzy text search
+- `ignore` — gitignore-aware file walking
+- `config` — layered configuration (file + env + defaults)
+
+### Configuration
+
+TOML config at `~/.config/org-mcp/config.toml`. Layered: defaults < config file < env vars (`ORG_` prefix, `__` separator) < CLI flags. See `org-core/src/config.rs` for `OrgConfig` and `LoggingConfig`. Notable capture-related field: `org_auto_created_property: bool` (default `true`) controls whether `capture_append` prepends a `:CREATED:` property.
+
+### Capture path internals
+
+`OrgMode::capture_append` (in `org-core/src/org_mode.rs`) is the central write path. Highlights:
+
+- Per-target `<file>.lock` sibling file for cross-process serialization, with stat-after-lock verification so the lockfile can be safely unlinked on release.
+- Atomic write via `tempfile.persist`-style temp file + `fsync` + `rename` so a crash mid-write cannot truncate user data.
+- Validation order: title → level → todo_state → priority → tags → planning timestamps → datetree → properties → auto-CREATED prepend.
+- `parse_iso_timestamp` accepts `YYYY-MM-DD [HH:MM] [repeater] [warning]`. `format_org_timestamp` renders the canonical `<...>` / `[...]` form.
+- Datetree expansion prepends Year / Year-Month-Name / Year-Month-Day-Day segments to the resolved heading path before `find_heading_path` runs; the existing missing-segment creation logic handles first-of-day creation and idempotent reuse.
+
+## Code Style
+
+- `cargo fmt` before every commit
+- String interpolation: `"string {var}"` not `"string {}", var`
+- Imports: std before external crates
+- Tests: `assert_eq!` over `assert!`, `#[cfg(test)]` modules for unit tests
+- Error handling: `Result<T, OrgModeError>`, never panic
+- Workspace deps defined in root `Cargo.toml`, crates reference with `workspace = true`
 
 ## Development Workflow
 
-1. **Multi-crate changes**: Update workspace dependencies in root Cargo.toml
-1. **New functionality**: Add to `org-core`, expose via `org-mcp-server` and `org-cli`
-1. **Error handling**: Use custom error types, implement proper chaining
-1. **File operations**: Validate paths at construction, not runtime
-1. **Testing**: Create fixtures for complex org-mode files
+1. New functionality goes into `org-core`, then gets exposed via `org-mcp-server` and/or `org-cli`
+2. Multi-crate dep changes go in root `Cargo.toml` `[workspace.dependencies]`
+3. Test fixtures for new org-mode features go in `test-utils/fixtures/`
+4. Integration tests for MCP server use the `create_mcp_service!` macro that spawns the server binary as a child process
+5. Config tests using env vars must use `#[serial]` from `serial_test` crate
+6. Always run `cargo clippy` and `cargo fmt` before committing
 
 ## Behavioral Guidelines
 
-- **Concise responses**: Be direct, avoid unnecessary explanations
-- **File creation**: NEVER create files unless absolutely necessary
-- **Commits**: Always sign with -S, never include Claude Code references
-- **Code quality**: Run clippy and fmt before suggesting changes
-- **Documentation**: Only create when explicitly requested
-
-## Current Implementation Status
-
-- ✅ Basic file listing with recursive directory traversal
-- ✅ Error handling with custom types and proper chaining
-- ✅ CLI tool with `list` and `init` commands
-- ✅ MCP server with JSON-RPC protocol
-- 🚧 Org-mode parsing and content extraction (planned)
-- 🚧 Search functionality with metadata caching (planned)
+- Concise responses, be direct
+- NEVER create files unless absolutely necessary
+- Commits: always sign with `-S`
+- Documentation: only create when explicitly requested
+- Use the Context7 mcp server to get docs and code examples
