@@ -9,12 +9,10 @@ impl OrgModeRouter {
     pub(crate) async fn list_files(&self, uri: String) -> Result<ReadResourceResult, McpError> {
         let org_mode = self.org_mode.lock().await;
         match org_mode.list_files(None, None) {
-            Ok(files) => Ok(ReadResourceResult {
-                contents: vec![ResourceContents::text(
-                    serde_json::to_string(&files).unwrap_or_default(),
-                    uri,
-                )],
-            }),
+            Ok(files) => Ok(ReadResourceResult::new(vec![ResourceContents::text(
+                serde_json::to_string(&files).unwrap_or_default(),
+                uri,
+            )])),
             Err(e) => Err(McpError {
                 code: ErrorCode::INTERNAL_ERROR,
                 message: format!("Failed to read org file: {}", e).into(),

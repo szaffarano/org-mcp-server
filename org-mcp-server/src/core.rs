@@ -6,7 +6,6 @@ use rmcp::handler::server::tool::ToolRouter;
 
 pub struct OrgModeRouter {
     pub(crate) org_mode: Arc<Mutex<OrgMode>>,
-    pub(crate) tool_router: ToolRouter<Self>,
 }
 
 impl OrgModeRouter {
@@ -14,7 +13,6 @@ impl OrgModeRouter {
         let org_mode = OrgMode::new(config)?;
         Ok(Self {
             org_mode: Arc::new(Mutex::new(org_mode)),
-            tool_router: Self::tool_router(),
         })
     }
 
@@ -27,7 +25,7 @@ impl OrgModeRouter {
         Self::with_config(config)
     }
 
-    fn tool_router() -> ToolRouter<Self> {
+    pub(crate) fn tool_router() -> ToolRouter<Self> {
         Self::tool_router_list_files() + Self::tool_router_search() + Self::tool_router_agenda()
     }
 }
