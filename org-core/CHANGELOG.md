@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.6...org-core-v0.0.7)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Release v0.0.7 ([#164](https://github.com/szaffarano/org-mcp-server/pull/164)) - ([4bd5286](https://github.com/szaffarano/org-mcp-server/commit/4bd5286cb8b6e5ebfb0b021c00aa8dc2f999f08d))
+- Some fixes to flake and agenda ([#158](https://github.com/szaffarano/org-mcp-server/pull/158)) - ([3d96b65](https://github.com/szaffarano/org-mcp-server/commit/3d96b65fe5be59ab6f1a666c5f15fba7dfa45db9))
+
+### ⬆️ Dependency updates
+
+
+- *(deps)* Switch orgize to crates.io 0.10.0-alpha.1 ([#167](https://github.com/szaffarano/org-mcp-server/pull/167)) - ([cec3c60](https://github.com/szaffarano/org-mcp-server/commit/cec3c60d9ca88071e1110124d57a52040e088317))
+- *(deps)* Update rust crate tracing-subscriber to v0.3.23 ([#160](https://github.com/szaffarano/org-mcp-server/pull/160)) - ([ad65a54](https://github.com/szaffarano/org-mcp-server/commit/ad65a54c0dc6cd4af4280f8c0572b2ec09717d90))
+
+
 ## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.5...org-core-v0.0.6)
 
 ### 🐛 Bug Fixes

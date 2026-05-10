@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.6...org-mcp-server-v0.0.7)
+
+### 🐛 Bug Fixes
+
+
+- *(deps)* Update rust crate rmcp to v1 ([#166](https://github.com/szaffarano/org-mcp-server/pull/166)) - ([ddb3529](https://github.com/szaffarano/org-mcp-server/commit/ddb35292fef428c7a647a685d2294be5138a153e))
+- *(deps)* Update rust crate rmcp to 0.17.0 ([#150](https://github.com/szaffarano/org-mcp-server/pull/150)) - ([e19031c](https://github.com/szaffarano/org-mcp-server/commit/e19031c28a309b8bf01835797323a28d607a5a56))
+- *(deps)* Update rust crate rmcp to 0.15.0 ([#138](https://github.com/szaffarano/org-mcp-server/pull/138)) - ([984fa36](https://github.com/szaffarano/org-mcp-server/commit/984fa36441824710081dcbf1f3f81c2e7d1176be))
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Release v0.0.7 ([#164](https://github.com/szaffarano/org-mcp-server/pull/164)) - ([4bd5286](https://github.com/szaffarano/org-mcp-server/commit/4bd5286cb8b6e5ebfb0b021c00aa8dc2f999f08d))
+- Some fixes to flake and agenda ([#158](https://github.com/szaffarano/org-mcp-server/pull/158)) - ([3d96b65](https://github.com/szaffarano/org-mcp-server/commit/3d96b65fe5be59ab6f1a666c5f15fba7dfa45db9))
+
+### ⬆️ Dependency updates
+
+
+- *(deps)* Switch orgize to crates.io 0.10.0-alpha.1 ([#167](https://github.com/szaffarano/org-mcp-server/pull/167)) - ([cec3c60](https://github.com/szaffarano/org-mcp-server/commit/cec3c60d9ca88071e1110124d57a52040e088317))
+
+
 ## [0.0.6](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.5...org-mcp-server-v0.0.6)
 
 ### 🐛 Bug Fixes
