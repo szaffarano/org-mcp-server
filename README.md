@@ -127,13 +127,13 @@ default_format = "plain"  # plain | json
 
 ```bash
 # Create default configuration file
-org config init
+org-cli config init
 
 # Show current resolved configuration
-org config show
+org-cli config show
 
 # Show configuration file path
-org config path
+org-cli config path
 ```
 
 ## Usage Examples
@@ -142,89 +142,89 @@ org config path
 
 ```bash
 # List all org files using configuration
-org list
+org-cli list
 
 # List with JSON output
-org list --format json
+org-cli list --format json
 
 # Search across all configured org files
-org search "project planning"
+org-cli search "project planning"
 
 # Search with custom parameters
-org search "TODO" --limit 5 --format json --snippet-size 75
+org-cli search "TODO" --limit 5 --format json --snippet-size 75
 
 # Override root directory for a single command
-org --root-directory ~/documents/org search "meeting notes"
+org-cli --root-directory ~/documents/org search "meeting notes"
 ```
 
 ### Agenda Commands
 
 ```bash
 # List all tasks (TODO/DONE items)
-org agenda list
+org-cli agenda list
 
 # List tasks with specific TODO states
-org agenda list --states TODO,IN_PROGRESS
+org-cli agenda list --states TODO,IN_PROGRESS
 
 # Filter tasks by priority
-org agenda list --priority A
+org-cli agenda list --priority A
 
 # Filter by tags
-org agenda list --tags work,urgent
+org-cli agenda list --tags work,urgent
 
 # Show today's scheduled tasks
-org agenda today
+org-cli agenda today
 
 # Show this week's tasks
-org agenda week
+org-cli agenda week
 
 # Show tasks in custom date range
-org agenda range --start 2025-10-20 --end 2025-10-27
+org-cli agenda range --start 2025-10-20 --end 2025-10-27
 
 # JSON output for agenda
-org agenda list --format json --limit 10
+org-cli agenda list --format json --limit 10
 ```
 
 ### Capture Commands
 
 ```bash
 # Quick capture into the default notes file
-org capture "Review PR #42"
+org-cli capture "Review PR #42"
 
 # Capture a TODO with priority and tags
-org capture "Fix login bug" \
+org-cli capture "Fix login bug" \
     --todo-state TODO --priority A --tags work,urgent
 
 # Capture under a target heading (creates missing levels)
-org capture "Migrate database" \
+org-cli capture "Migrate database" \
     --file projects.org --target-heading "Projects/Backend"
 
 # Capture with planning fields (SCHEDULED, DEADLINE, optional CLOSED)
-org capture "Ship v2 release" \
+org-cli capture "Ship v2 release" \
     --scheduled "2026-05-15" \
     --deadline "2026-05-20 17:00"
 
 # Recurring task: SCHEDULED with a repeater (++1w means weekly)
-org capture "Weekly review" --scheduled "2026-05-15 ++1w"
+org-cli capture "Weekly review" --scheduled "2026-05-15 ++1w"
 
 # DEADLINE with a 3-day warning lead
-org capture "Submit report" --deadline "2026-05-20 -3d"
+org-cli capture "Submit report" --deadline "2026-05-20 -3d"
 
 # Property drawer entries (repeatable; KEY=VALUE)
-org capture "Quarterly planning" \
+org-cli capture "Quarterly planning" \
     --property "CATEGORY=planning" \
     --property "EFFORT=2h"
 
 # Datetree journaling: lands under <today's> Year/Month/Day under "Logs"
-org capture "Standup notes" \
+org-cli capture "Standup notes" \
     --file journal.org --target-heading Logs --datetree
 
 # Backfill an entry under a specific past day
-org capture "Retro reflection" \
+org-cli capture "Retro reflection" \
     --file journal.org --datetree --datetree-date 2026-04-01
 
 # Body content via --body
-org capture "Idea" --body "Use a Bloom filter for dedup."
+org-cli capture "Idea" --body "Use a Bloom filter for dedup."
 ```
 
 Timestamp grammar (used by `--scheduled`, `--deadline`, `--closed`):

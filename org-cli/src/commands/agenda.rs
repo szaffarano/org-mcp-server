@@ -74,8 +74,11 @@ enum OutputFormat {
 
 #[derive(clap::ValueEnum, Clone)]
 enum PriorityArg {
+    #[value(name = "A", alias = "a")]
     A,
+    #[value(name = "B", alias = "b")]
     B,
+    #[value(name = "C", alias = "c")]
     C,
 }
 
