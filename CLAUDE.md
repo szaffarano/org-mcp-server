@@ -46,7 +46,7 @@ org-core  <--  org-cli
 test-utils <-- org-core (dev), org-mcp-server (dev), org-cli (dev)
 ```
 
-- **`org-core`** — All business logic: org-mode parsing (`orgize`), file discovery (`ignore` crate's `Walk`), fuzzy search (`nucleo-matcher`), agenda/task querying, configuration loading (`config` crate with TOML/YAML/JSON + env vars). Central type is `OrgMode` struct (`org-core/src/org_mode.rs`) which holds an `OrgConfig` and provides all operations. Custom error type `OrgModeError` in `org-core/src/error.rs`.
+- **`org-core`** — All business logic: org-mode parsing (`orgize`), file discovery (`ignore` crate's `Walk`), fuzzy search (`nucleo-matcher`), agenda/task querying, configuration loading (`config` crate with TOML/YAML/JSON + env vars). Central type is `OrgMode` struct (`org-core/src/org_mode/types.rs`) which holds an `OrgConfig` and provides all operations. Custom error type `OrgModeError` in `org-core/src/error.rs`.
 
 - **`org-mcp-server`** — MCP protocol layer using `rmcp`. `OrgModeRouter` (`src/core.rs`) wraps `Arc<Mutex<OrgMode>>` and a `ToolRouter`. Resources (`src/resources/mod.rs`) implement `ServerHandler` with URI-based routing (org://, org-outline://, org-heading://, org-id://, org-agenda://). Tools (`src/tools/`) expose org-file-list, org-search, org-agenda, org-capture. Server runs over stdio transport.
 
@@ -68,7 +68,7 @@ TOML config at `~/.config/org-mcp/config.toml`. Layered: defaults < config file 
 
 ### Capture path internals
 
-`OrgMode::capture_append` (in `org-core/src/org_mode.rs`) is the central write path. Highlights:
+`OrgMode::capture_append` (in `org-core/src/org_mode/capture.rs`) is the central write path. Highlights:
 
 - Per-target `<file>.lock` sibling file for cross-process serialization, with stat-after-lock verification so the lockfile can be safely unlinked on release.
 - Atomic write via `tempfile.persist`-style temp file + `fsync` + `rename` so a crash mid-write cannot truncate user data.
