@@ -21,7 +21,7 @@ use crate::utils::tags_match;
 
 macro_rules! convert_timestamp {
     ($ts:expr, $prefix:ident) => {{
-        paste::paste! {
+        pastey::paste! {
             let year = $ts.[<year_ $prefix>]()?;
             let month = $ts.[<month_ $prefix>]()?;
             let day = $ts.[<day_ $prefix>]()?;
@@ -569,7 +569,7 @@ impl OrgMode {
         convert_timestamp!(ts, end)
     }
 
-    pub fn headline_to_agenda_item(headline: &Headline, file_path: String) -> AgendaItem {
+    fn headline_to_agenda_item(headline: &Headline, file_path: String) -> AgendaItem {
         AgendaItem {
             file_path,
             heading: headline.title_raw(),

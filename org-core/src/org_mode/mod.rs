@@ -1,7 +1,7 @@
-pub mod agenda;
-pub mod capture;
-pub mod core;
-pub mod types;
+mod agenda;
+mod capture;
+mod core;
+mod types;
 
 pub use types::*;
 
