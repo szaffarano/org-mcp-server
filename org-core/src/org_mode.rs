@@ -1243,7 +1243,10 @@ impl OrgMode {
     /// we drop our lock and retry.
     ///
     /// On non-unix platforms there is no inode concept; we trust the lock as-is.
+    #[cfg(unix)]
     fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
+        use std::os::unix::fs::MetadataExt;
+
         loop {
             let fd = OpenOptions::new()
                 .read(true)
@@ -1254,25 +1257,31 @@ impl OrgMode {
                 .map_err(OrgModeError::IoError)?;
             fd.lock().map_err(OrgModeError::IoError)?;
 
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::MetadataExt;
-                let our_ino = fd.metadata().map_err(OrgModeError::IoError)?.ino();
-                match fs::metadata(lock_path) {
-                    Ok(m) if m.ino() == our_ino => return Ok(fd),
-                    // Mismatch or NotFound: another writer recreated the lockfile
-                    // under us. Release and retry.
-                    _ => {
-                        drop(fd);
-                        continue;
-                    }
+            let our_ino = fd.metadata().map_err(OrgModeError::IoError)?.ino();
+            match fs::metadata(lock_path) {
+                Ok(m) if m.ino() == our_ino => return Ok(fd),
+                // Mismatch or NotFound: another writer recreated the lockfile
+                // under us. Release and retry.
+                _ => {
+                    drop(fd);
+                    continue;
                 }
             }
-            #[cfg(not(unix))]
-            {
-                return Ok(fd);
-            }
         }
+    }
+
+    /// Non-unix fallback: no inode comparison available, so trust the lock once acquired.
+    #[cfg(not(unix))]
+    fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
+        let fd = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(lock_path)
+            .map_err(OrgModeError::IoError)?;
+        fd.lock().map_err(OrgModeError::IoError)?;
+        Ok(fd)
     }
 
     /// Write `bytes` to `target` atomically: write to a unique sibling temp file,
