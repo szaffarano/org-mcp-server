@@ -88,7 +88,8 @@ org_todo_keywords = [
     "|",
     "DONE",
 ]
-# When true, capture automatically prepends `:CREATED: [<now>]` to the property
+# When true, capture automatically prepends an inactive timestamp like
+# `:CREATED: [YYYY-MM-DD Day HH:MM]` (with the current local time) to the property
 # drawer of new entries. User-supplied CREATED (case-insensitive) wins.
 org_auto_created_property = true
 

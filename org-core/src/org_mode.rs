@@ -898,6 +898,23 @@ impl OrgMode {
             return Err(OrgModeError::InvalidLevel(level));
         }
 
+        // Validate the relative file path lexically before touching the filesystem:
+        // reject absolute paths and any `..` / root / drive-prefix components so we
+        // cannot create directories outside the configured org_directory.
+        Self::validate_relative_file_path(file_rel)?;
+
+        // Validate target_heading segments: every slash-separated segment must be
+        // non-empty after trimming.
+        if let Some(ref target) = entry.target_heading {
+            for segment in target.split('/') {
+                if segment.trim().is_empty() {
+                    return Err(OrgModeError::InvalidHeadingPath(format!(
+                        "target_heading contains an empty or whitespace-only segment: '{target}'"
+                    )));
+                }
+            }
+        }
+
         // Validate TODO keyword against config
         if let Some(ref kw) = entry.todo_state {
             let valid_keywords: Vec<&str> = self
@@ -1108,13 +1125,22 @@ impl OrgMode {
                     (end, String::new(), 0usize, None)
                 };
 
-            let level = entry.level.unwrap_or_else(|| {
-                if under_target.is_some() {
-                    parent_level + 1
-                } else {
-                    1
-                }
-            });
+            // Resolve the final heading level.
+            //
+            // Priority rules (must match `CaptureEntry::level` docs):
+            //   1. With `target_heading` set, the result is always `>= parent_level + 1`
+            //      so the structural parent/child relationship holds. An explicit
+            //      `entry.level` smaller than that is silently bumped.
+            //   2. Without `target_heading`, an explicit level is used as-is; default 1.
+            //
+            // Clamp to `MAX_HEADING_LEVEL` so a deeply-nested parent can't push us past
+            // the org-mode depth limit.
+            let level = match entry.level {
+                Some(l) if under_target.is_some() => l.max(parent_level + 1).min(MAX_HEADING_LEVEL),
+                Some(l) => l,
+                None if under_target.is_some() => (parent_level + 1).min(MAX_HEADING_LEVEL),
+                None => 1,
+            };
 
             let heading_line = Self::format_heading(
                 level,
@@ -1231,6 +1257,41 @@ impl OrgMode {
         name.push(file_name);
         name.push(".lock");
         Ok(parent.join(name))
+    }
+
+    /// Lexically validate a caller-supplied relative file path.
+    ///
+    /// Rejects absolute paths, root components, drive prefixes (Windows), and any
+    /// `..` (parent-directory) components. This runs **before** any filesystem call
+    /// so that `create_dir_all` on a non-existent parent cannot escape the configured
+    /// `org_directory` (e.g., a `file_rel` of `"../../evil/foo.org"` is rejected
+    /// up front).
+    ///
+    /// `Component::CurDir` (`.`) is allowed — `./foo.org` is a benign no-op segment.
+    fn validate_relative_file_path(file_rel: &str) -> Result<(), OrgModeError> {
+        use std::path::Component;
+        let p = Path::new(file_rel);
+        if p.is_absolute() {
+            return Err(OrgModeError::InvalidDirectory(format!(
+                "absolute path not allowed: {file_rel}"
+            )));
+        }
+        for comp in p.components() {
+            match comp {
+                Component::Normal(_) | Component::CurDir => {}
+                Component::ParentDir => {
+                    return Err(OrgModeError::InvalidDirectory(format!(
+                        "path traversal segment '..' not allowed: {file_rel}"
+                    )));
+                }
+                Component::RootDir | Component::Prefix(_) => {
+                    return Err(OrgModeError::InvalidDirectory(format!(
+                        "absolute or drive-prefix path not allowed: {file_rel}"
+                    )));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Acquire an exclusive lock on `lock_path`, retrying if another writer recreates
@@ -2840,6 +2901,75 @@ mod tests {
             assert!(
                 content.contains(&format!("* Note {i}")),
                 "Note {i} missing from concurrent.org:\n{content}"
+            );
+        }
+    }
+
+    // PR #171 review: path traversal via unchecked create_dir_all.
+    #[test]
+    fn test_capture_rejects_path_traversal_via_dotdot() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut entry = capture_minimal("../outside/foo.org", "Escape");
+        entry.file = Some("../outside/foo.org".to_string());
+        let err = org_mode.capture_append(entry).unwrap_err();
+        assert!(matches!(err, OrgModeError::InvalidDirectory(_)));
+
+        // Confirm nothing was created outside the org dir.
+        let parent_of_org = temp_dir.path().parent().unwrap();
+        assert!(
+            !parent_of_org.join("outside").exists(),
+            "create_dir_all must not have escaped org_directory"
+        );
+    }
+
+    // PR #171 review: absolute file paths must be rejected.
+    #[test]
+    fn test_capture_rejects_absolute_file_path() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut entry = capture_minimal("/tmp/somewhere/foo.org", "Abs");
+        entry.file = Some("/tmp/somewhere/foo.org".to_string());
+        let err = org_mode.capture_append(entry).unwrap_err();
+        assert!(matches!(err, OrgModeError::InvalidDirectory(_)));
+    }
+
+    // PR #171 review: when target_heading is fully matched, an explicit
+    // entry.level that's smaller than parent_level+1 must be bumped (per docs).
+    #[test]
+    fn test_capture_bumps_level_on_fully_matched_target() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(temp_dir.path().join("bump.org"), "* Parent\n** Sub\n").unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut entry = capture_minimal("bump.org", "Child");
+        entry.target_heading = Some("Parent/Sub".to_string());
+        entry.level = Some(1); // user says 1 but Sub is level 2 → must bump to 3
+        let result = org_mode.capture_append(entry).unwrap();
+        assert_eq!(result.level, 3, "level must be bumped to parent_level + 1");
+
+        let content = fs::read_to_string(temp_dir.path().join("bump.org")).unwrap();
+        assert!(
+            content.contains("*** Child"),
+            "Child must be at level 3:\n{content}"
+        );
+    }
+
+    // PR #171 review: target_heading must not allow empty segments.
+    #[test]
+    fn test_capture_rejects_empty_target_heading_segments() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        for bad in ["A//B", "/A", "A/", "  /B"] {
+            let mut entry = capture_minimal("test.org", "X");
+            entry.target_heading = Some(bad.to_string());
+            let err = org_mode.capture_append(entry).unwrap_err();
+            assert!(
+                matches!(err, OrgModeError::InvalidHeadingPath(_)),
+                "expected InvalidHeadingPath for '{bad}', got {err:?}"
             );
         }
     }
