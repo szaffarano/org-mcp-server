@@ -364,8 +364,8 @@ impl OrgMode {
             })
         })();
 
-        drop(lock_file);
         let _ = fs::remove_file(&lock_path);
+        drop(lock_file);
 
         result
     }
