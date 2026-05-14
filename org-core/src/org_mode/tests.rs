@@ -64,6 +64,38 @@ fn test_capture_append_to_new_file() {
 }
 
 #[test]
+fn test_capture_creates_nested_directory() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    let entry = CaptureEntry {
+        title: "Nested Note".to_string(),
+        level: None,
+        todo_state: None,
+        tags: None,
+        priority: None,
+        body: None,
+        file: Some("sub/dir/nested.org".to_string()),
+        target_heading: None,
+        scheduled: None,
+        deadline: None,
+        closed: None,
+        properties: None,
+        datetree: false,
+        datetree_date: None,
+    };
+
+    let result = org_mode.capture_append(entry).unwrap();
+    assert_eq!(result.file_path, "sub/dir/nested.org");
+    assert_eq!(result.level, 1);
+
+    let file_path = temp_dir.path().join("sub/dir/nested.org");
+    assert!(file_path.exists(), "nested file must be created");
+    let content = fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("* Nested Note"));
+}
+
+#[test]
 fn test_capture_append_to_existing_file() {
     let temp_dir = tempfile::tempdir().unwrap();
     fs::write(
