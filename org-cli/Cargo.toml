@@ -6,7 +6,6 @@ chrono = { workspace = true }
 config = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-shellexpand = { workspace = true }
 toml = { workspace = true }
 
 [dev-dependencies]

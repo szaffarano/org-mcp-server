@@ -1045,7 +1045,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test",
- "shellexpand",
  "temp-env",
  "tempfile",
  "test-utils",
@@ -1074,7 +1073,6 @@ dependencies = [
  "tempfile",
  "test-utils",
  "toml",
- "tracing",
  "tracing-subscriber",
 ]
 
