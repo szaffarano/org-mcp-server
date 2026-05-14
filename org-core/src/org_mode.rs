@@ -24,7 +24,7 @@ use crate::utils::tags_match;
 /// the appropriate method calls (year_start/year_end, etc.).
 macro_rules! convert_timestamp {
     ($ts:expr, $prefix:ident) => {{
-        paste::paste! {
+        pastey::paste! {
             let year = $ts.[<year_ $prefix>]()?;
             let month = $ts.[<month_ $prefix>]()?;
             let day = $ts.[<day_ $prefix>]()?;
