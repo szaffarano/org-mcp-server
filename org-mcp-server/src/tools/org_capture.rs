@@ -102,6 +102,8 @@ impl OrgModeRouter {
     ) -> Result<CallToolResult, McpError> {
         let org_mode = self.org_mode.lock().await;
 
+        let datetree = datetree || datetree_date.is_some();
+
         let entry = org_core::CaptureEntry {
             title,
             level,

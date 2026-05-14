@@ -263,7 +263,7 @@ impl OrgMode {
                         let mut prefix = String::new();
                         let mut last_level = search.last_matched_level;
                         for (i, part) in search.remaining_parts.iter().enumerate() {
-                            let hlevel = base_level + i;
+                            let hlevel = (base_level + i).min(MAX_HEADING_LEVEL);
                             prefix.push_str(&"*".repeat(hlevel));
                             prefix.push(' ');
                             prefix.push_str(part);
@@ -364,8 +364,8 @@ impl OrgMode {
             })
         })();
 
-        let _ = fs::remove_file(&lock_path);
         drop(lock_file);
+        let _ = fs::remove_file(&lock_path);
 
         result
     }
@@ -474,7 +474,7 @@ impl OrgMode {
         tmp_name.push(format!(".tmp.{}.{}", std::process::id(), counter));
         let tmp_path = parent.join(&tmp_name);
 
-        {
+        let result: Result<(), OrgModeError> = (|| {
             let mut tmp = OpenOptions::new()
                 .write(true)
                 .create(true)
@@ -483,6 +483,12 @@ impl OrgMode {
                 .map_err(OrgModeError::IoError)?;
             tmp.write_all(bytes).map_err(OrgModeError::IoError)?;
             tmp.sync_all().map_err(OrgModeError::IoError)?;
+            Ok(())
+        })();
+
+        if let Err(e) = result {
+            let _ = fs::remove_file(&tmp_path);
+            return Err(e);
         }
 
         if let Err(e) = fs::rename(&tmp_path, target) {
@@ -650,7 +656,7 @@ impl OrgMode {
         let path_parts: Vec<&str> = heading_path.split('/').collect();
         let total = path_parts.len();
 
-        let mut open_stack: Vec<(usize, bool)> = Vec::new();
+        let mut open_stack: Vec<(usize, Option<usize>)> = Vec::new();
         let mut matched = 0usize;
         let mut insert_pos = TextSize::from(content_len);
         let mut last_level = 0usize;
@@ -667,26 +673,29 @@ impl OrgMode {
                     }
                 }
 
-                let mut step_matched = false;
+                let mut step_matched_depth: Option<usize> = None;
                 if matched < total {
                     let part = path_parts[matched];
                     let parent_ok = if matched == 0 {
                         true
                     } else {
-                        open_stack.last().map(|&(_, m)| m).unwrap_or(false)
+                        open_stack
+                            .last()
+                            .map(|&(_, d)| d == Some(matched - 1))
+                            .unwrap_or(false)
                     };
                     if parent_ok && h.title_raw() == part {
                         insert_pos = h.end();
                         last_level = level;
+                        step_matched_depth = Some(matched);
                         matched += 1;
-                        step_matched = true;
                         if matched == total {
                             ctx.stop();
                         }
                     }
                 }
 
-                open_stack.push((level, step_matched));
+                open_stack.push((level, step_matched_depth));
             }
             Event::Leave(Container::Headline(h)) => {
                 let level = h.level();
