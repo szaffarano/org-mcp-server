@@ -157,7 +157,7 @@ impl OrgMode {
                             reason: "value must not contain newline or carriage return".to_string(),
                         });
                     }
-                    if !seen.insert(p.key.clone()) {
+                    if !seen.insert(p.key.to_uppercase()) {
                         return Err(OrgModeError::DuplicatePropertyKey(p.key.clone()));
                     }
                 }
@@ -193,6 +193,12 @@ impl OrgMode {
                 }
             } else {
                 fs::create_dir_all(parent).map_err(OrgModeError::IoError)?;
+                let canonical_parent = parent.canonicalize().map_err(OrgModeError::IoError)?;
+                if !canonical_parent.starts_with(&canonical_org_dir) {
+                    return Err(OrgModeError::InvalidDirectory(format!(
+                        "Path is outside org directory: {file_rel}"
+                    )));
+                }
             }
         }
 
@@ -620,11 +626,19 @@ impl OrgMode {
         if s.len() < 2 {
             return false;
         }
-        let (num, unit) = s.split_at(s.len() - 1);
-        if !matches!(unit, "h" | "d" | "w" | "m" | "y") {
+        let mut chars = s.chars();
+        let unit = chars.next_back().unwrap();
+        if !matches!(unit, 'h' | 'd' | 'w' | 'm' | 'y') {
             return false;
         }
-        !num.is_empty() && num != "0" && num.chars().all(|c| c.is_ascii_digit())
+        let num: String = chars.collect();
+        if num.is_empty() {
+            return false;
+        }
+        matches!(
+            num.parse::<u32>(),
+            Ok(n) if n > 0 && num.chars().all(|c| c.is_ascii_digit())
+        )
     }
 
     fn find_heading_path(
@@ -826,6 +840,20 @@ mod tests {
             let err = OrgMode::parse_iso_timestamp("scheduled", bad).unwrap_err();
             assert!(matches!(err, OrgModeError::InvalidTimestamp { .. }));
         }
+    }
+
+    #[test]
+    fn test_parse_iso_timestamp_rejects_leading_zero_count() {
+        for bad in ["2026-05-15 +00d", "2026-05-15 -000w", "2026-05-15 ++0m"] {
+            let err = OrgMode::parse_iso_timestamp("scheduled", bad).unwrap_err();
+            assert!(matches!(err, OrgModeError::InvalidTimestamp { .. }));
+        }
+    }
+
+    #[test]
+    fn test_parse_iso_timestamp_rejects_multibyte_utf8() {
+        let err = OrgMode::parse_iso_timestamp("scheduled", "2026-05-15 +1\u{00F6}").unwrap_err();
+        assert!(matches!(err, OrgModeError::InvalidTimestamp { .. }));
     }
 
     fn ts(
