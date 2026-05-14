@@ -1,4 +1,6 @@
 {
+  description = "OrgMode MCP Server";
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -6,8 +8,14 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    git-hooks-nix.url = "github:cachix/git-hooks.nix";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
+    git-hooks-nix = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
@@ -128,8 +136,10 @@
             inherit (self'.checks) pre-commit;
             packages = with pkgsWithOverlay; [
               cargo-bloat
+              cargo-deny
               cargo-edit
               cargo-llvm-cov
+              cargo-machete
               cargo-nextest
               cargo-outdated
               cargo-semver-checks
