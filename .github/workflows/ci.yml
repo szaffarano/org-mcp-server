@@ -2,11 +2,63 @@ name: CI
 on:
   pull_request:
     branches: [master]
+    paths:
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ci.yml"
+      - "**/*.rs"
   push:
     branches: [master]
+    paths:
+      - "**/Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/ci.yml"
+      - "**/*.rs"
 env:
   CARGO_TERM_COLOR: always
 jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - name: Enforce formatting
+        run: cargo fmt --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Linting
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -20,7 +72,6 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          components: rustfmt, clippy
       - name: Cache cargo registry
         uses: actions/cache@v5
         with:
@@ -31,36 +82,16 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-      - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
       - name: Build
-        run: cargo build --verbose --all-targets
+        run: cargo build --verbose --all-targets --all-features
       - name: Run tests
-        run: |
-          cargo build
-          cargo test --verbose --all-targets
-  check:
-    name: Check
+        run: cargo test --verbose --all-targets --all-features
+
+  machete:
+    name: Detect unused dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - name: Cache cargo registry
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ubuntu-latest-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ubuntu-latest-cargo-
-      - name: Check Cargo.toml formatting
-        run: cargo fmt --all -- --check
-      - name: Run cargo check
-        run: cargo check --all-targets --all-features
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Machete
+        uses: bnjbvr/cargo-machete@v0.9.2
