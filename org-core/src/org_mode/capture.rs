@@ -917,4 +917,10 @@ mod tests {
         let segs = OrgMode::datetree_segments(date);
         assert_eq!(segs, vec!["2027", "2027-01 January", "2027-01-01 Friday"]);
     }
+
+    #[test]
+    fn test_is_count_unit_rejects_short_input() {
+        assert!(!OrgMode::is_count_unit(""));
+        assert!(!OrgMode::is_count_unit("d"));
+    }
 }

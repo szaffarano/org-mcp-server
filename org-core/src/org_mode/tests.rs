@@ -4,6 +4,8 @@ use crate::config::OrgConfig;
 use orgize::Org;
 use orgize::export::{Container, Event, from_fn};
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 fn make_org_mode(temp_dir: &tempfile::TempDir) -> OrgMode {
     OrgMode::new(OrgConfig {
@@ -1431,4 +1433,36 @@ fn test_capture_with_everything() {
     assert!(content.contains("CLOSED: [2026-05-10 Sun]"));
     assert!(content.contains("* TODO [#A] Full :work:"));
     assert!(content.contains("Body text."));
+}
+
+#[test]
+fn test_agenda_view_type_rejects_week_over_53() {
+    let result = AgendaViewType::try_from("week/54");
+    assert!(matches!(
+        result,
+        Err(OrgModeError::InvalidAgendaViewType(_))
+    ));
+}
+
+#[cfg(unix)]
+#[test]
+fn test_search_skips_unreadable_file() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    fs::write(temp_dir.path().join("readable.org"), "hello world").unwrap();
+
+    let unreadable = temp_dir.path().join("unreadable.org");
+    fs::write(&unreadable, "secret content").unwrap();
+    let mut perms = fs::metadata(&unreadable).unwrap().permissions();
+    perms.set_mode(0o000);
+    fs::set_permissions(&unreadable, perms).unwrap();
+
+    let results = org_mode.search("hello", None, None).unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].file_path, "readable.org");
+
+    let mut perms = fs::metadata(&unreadable).unwrap().permissions();
+    perms.set_mode(0o644);
+    fs::set_permissions(&unreadable, perms).unwrap();
 }
