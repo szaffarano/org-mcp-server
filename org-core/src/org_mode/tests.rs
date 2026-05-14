@@ -1077,6 +1077,26 @@ fn test_capture_rejects_duplicate_property_keys() {
 }
 
 #[test]
+fn test_capture_rejects_case_insensitive_duplicate_property_keys() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    let mut entry = capture_minimal("p.org", "T");
+    entry.properties = Some(vec![
+        PropertyPair {
+            key: "CATEGORY".into(),
+            value: "v1".into(),
+        },
+        PropertyPair {
+            key: "category".into(),
+            value: "v2".into(),
+        },
+    ]);
+    let err = org_mode.capture_append(entry).unwrap_err();
+    assert!(matches!(err, OrgModeError::DuplicatePropertyKey(_)));
+}
+
+#[test]
 fn test_capture_auto_created_default_on() {
     let temp_dir = tempfile::tempdir().unwrap();
     let org_mode = make_org_mode(&temp_dir);
