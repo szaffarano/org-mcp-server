@@ -1145,6 +1145,30 @@ fn test_capture_auto_created_case_insensitive_match() {
 
 // Datetree integration tests
 #[test]
+fn test_datetree_defaults_to_today() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let org_mode = OrgMode::new(OrgConfig {
+        org_directory: temp_dir.path().to_str().unwrap().to_string(),
+        org_auto_created_property: false,
+        ..OrgConfig::default()
+    })
+    .unwrap();
+
+    let mut entry = capture_minimal("dt.org", "Today Item");
+    entry.datetree = true;
+    entry.datetree_date = None;
+    let result = org_mode.capture_append(entry).unwrap();
+    assert_eq!(result.level, 4);
+
+    let today = chrono::Local::now().date_naive();
+    let content = fs::read_to_string(temp_dir.path().join("dt.org")).unwrap();
+    assert!(content.contains(&format!("* {}", today.format("%Y"))));
+    assert!(content.contains(&format!("** {}", today.format("%Y-%m %B"))));
+    assert!(content.contains(&format!("*** {}", today.format("%Y-%m-%d %A"))));
+    assert!(content.contains("**** Today Item"));
+}
+
+#[test]
 fn test_datetree_creates_year_month_day_no_target() {
     let temp_dir = tempfile::tempdir().unwrap();
     let org_mode = OrgMode::new(OrgConfig {
