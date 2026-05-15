@@ -1523,3 +1523,32 @@ fn test_capture_preserves_file_permissions() {
         "permissions should be preserved after atomic write"
     );
 }
+
+#[test]
+#[cfg(unix)]
+fn test_capture_rejects_path_escaping_via_symlink_in_parent() {
+    // create_dir_all must not follow a symlink that escapes the org directory.
+    // Bug: the code called create_dir_all(parent) before validating the nearest
+    // existing ancestor, so a symlink like org/evil -> /tmp/external would cause
+    // directories to be created outside the org root before the check caught it.
+    let org_dir = tempfile::tempdir().unwrap();
+    let external_dir = tempfile::tempdir().unwrap();
+
+    // org/evil -> external_dir  (symlink escapes org boundary)
+    std::os::unix::fs::symlink(external_dir.path(), org_dir.path().join("evil")).unwrap();
+
+    let org_mode = make_org_mode(&org_dir);
+    let mut entry = capture_minimal("evil/subdir/notes.org", "Task");
+    entry.target_heading = None;
+
+    let err = org_mode.capture_append(entry).unwrap_err();
+    assert!(
+        matches!(err, OrgModeError::InvalidDirectory(_)),
+        "expected InvalidDirectory when path escapes via symlink, got: {err:?}"
+    );
+    // External directory must not have been modified.
+    assert!(
+        fs::read_dir(external_dir.path()).unwrap().next().is_none(),
+        "no directories should have been created outside org root"
+    );
+}
