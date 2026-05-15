@@ -68,9 +68,6 @@
 
             src = pkgs.lib.cleanSource ./.;
             cargoLock = {
-              outputHashes = {
-                "orgize-0.10.0-alpha.10" = "sha256-UDH1uwdp9/1jJugOzpLeyhecJpg+uY8maUe3c+WsDCs=";
-              };
               lockFile = ./Cargo.lock;
             };
 
