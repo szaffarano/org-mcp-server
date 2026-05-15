@@ -283,7 +283,10 @@ impl OrgMode {
                         let mut prefix = String::new();
                         let mut last_level = search.last_matched_level;
                         for (i, part) in search.remaining_parts.iter().enumerate() {
-                            let hlevel = (base_level + i).min(MAX_HEADING_LEVEL);
+                            let hlevel = base_level + i;
+                            if hlevel > MAX_HEADING_LEVEL {
+                                return Err(OrgModeError::InvalidLevel(hlevel));
+                            }
                             prefix.push_str(&"*".repeat(hlevel));
                             prefix.push(' ');
                             prefix.push_str(part);
@@ -299,9 +302,21 @@ impl OrgMode {
                 };
 
             let level = match entry.level {
-                Some(l) if under_target.is_some() => l.max(parent_level + 1).min(MAX_HEADING_LEVEL),
+                Some(l) if under_target.is_some() => {
+                    let computed = l.max(parent_level + 1);
+                    if computed > MAX_HEADING_LEVEL {
+                        return Err(OrgModeError::InvalidLevel(computed));
+                    }
+                    computed
+                }
                 Some(l) => l,
-                None if under_target.is_some() => (parent_level + 1).min(MAX_HEADING_LEVEL),
+                None if under_target.is_some() => {
+                    let computed = parent_level + 1;
+                    if computed > MAX_HEADING_LEVEL {
+                        return Err(OrgModeError::InvalidLevel(computed));
+                    }
+                    computed
+                }
                 None => 1,
             };
 
@@ -423,9 +438,11 @@ impl OrgMode {
                 "absolute path not allowed: {file_rel}"
             )));
         }
+        let mut has_normal = false;
         for comp in p.components() {
             match comp {
-                Component::Normal(_) | Component::CurDir => {}
+                Component::Normal(_) => has_normal = true,
+                Component::CurDir => {}
                 Component::ParentDir => {
                     return Err(OrgModeError::InvalidDirectory(format!(
                         "path traversal segment '..' not allowed: {file_rel}"
@@ -437,6 +454,11 @@ impl OrgMode {
                     )));
                 }
             }
+        }
+        if !has_normal {
+            return Err(OrgModeError::InvalidDirectory(
+                "file path must refer to a file, not empty or '.'".to_string(),
+            ));
         }
         Ok(())
     }

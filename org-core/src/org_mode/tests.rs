@@ -1552,3 +1552,40 @@ fn test_capture_rejects_path_escaping_via_symlink_in_parent() {
         "no directories should have been created outside org root"
     );
 }
+
+#[test]
+fn test_capture_rejects_empty_and_dot_file_paths() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    for bad in ["", "."] {
+        let mut entry = capture_minimal(bad, "X");
+        entry.file = Some(bad.to_string());
+        let err = org_mode.capture_append(entry).unwrap_err();
+        assert!(
+            matches!(err, OrgModeError::InvalidDirectory(_)),
+            "expected InvalidDirectory for file path '{bad}', got {err:?}"
+        );
+    }
+}
+
+#[test]
+fn test_capture_rejects_computed_level_over_max() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let stars = "*".repeat(19);
+    fs::write(
+        temp_dir.path().join("deep.org"),
+        format!("{stars} DeepParent\n"),
+    )
+    .unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    let mut entry = capture_minimal("deep.org", "Child");
+    entry.target_heading = Some("DeepParent".to_string());
+
+    let err = org_mode.capture_append(entry).unwrap_err();
+    assert!(
+        matches!(err, OrgModeError::InvalidLevel(20)),
+        "expected InvalidLevel(20) when computed child level exceeds MAX, got {err:?}"
+    );
+}
