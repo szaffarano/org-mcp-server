@@ -223,7 +223,7 @@ impl OrgMode {
 
             let mut effective_target_parts: Vec<String> = Vec::new();
             if let Some(ref target) = entry.target_heading {
-                effective_target_parts.extend(target.split('/').map(String::from));
+                effective_target_parts.extend(target.split('/').map(|s| s.trim().to_string()));
             }
             if let Some(d) = datetree_date {
                 effective_target_parts.extend(Self::datetree_segments(d));
@@ -452,49 +452,28 @@ impl OrgMode {
     }
 
     fn atomic_write(target: &Path, bytes: &[u8]) -> Result<(), OrgModeError> {
-        use std::sync::atomic::{AtomicU64, Ordering};
-        static COUNTER: AtomicU64 = AtomicU64::new(0);
-
         let parent = target.parent().ok_or_else(|| {
             OrgModeError::IoError(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "target path has no parent directory",
             ))
         })?;
-        let file_name = target.file_name().ok_or_else(|| {
-            OrgModeError::IoError(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "target path has no file name",
-            ))
-        })?;
 
-        let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
-        let mut tmp_name = OsString::from(".");
-        tmp_name.push(file_name);
-        tmp_name.push(format!(".tmp.{}.{}", std::process::id(), counter));
-        let tmp_path = parent.join(&tmp_name);
+        let mut tmp = tempfile::Builder::new()
+            .prefix(".")
+            .tempfile_in(parent)
+            .map_err(OrgModeError::IoError)?;
 
-        let result: Result<(), OrgModeError> = (|| {
-            let mut tmp = OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&tmp_path)
-                .map_err(OrgModeError::IoError)?;
-            tmp.write_all(bytes).map_err(OrgModeError::IoError)?;
-            tmp.sync_all().map_err(OrgModeError::IoError)?;
-            Ok(())
-        })();
+        tmp.write_all(bytes).map_err(OrgModeError::IoError)?;
+        tmp.as_file().sync_all().map_err(OrgModeError::IoError)?;
 
-        if let Err(e) = result {
-            let _ = fs::remove_file(&tmp_path);
-            return Err(e);
+        #[cfg(unix)]
+        if let Ok(meta) = fs::metadata(target) {
+            let _ = tmp.as_file().set_permissions(meta.permissions());
         }
 
-        if let Err(e) = fs::rename(&tmp_path, target) {
-            let _ = fs::remove_file(&tmp_path);
-            return Err(OrgModeError::IoError(e));
-        }
+        tmp.persist(target)
+            .map_err(|e| OrgModeError::IoError(e.error))?;
         Ok(())
     }
 

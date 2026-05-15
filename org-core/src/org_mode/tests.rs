@@ -1466,3 +1466,60 @@ fn test_search_skips_unreadable_file() {
     perms.set_mode(0o644);
     fs::set_permissions(&unreadable, perms).unwrap();
 }
+
+#[test]
+fn test_capture_target_heading_segments_trimmed() {
+    // Spaces around '/' in target_heading must not prevent matching existing headings.
+    // Bug: segments were used untrimmed for comparison, so "Projects / Work" would fail
+    // to match existing "Projects" > "Work" and instead create spurious new headings
+    // named "Projects " and " Work" (with embedded whitespace).
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::write(
+        temp_dir.path().join("test.org"),
+        "* Projects\n** Work\nstuff\n",
+    )
+    .unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    let mut entry = capture_minimal("test.org", "My Task");
+    entry.target_heading = Some("Projects / Work".to_string());
+
+    org_mode.capture_append(entry).unwrap();
+
+    let content = fs::read_to_string(temp_dir.path().join("test.org")).unwrap();
+    // With the bug, a spurious "* Projects " (trailing space) heading would be
+    // created at the top level instead of matching the existing one.
+    let top_headings: usize = content
+        .lines()
+        .filter(|l| l.starts_with("* ") && !l.starts_with("** "))
+        .count();
+    assert_eq!(
+        top_headings, 1,
+        "should not create a duplicate top-level heading; content:\n{content}"
+    );
+    // Task placed inside the existing Work heading at level 3.
+    assert!(
+        content.contains("*** My Task"),
+        "expected '*** My Task' inside existing Work:\n{content}"
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn test_capture_preserves_file_permissions() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let file_path = temp_dir.path().join("notes.org");
+    fs::write(&file_path, "* Existing\n").unwrap();
+    fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o600)).unwrap();
+
+    let org_mode = make_org_mode(&temp_dir);
+    let entry = capture_minimal("notes.org", "New Note");
+    org_mode.capture_append(entry).unwrap();
+
+    let meta = fs::metadata(&file_path).unwrap();
+    assert_eq!(
+        meta.permissions().mode() & 0o777,
+        0o600,
+        "permissions should be preserved after atomic write"
+    );
+}
