@@ -192,6 +192,26 @@ impl OrgMode {
                     )));
                 }
             } else {
+                // Validate the nearest existing ancestor before creating any
+                // directories to prevent symlinks inside org_dir from escaping
+                // the root before the post-creation canonicalization check runs.
+                let mut ancestor = parent;
+                loop {
+                    match ancestor.parent() {
+                        Some(p) if p.exists() => {
+                            let canonical_ancestor =
+                                p.canonicalize().map_err(OrgModeError::IoError)?;
+                            if !canonical_ancestor.starts_with(&canonical_org_dir) {
+                                return Err(OrgModeError::InvalidDirectory(format!(
+                                    "Path is outside org directory: {file_rel}"
+                                )));
+                            }
+                            break;
+                        }
+                        Some(p) => ancestor = p,
+                        None => break,
+                    }
+                }
                 fs::create_dir_all(parent).map_err(OrgModeError::IoError)?;
                 let canonical_parent = parent.canonicalize().map_err(OrgModeError::IoError)?;
                 if !canonical_parent.starts_with(&canonical_org_dir) {
@@ -364,8 +384,14 @@ impl OrgMode {
             })
         })();
 
+        // On Unix, unlink while holding the lock so a racing locker that opens the same
+        // path gets a different inode and retries (stat-after-lock invariant).
+        // On non-Unix (Windows), the file must be closed before it can be removed.
+        #[cfg(unix)]
         let _ = fs::remove_file(&lock_path);
         drop(lock_file);
+        #[cfg(not(unix))]
+        let _ = fs::remove_file(&lock_path);
 
         result
     }

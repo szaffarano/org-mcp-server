@@ -57,7 +57,7 @@ impl fmt::Display for OrgModeError {
             }
             OrgModeError::InvalidTimestamp { field, value } => write!(
                 f,
-                "Invalid timestamp for {field}: '{value}', expected YYYY-MM-DD or YYYY-MM-DD HH:MM"
+                "Invalid timestamp for {field}: '{value}', expected YYYY-MM-DD [HH:MM] [repeater +N|++N|.+N{{h|d|w|m|y}}] [warning -N{{h|d|w|m|y}}]"
             ),
             OrgModeError::InvalidPropertyKey(key) => write!(
                 f,
@@ -155,7 +155,7 @@ mod tests {
         );
         assert_eq!(
             s,
-            "Invalid timestamp for scheduled: 'tomorrow', expected YYYY-MM-DD or YYYY-MM-DD HH:MM"
+            "Invalid timestamp for scheduled: 'tomorrow', expected YYYY-MM-DD [HH:MM] [repeater +N|++N|.+N{h|d|w|m|y}] [warning -N{h|d|w|m|y}]"
         );
     }
 
