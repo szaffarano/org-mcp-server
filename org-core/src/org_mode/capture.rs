@@ -177,6 +177,11 @@ impl OrgMode {
         })?;
 
         if full_path.exists() {
+            if full_path.is_dir() {
+                return Err(OrgModeError::InvalidDirectory(format!(
+                    "path resolves to a directory, not a file: {file_rel}"
+                )));
+            }
             let canonical_file = full_path.canonicalize().map_err(OrgModeError::IoError)?;
             if !canonical_file.starts_with(&canonical_org_dir) {
                 return Err(OrgModeError::InvalidDirectory(format!(
@@ -436,6 +441,11 @@ impl OrgMode {
         if p.is_absolute() {
             return Err(OrgModeError::InvalidDirectory(format!(
                 "absolute path not allowed: {file_rel}"
+            )));
+        }
+        if file_rel.trim_end_matches('/').ends_with("/.") {
+            return Err(OrgModeError::InvalidDirectory(format!(
+                "file path must refer to a file, not a directory: {file_rel}"
             )));
         }
         let mut has_normal = false;

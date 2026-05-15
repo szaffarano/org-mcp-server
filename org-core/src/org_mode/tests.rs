@@ -1554,6 +1554,37 @@ fn test_capture_rejects_path_escaping_via_symlink_in_parent() {
 }
 
 #[test]
+fn test_capture_rejects_directory_path_when_exists() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    fs::create_dir(temp_dir.path().join("subdir")).unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    for bad in ["subdir/.", "subdir/./"] {
+        let entry = capture_minimal(bad, "Task");
+        let err = org_mode.capture_append(entry).unwrap_err();
+        assert!(
+            matches!(err, OrgModeError::InvalidDirectory(_)),
+            "expected InvalidDirectory for '{bad}' pointing to existing dir, got {err:?}"
+        );
+    }
+}
+
+#[test]
+fn test_capture_rejects_directory_path_when_not_exists() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let org_mode = make_org_mode(&temp_dir);
+
+    for bad in ["subdir/.", "subdir/./", "a/b/."] {
+        let entry = capture_minimal(bad, "Task");
+        let err = org_mode.capture_append(entry).unwrap_err();
+        assert!(
+            matches!(err, OrgModeError::InvalidDirectory(_)),
+            "expected InvalidDirectory for '{bad}' (non-existent dir path), got {err:?}"
+        );
+    }
+}
+
+#[test]
 fn test_capture_rejects_empty_and_dot_file_paths() {
     let temp_dir = tempfile::tempdir().unwrap();
     let org_mode = make_org_mode(&temp_dir);
