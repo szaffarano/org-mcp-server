@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.7...org-core-v0.0.8)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Migrate from unmaintained paste crate to pastey ([#174](https://github.com/szaffarano/org-mcp-server/pull/174)) - ([6f51563](https://github.com/szaffarano/org-mcp-server/commit/6f515636a1ed943fbfaca950ecdd56a3e09b665e))
+
+
 ## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.6...org-core-v0.0.7)
 
 ### ⚙️ Miscellaneous Tasks
