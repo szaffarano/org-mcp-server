@@ -339,3 +339,20 @@ fn test_walk_error_conversion_and_source() {
         }
     }
 }
+
+#[test]
+fn test_invalid_timestamp_display_includes_repeater_warning_grammar() {
+    let err = OrgModeError::InvalidTimestamp {
+        field: "scheduled",
+        value: "bad".to_string(),
+    };
+    let msg = err.to_string();
+    assert!(
+        msg.contains("repeater") || msg.contains("++") || msg.contains(".+"),
+        "error message should describe repeater syntax, got: {msg}"
+    );
+    assert!(
+        msg.contains("warning") || msg.contains("-N") || msg.contains("-3d"),
+        "error message should describe warning syntax, got: {msg}"
+    );
+}

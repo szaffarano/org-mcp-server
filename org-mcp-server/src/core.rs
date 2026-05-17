@@ -26,6 +26,9 @@ impl OrgModeRouter {
     }
 
     pub(crate) fn tool_router() -> ToolRouter<Self> {
-        Self::tool_router_list_files() + Self::tool_router_search() + Self::tool_router_agenda()
+        Self::tool_router_list_files()
+            + Self::tool_router_search()
+            + Self::tool_router_agenda()
+            + Self::tool_router_capture()
     }
 }
