@@ -49,7 +49,7 @@
           inherit system overlays;
         };
 
-        rustToolchain = pkgsWithOverlay.rust-bin.nightly.latest.default.override {
+        rustToolchain = pkgsWithOverlay.rust-bin.stable.latest.default.override {
           extensions = [
             "rust-src"
             "rust-analyzer"

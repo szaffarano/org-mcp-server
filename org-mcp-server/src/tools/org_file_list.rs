@@ -2,7 +2,7 @@ use org_core::OrgModeError;
 use rmcp::{
     ErrorData as McpError,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, Content, ErrorCode},
+    model::{CallToolResult, ContentBlock, ErrorCode},
     schemars, tool, tool_router,
 };
 
@@ -33,7 +33,7 @@ impl OrgModeRouter {
     ) -> Result<CallToolResult, McpError> {
         let org_mode = self.org_mode.lock().await;
         match org_mode.list_files(tags.as_deref(), limit) {
-            Ok(files) => match Content::json(files) {
+            Ok(files) => match ContentBlock::json(files) {
                 Ok(serialized) => Ok(CallToolResult::success(vec![serialized])),
                 Err(e) => Err(McpError {
                     code: ErrorCode::INTERNAL_ERROR,
