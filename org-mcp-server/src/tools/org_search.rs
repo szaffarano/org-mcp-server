@@ -2,7 +2,7 @@ use org_core::OrgModeError;
 use rmcp::{
     ErrorData as McpError,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, Content, ErrorCode},
+    model::{CallToolResult, ContentBlock, ErrorCode},
     schemars, tool, tool_router,
 };
 
@@ -55,7 +55,7 @@ impl OrgModeRouter {
         };
 
         match results {
-            Ok(results) => match Content::json(results) {
+            Ok(results) => match ContentBlock::json(results) {
                 Ok(serialized) => Ok(CallToolResult::success(vec![serialized])),
                 Err(e) => Err(McpError {
                     code: ErrorCode::INTERNAL_ERROR,

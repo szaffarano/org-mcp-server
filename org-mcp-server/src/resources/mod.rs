@@ -11,9 +11,9 @@ mod resource_tests;
 
 use org_core::org_mode::AgendaViewType;
 use rmcp::model::{
-    AnnotateAble, Implementation, InitializeRequestParams, InitializeResult,
-    ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams, RawResource,
-    RawResourceTemplate, ReadResourceRequestParams, ReadResourceResult,
+    Implementation, InitializeRequestParams, InitializeResult, ListResourceTemplatesResult,
+    ListResourcesResult, PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResult,
+    Resource, ResourceTemplate,
 };
 use rmcp::service::RequestContext;
 use rmcp::{
@@ -74,52 +74,18 @@ impl ServerHandler for OrgModeRouter {
     ) -> Result<ListResourcesResult, McpError> {
         Ok(ListResourcesResult {
             resources: vec![
-                RawResource {
-                    uri: "org://".to_string(),
-                    name: "org".to_string(),
-                    title: None,
-                    icons: None,
-                    meta: None,
-                    description: Some(
-                        "List all org-mode files in the configured directory tree".to_string(),
-                    ),
-                    size: None,
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResource {
-                    uri: "org-agenda://".to_string(),
-                    name: "org-agenda".to_string(),
-                    title: None,
-                    icons: None,
-                    meta: None,
-                    description: Some("List all agenda items and tasks".to_string()),
-                    size: None,
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResource {
-                    uri: "org-agenda://today".to_string(),
-                    name: "org-agenda-today".to_string(),
-                    title: None,
-                    icons: None,
-                    meta: None,
-                    description: Some("Today's scheduled agenda items".to_string()),
-                    size: None,
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResource {
-                    uri: "org-agenda://week".to_string(),
-                    name: "org-agenda-week".to_string(),
-                    title: None,
-                    icons: None,
-                    meta: None,
-                    description: Some("This week's scheduled agenda items".to_string()),
-                    size: None,
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
+                Resource::new("org://", "org")
+                    .with_description("List all org-mode files in the configured directory tree")
+                    .with_mime_type("application/json"),
+                Resource::new("org-agenda://", "org-agenda")
+                    .with_description("List all agenda items and tasks")
+                    .with_mime_type("application/json"),
+                Resource::new("org-agenda://today", "org-agenda-today")
+                    .with_description("Today's scheduled agenda items")
+                    .with_mime_type("application/json"),
+                Resource::new("org-agenda://week", "org-agenda-week")
+                    .with_description("This week's scheduled agenda items")
+                    .with_mime_type("application/json"),
             ],
             next_cursor: None,
             meta: None,
@@ -135,97 +101,36 @@ impl ServerHandler for OrgModeRouter {
             next_cursor: None,
             meta: None,
             resource_templates: vec![
-                RawResourceTemplate {
-                    uri_template: "org://{file}".to_string(),
-                    icons: None,
-                    name: "org-file".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the raw content of an org-mode file by its path".to_string(),
-                    ),
-                    mime_type: Some("text/org".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-outline://{file}".to_string(),
-                    icons: None,
-                    name: "org-outline-file".to_string(),
-                    title: None,
-                    description: Some(
-                        "Get the hierarchical outline structure of an org-mode file as JSON"
-                            .to_string(),
-                    ),
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-heading://{file}#{heading}".to_string(),
-                    icons: None,
-                    name: "org-heading-file".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the content of a specific heading within an org-mode file"
-                            .to_string(),
-                    ),
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-id://{id}".to_string(),
-                    icons: None,
-                    name: "org-element-by-id".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the content of any org-mode element by its unique ID property"
-                            .to_string(),
-                    ),
-                    mime_type: Some("plain/text".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-agenda://day/{date}".to_string(),
-                    icons: None,
-                    name: "org-agenda-day".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the agenda items for a specific day (YYYY-MM-DD)".to_string(),
-                    ),
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-agenda://week/{num}".to_string(),
-                    icons: None,
-                    name: "org-agenda-week".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the agenda items for the specified week number".to_string(),
-                    ),
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-agenda://month/{num}".to_string(),
-                    icons: None,
-                    name: "org-agenda-month".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the agenda items for the specified month number".to_string(),
-                    ),
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
-                RawResourceTemplate {
-                    uri_template: "org-agenda://query/from/{from}/to/{to}".to_string(),
-                    icons: None,
-                    name: "org-agenda-query".to_string(),
-                    title: None,
-                    description: Some(
-                        "Access the agenda items for the specified date range".to_string(),
-                    ),
-                    mime_type: Some("application/json".to_string()),
-                }
-                .no_annotation(),
+                ResourceTemplate::new("org://{file}", "org-file")
+                    .with_description("Access the raw content of an org-mode file by its path")
+                    .with_mime_type("text/org"),
+                ResourceTemplate::new("org-outline://{file}", "org-outline-file")
+                    .with_description(
+                        "Get the hierarchical outline structure of an org-mode file as JSON",
+                    )
+                    .with_mime_type("application/json"),
+                ResourceTemplate::new("org-heading://{file}#{heading}", "org-heading-file")
+                    .with_description(
+                        "Access the content of a specific heading within an org-mode file",
+                    )
+                    .with_mime_type("application/json"),
+                ResourceTemplate::new("org-id://{id}", "org-element-by-id")
+                    .with_description(
+                        "Access the content of any org-mode element by its unique ID property",
+                    )
+                    .with_mime_type("plain/text"),
+                ResourceTemplate::new("org-agenda://day/{date}", "org-agenda-day")
+                    .with_description("Access the agenda items for a specific day (YYYY-MM-DD)")
+                    .with_mime_type("application/json"),
+                ResourceTemplate::new("org-agenda://week/{num}", "org-agenda-week")
+                    .with_description("Access the agenda items for the specified week number")
+                    .with_mime_type("application/json"),
+                ResourceTemplate::new("org-agenda://month/{num}", "org-agenda-month")
+                    .with_description("Access the agenda items for the specified month number")
+                    .with_mime_type("application/json"),
+                ResourceTemplate::new("org-agenda://query/from/{from}/to/{to}", "org-agenda-query")
+                    .with_description("Access the agenda items for the specified date range")
+                    .with_mime_type("application/json"),
             ],
         })
     }

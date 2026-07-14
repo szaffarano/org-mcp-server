@@ -3,7 +3,7 @@ use org_core::{OrgModeError, Priority, org_mode::AgendaViewType};
 use rmcp::{
     ErrorData as McpError,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, Content, ErrorCode},
+    model::{CallToolResult, ContentBlock, ErrorCode},
     schemars, tool, tool_router,
 };
 
@@ -89,7 +89,7 @@ impl OrgModeRouter {
                 );
 
                 match tasks {
-                    Ok(tasks) => match Content::json(tasks) {
+                    Ok(tasks) => match ContentBlock::json(tasks) {
                         Ok(serialized) => Ok(CallToolResult::success(vec![serialized])),
                         Err(e) => Err(McpError {
                             code: ErrorCode::INTERNAL_ERROR,
@@ -141,7 +141,7 @@ impl OrgModeRouter {
                 );
 
                 match view {
-                    Ok(view) => match Content::json(view) {
+                    Ok(view) => match ContentBlock::json(view) {
                         Ok(serialized) => Ok(CallToolResult::success(vec![serialized])),
                         Err(e) => Err(McpError {
                             code: ErrorCode::INTERNAL_ERROR,
