@@ -56,10 +56,15 @@
             "llvm-tools-preview"
           ];
         };
+
+        rustPlatform = pkgsWithOverlay.makeRustPlatform {
+          cargo = rustToolchain;
+          rustc = rustToolchain;
+        };
       in {
         packages = {
           default = self'.packages.org-mcp;
-          org-mcp = pkgsWithOverlay.rustPlatform.buildRustPackage rec {
+          org-mcp = rustPlatform.buildRustPackage rec {
             pname = "org-mcp-server";
             version = let
               cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
@@ -71,10 +76,8 @@
               lockFile = ./Cargo.lock;
             };
 
-            nativeBuildInputs = [
-              rustToolchain
-            ];
-            buildInputs = nativeBuildInputs;
+            nativeBuildInputs = [];
+            buildInputs = [];
             meta = with pkgs.lib; {
               description = "OrgMode MCP Server Full";
               homepage = "https://github.com/szaffarano/org-mcp-server";
