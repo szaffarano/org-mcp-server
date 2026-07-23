@@ -57,68 +57,7 @@ pub(crate) struct ParsedTimestamp {
 impl OrgMode {
     pub fn capture_append(&self, entry: CaptureEntry) -> Result<CaptureResult, OrgModeError> {
         let resolved = self.validate_and_resolve(&entry)?;
-        let file_rel = resolved.file_rel.as_str();
-
-        let org_dir = PathBuf::from(&self.config.org_directory);
-        let full_path = org_dir.join(file_rel);
-
-        let canonical_org_dir = org_dir.canonicalize().map_err(|e| {
-            OrgModeError::InvalidDirectory(format!(
-                "Cannot canonicalize org directory '{}': {e}",
-                self.config.org_directory
-            ))
-        })?;
-
-        if full_path.exists() {
-            if full_path.is_dir() {
-                return Err(OrgModeError::InvalidDirectory(format!(
-                    "path resolves to a directory, not a file: {file_rel}"
-                )));
-            }
-            let canonical_file = full_path.canonicalize().map_err(OrgModeError::IoError)?;
-            if !canonical_file.starts_with(&canonical_org_dir) {
-                return Err(OrgModeError::InvalidDirectory(format!(
-                    "Path is outside org directory: {file_rel}"
-                )));
-            }
-        } else if let Some(parent) = full_path.parent() {
-            if parent.exists() {
-                let canonical_parent = parent.canonicalize().map_err(OrgModeError::IoError)?;
-                if !canonical_parent.starts_with(&canonical_org_dir) {
-                    return Err(OrgModeError::InvalidDirectory(format!(
-                        "Path is outside org directory: {file_rel}"
-                    )));
-                }
-            } else {
-                // Validate the nearest existing ancestor before creating any
-                // directories to prevent symlinks inside org_dir from escaping
-                // the root before the post-creation canonicalization check runs.
-                let mut ancestor = parent;
-                loop {
-                    match ancestor.parent() {
-                        Some(p) if p.exists() => {
-                            let canonical_ancestor =
-                                p.canonicalize().map_err(OrgModeError::IoError)?;
-                            if !canonical_ancestor.starts_with(&canonical_org_dir) {
-                                return Err(OrgModeError::InvalidDirectory(format!(
-                                    "Path is outside org directory: {file_rel}"
-                                )));
-                            }
-                            break;
-                        }
-                        Some(p) => ancestor = p,
-                        None => break,
-                    }
-                }
-                fs::create_dir_all(parent).map_err(OrgModeError::IoError)?;
-                let canonical_parent = parent.canonicalize().map_err(OrgModeError::IoError)?;
-                if !canonical_parent.starts_with(&canonical_org_dir) {
-                    return Err(OrgModeError::InvalidDirectory(format!(
-                        "Path is outside org directory: {file_rel}"
-                    )));
-                }
-            }
-        }
+        let full_path = self.prepare_target_path(&resolved.file_rel)?;
 
         let lock_path = Self::lock_path_for(&full_path)?;
         let lock_file = Self::acquire_capture_lock(&lock_path)?;
@@ -291,7 +230,7 @@ impl OrgMode {
             Self::atomic_write(&full_path, new_content.as_bytes())?;
 
             Ok(CaptureResult {
-                file_path: file_rel.to_string(),
+                file_path: resolved.file_rel.clone(),
                 level,
                 heading_line,
                 under_target,
@@ -308,6 +247,68 @@ impl OrgMode {
         let _ = fs::remove_file(&lock_path);
 
         result
+    }
+
+    fn prepare_target_path(&self, file_rel: &str) -> Result<PathBuf, OrgModeError> {
+        let org_dir = PathBuf::from(&self.config.org_directory);
+        let full_path = org_dir.join(file_rel);
+
+        let canonical_org_dir = org_dir.canonicalize().map_err(|e| {
+            OrgModeError::InvalidDirectory(format!(
+                "Cannot canonicalize org directory '{}': {e}",
+                self.config.org_directory
+            ))
+        })?;
+
+        if full_path.exists() {
+            if full_path.is_dir() {
+                return Err(OrgModeError::InvalidDirectory(format!(
+                    "path resolves to a directory, not a file: {file_rel}"
+                )));
+            }
+            let canonical_file = full_path.canonicalize().map_err(OrgModeError::IoError)?;
+            if !canonical_file.starts_with(&canonical_org_dir) {
+                return Err(OrgModeError::InvalidDirectory(format!(
+                    "Path is outside org directory: {file_rel}"
+                )));
+            }
+        } else if let Some(parent) = full_path.parent() {
+            if parent.exists() {
+                let canonical_parent = parent.canonicalize().map_err(OrgModeError::IoError)?;
+                if !canonical_parent.starts_with(&canonical_org_dir) {
+                    return Err(OrgModeError::InvalidDirectory(format!(
+                        "Path is outside org directory: {file_rel}"
+                    )));
+                }
+            } else {
+                let mut ancestor = parent;
+                loop {
+                    match ancestor.parent() {
+                        Some(p) if p.exists() => {
+                            let canonical_ancestor =
+                                p.canonicalize().map_err(OrgModeError::IoError)?;
+                            if !canonical_ancestor.starts_with(&canonical_org_dir) {
+                                return Err(OrgModeError::InvalidDirectory(format!(
+                                    "Path is outside org directory: {file_rel}"
+                                )));
+                            }
+                            break;
+                        }
+                        Some(p) => ancestor = p,
+                        None => break,
+                    }
+                }
+                fs::create_dir_all(parent).map_err(OrgModeError::IoError)?;
+                let canonical_parent = parent.canonicalize().map_err(OrgModeError::IoError)?;
+                if !canonical_parent.starts_with(&canonical_org_dir) {
+                    return Err(OrgModeError::InvalidDirectory(format!(
+                        "Path is outside org directory: {file_rel}"
+                    )));
+                }
+            }
+        }
+
+        Ok(full_path)
     }
 
     fn validate_and_resolve(&self, entry: &CaptureEntry) -> Result<ResolvedCapture, OrgModeError> {
