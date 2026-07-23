@@ -78,65 +78,8 @@ impl OrgMode {
             };
             let mut org = parse_config.parse(&content);
 
-            let mut effective_target_parts: Vec<String> = Vec::new();
-            if let Some(ref target) = entry.target_heading {
-                effective_target_parts.extend(target.split('/').map(|s| s.trim().to_string()));
-            }
-            if let Some(d) = resolved.datetree_date {
-                effective_target_parts.extend(Self::datetree_segments(d));
-            }
-            let effective_target = if effective_target_parts.is_empty() {
-                None
-            } else {
-                Some(effective_target_parts.join("/"))
-            };
-
             let (insert_pos, prefix_text, parent_level, under_target) =
-                if let Some(ref target) = effective_target {
-                    let search = self.find_heading_path(&org, target, content.len() as u32);
-
-                    if search.remaining_parts.is_empty() {
-                        (
-                            search.insert_pos,
-                            String::new(),
-                            search.last_matched_level,
-                            Some(target.clone()),
-                        )
-                    } else {
-                        let base_level = if let Some(explicit_level) = entry.level {
-                            let from_explicit =
-                                explicit_level.saturating_sub(search.remaining_parts.len());
-                            if search.matched_depth > 0 {
-                                from_explicit.max(search.last_matched_level + 1)
-                            } else {
-                                from_explicit.max(1)
-                            }
-                        } else if search.matched_depth > 0 {
-                            search.last_matched_level + 1
-                        } else {
-                            1
-                        };
-
-                        let mut prefix = String::new();
-                        let mut last_level = search.last_matched_level;
-                        for (i, part) in search.remaining_parts.iter().enumerate() {
-                            let hlevel = base_level + i;
-                            if hlevel > MAX_HEADING_LEVEL {
-                                return Err(OrgModeError::InvalidLevel(hlevel));
-                            }
-                            prefix.push_str(&"*".repeat(hlevel));
-                            prefix.push(' ');
-                            prefix.push_str(part);
-                            prefix.push('\n');
-                            last_level = hlevel;
-                        }
-
-                        (search.insert_pos, prefix, last_level, Some(target.clone()))
-                    }
-                } else {
-                    let end = TextSize::from(content.len() as u32);
-                    (end, String::new(), 0usize, None)
-                };
+                self.build_target_context(&org, &entry, resolved.datetree_date, content.len())?;
 
             let level = match entry.level {
                 Some(l) if under_target.is_some() => {
@@ -247,6 +190,76 @@ impl OrgMode {
         let _ = fs::remove_file(&lock_path);
 
         result
+    }
+
+    fn build_target_context(
+        &self,
+        org: &Org,
+        entry: &CaptureEntry,
+        datetree_date: Option<NaiveDate>,
+        content_len: usize,
+    ) -> Result<(TextSize, String, usize, Option<String>), OrgModeError> {
+        let mut effective_target_parts: Vec<String> = Vec::new();
+        if let Some(ref target) = entry.target_heading {
+            effective_target_parts.extend(target.split('/').map(|s| s.trim().to_string()));
+        }
+        if let Some(d) = datetree_date {
+            effective_target_parts.extend(Self::datetree_segments(d));
+        }
+        let effective_target = if effective_target_parts.is_empty() {
+            None
+        } else {
+            Some(effective_target_parts.join("/"))
+        };
+
+        if let Some(ref target) = effective_target {
+            let search = self.find_heading_path(org, target, content_len as u32);
+
+            if search.remaining_parts.is_empty() {
+                return Ok((
+                    search.insert_pos,
+                    String::new(),
+                    search.last_matched_level,
+                    Some(target.clone()),
+                ));
+            }
+
+            let base_level = if let Some(explicit_level) = entry.level {
+                let from_explicit = explicit_level.saturating_sub(search.remaining_parts.len());
+                if search.matched_depth > 0 {
+                    from_explicit.max(search.last_matched_level + 1)
+                } else {
+                    from_explicit.max(1)
+                }
+            } else if search.matched_depth > 0 {
+                search.last_matched_level + 1
+            } else {
+                1
+            };
+
+            let mut prefix = String::new();
+            let mut last_level = search.last_matched_level;
+            for (i, part) in search.remaining_parts.iter().enumerate() {
+                let hlevel = base_level + i;
+                if hlevel > MAX_HEADING_LEVEL {
+                    return Err(OrgModeError::InvalidLevel(hlevel));
+                }
+                prefix.push_str(&"*".repeat(hlevel));
+                prefix.push(' ');
+                prefix.push_str(part);
+                prefix.push('\n');
+                last_level = hlevel;
+            }
+
+            Ok((search.insert_pos, prefix, last_level, Some(target.clone())))
+        } else {
+            Ok((
+                TextSize::from(content_len as u32),
+                String::new(),
+                0usize,
+                None,
+            ))
+        }
     }
 
     fn prepare_target_path(&self, file_rel: &str) -> Result<PathBuf, OrgModeError> {
