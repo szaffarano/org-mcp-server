@@ -23,6 +23,15 @@ struct HeadingSearchResult {
     remaining_parts: Vec<String>,
 }
 
+struct ResolvedCapture {
+    file_rel: String,
+    scheduled: Option<ParsedTimestamp>,
+    deadline: Option<ParsedTimestamp>,
+    closed: Option<ParsedTimestamp>,
+    datetree_date: Option<NaiveDate>,
+    properties: Vec<PropertyPair>,
+}
+
 fn is_valid_tag(tag: &str) -> bool {
     !tag.is_empty()
         && tag
@@ -47,124 +56,8 @@ pub(crate) struct ParsedTimestamp {
 
 impl OrgMode {
     pub fn capture_append(&self, entry: CaptureEntry) -> Result<CaptureResult, OrgModeError> {
-        let file_rel = entry
-            .file
-            .as_deref()
-            .unwrap_or(&self.config.org_default_notes_file);
-
-        if entry.title.trim().is_empty() {
-            return Err(OrgModeError::InvalidTitle(
-                "title must not be empty or whitespace-only".to_string(),
-            ));
-        }
-        if entry.title.contains('\n') || entry.title.contains('\r') {
-            return Err(OrgModeError::InvalidTitle(
-                "title must not contain newline or carriage return characters".to_string(),
-            ));
-        }
-
-        if let Some(level) = entry.level
-            && !(1..=MAX_HEADING_LEVEL).contains(&level)
-        {
-            return Err(OrgModeError::InvalidLevel(level));
-        }
-
-        Self::validate_relative_file_path(file_rel)?;
-
-        if let Some(ref target) = entry.target_heading {
-            for segment in target.split('/') {
-                if segment.trim().is_empty() {
-                    return Err(OrgModeError::InvalidHeadingPath(format!(
-                        "target_heading contains an empty or whitespace-only segment: '{target}'"
-                    )));
-                }
-            }
-        }
-
-        if let Some(ref kw) = entry.todo_state {
-            let valid_keywords: Vec<&str> = self
-                .config
-                .org_todo_keywords
-                .iter()
-                .filter(|k| k.as_str() != "|")
-                .map(|k| k.as_str())
-                .collect();
-            if !valid_keywords.contains(&kw.as_str()) {
-                return Err(OrgModeError::InvalidTodoKeyword(kw.clone()));
-            }
-        }
-
-        if let Some(ref p) = entry.priority
-            && !matches!(p.as_str(), "A" | "B" | "C")
-        {
-            return Err(OrgModeError::InvalidPriority(p.clone()));
-        }
-
-        if let Some(ref tags) = entry.tags {
-            for tag in tags {
-                if !is_valid_tag(tag) {
-                    return Err(OrgModeError::InvalidTag(tag.clone()));
-                }
-            }
-        }
-
-        let scheduled_ts = entry
-            .scheduled
-            .as_deref()
-            .map(|v| Self::parse_iso_timestamp("scheduled", v))
-            .transpose()?;
-        let deadline_ts = entry
-            .deadline
-            .as_deref()
-            .map(|v| Self::parse_iso_timestamp("deadline", v))
-            .transpose()?;
-        let closed_ts = entry
-            .closed
-            .as_deref()
-            .map(|v| Self::parse_iso_timestamp("closed", v))
-            .transpose()?;
-
-        if entry.datetree_date.is_some() && !entry.datetree {
-            return Err(OrgModeError::DatetreeDateWithoutFlag);
-        }
-        let datetree_date: Option<NaiveDate> = if entry.datetree {
-            match entry.datetree_date.as_deref() {
-                Some(s) => {
-                    if s.contains(char::is_whitespace) {
-                        return Err(OrgModeError::InvalidDatetreeDate(s.to_string()));
-                    }
-                    Some(
-                        NaiveDate::parse_from_str(s, "%Y-%m-%d")
-                            .map_err(|_| OrgModeError::InvalidDatetreeDate(s.to_string()))?,
-                    )
-                }
-                None => Some(chrono::Local::now().date_naive()),
-            }
-        } else {
-            None
-        };
-
-        let user_properties: Vec<PropertyPair> = match entry.properties {
-            Some(ref ps) => {
-                let mut seen: HashSet<String> = HashSet::new();
-                for p in ps {
-                    if !is_valid_property_key(&p.key) {
-                        return Err(OrgModeError::InvalidPropertyKey(p.key.clone()));
-                    }
-                    if p.value.contains('\n') || p.value.contains('\r') {
-                        return Err(OrgModeError::InvalidPropertyValue {
-                            key: p.key.clone(),
-                            reason: "value must not contain newline or carriage return".to_string(),
-                        });
-                    }
-                    if !seen.insert(p.key.to_uppercase()) {
-                        return Err(OrgModeError::DuplicatePropertyKey(p.key.clone()));
-                    }
-                }
-                ps.clone()
-            }
-            None => Vec::new(),
-        };
+        let resolved = self.validate_and_resolve(&entry)?;
+        let file_rel = resolved.file_rel.as_str();
 
         let org_dir = PathBuf::from(&self.config.org_directory);
         let full_path = org_dir.join(file_rel);
@@ -250,7 +143,7 @@ impl OrgMode {
             if let Some(ref target) = entry.target_heading {
                 effective_target_parts.extend(target.split('/').map(|s| s.trim().to_string()));
             }
-            if let Some(d) = datetree_date {
+            if let Some(d) = resolved.datetree_date {
                 effective_target_parts.extend(Self::datetree_segments(d));
             }
             let effective_target = if effective_target_parts.is_empty() {
@@ -342,19 +235,19 @@ impl OrgMode {
             insert_text.push('\n');
 
             let mut planning_parts: Vec<String> = Vec::new();
-            if let Some(ref ts) = scheduled_ts {
+            if let Some(ref ts) = resolved.scheduled {
                 planning_parts.push(format!(
                     "SCHEDULED: {}",
                     Self::format_org_timestamp(ts, true)
                 ));
             }
-            if let Some(ref ts) = deadline_ts {
+            if let Some(ref ts) = resolved.deadline {
                 planning_parts.push(format!(
                     "DEADLINE: {}",
                     Self::format_org_timestamp(ts, true)
                 ));
             }
-            if let Some(ref ts) = closed_ts {
+            if let Some(ref ts) = resolved.closed {
                 planning_parts.push(format!("CLOSED: {}", Self::format_org_timestamp(ts, false)));
             }
             if !planning_parts.is_empty() {
@@ -362,7 +255,8 @@ impl OrgMode {
                 insert_text.push('\n');
             }
 
-            let user_has_created = user_properties
+            let user_has_created = resolved
+                .properties
                 .iter()
                 .any(|p| p.key.eq_ignore_ascii_case("CREATED"));
             let mut effective: Vec<PropertyPair> = Vec::new();
@@ -374,7 +268,7 @@ impl OrgMode {
                     value: format!("[{} {dow} {}]", now.format("%Y-%m-%d"), now.format("%H:%M")),
                 });
             }
-            effective.extend(user_properties.iter().cloned());
+            effective.extend(resolved.properties.iter().cloned());
 
             if !effective.is_empty() {
                 insert_text.push_str(":PROPERTIES:\n");
@@ -414,6 +308,137 @@ impl OrgMode {
         let _ = fs::remove_file(&lock_path);
 
         result
+    }
+
+    fn validate_and_resolve(&self, entry: &CaptureEntry) -> Result<ResolvedCapture, OrgModeError> {
+        let file_rel = entry
+            .file
+            .as_deref()
+            .unwrap_or(&self.config.org_default_notes_file)
+            .to_string();
+
+        if entry.title.trim().is_empty() {
+            return Err(OrgModeError::InvalidTitle(
+                "title must not be empty or whitespace-only".to_string(),
+            ));
+        }
+        if entry.title.contains('\n') || entry.title.contains('\r') {
+            return Err(OrgModeError::InvalidTitle(
+                "title must not contain newline or carriage return characters".to_string(),
+            ));
+        }
+
+        if let Some(level) = entry.level
+            && !(1..=MAX_HEADING_LEVEL).contains(&level)
+        {
+            return Err(OrgModeError::InvalidLevel(level));
+        }
+
+        Self::validate_relative_file_path(&file_rel)?;
+
+        if let Some(ref target) = entry.target_heading {
+            for segment in target.split('/') {
+                if segment.trim().is_empty() {
+                    return Err(OrgModeError::InvalidHeadingPath(format!(
+                        "target_heading contains an empty or whitespace-only segment: '{target}'"
+                    )));
+                }
+            }
+        }
+
+        if let Some(ref kw) = entry.todo_state {
+            let valid_keywords: Vec<&str> = self
+                .config
+                .org_todo_keywords
+                .iter()
+                .filter(|k| k.as_str() != "|")
+                .map(|k| k.as_str())
+                .collect();
+            if !valid_keywords.contains(&kw.as_str()) {
+                return Err(OrgModeError::InvalidTodoKeyword(kw.clone()));
+            }
+        }
+
+        if let Some(ref p) = entry.priority
+            && !matches!(p.as_str(), "A" | "B" | "C")
+        {
+            return Err(OrgModeError::InvalidPriority(p.clone()));
+        }
+
+        if let Some(ref tags) = entry.tags {
+            for tag in tags {
+                if !is_valid_tag(tag) {
+                    return Err(OrgModeError::InvalidTag(tag.clone()));
+                }
+            }
+        }
+
+        let scheduled = entry
+            .scheduled
+            .as_deref()
+            .map(|v| Self::parse_iso_timestamp("scheduled", v))
+            .transpose()?;
+        let deadline = entry
+            .deadline
+            .as_deref()
+            .map(|v| Self::parse_iso_timestamp("deadline", v))
+            .transpose()?;
+        let closed = entry
+            .closed
+            .as_deref()
+            .map(|v| Self::parse_iso_timestamp("closed", v))
+            .transpose()?;
+
+        if entry.datetree_date.is_some() && !entry.datetree {
+            return Err(OrgModeError::DatetreeDateWithoutFlag);
+        }
+        let datetree_date: Option<NaiveDate> = if entry.datetree {
+            match entry.datetree_date.as_deref() {
+                Some(s) => {
+                    if s.contains(char::is_whitespace) {
+                        return Err(OrgModeError::InvalidDatetreeDate(s.to_string()));
+                    }
+                    Some(
+                        NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                            .map_err(|_| OrgModeError::InvalidDatetreeDate(s.to_string()))?,
+                    )
+                }
+                None => Some(chrono::Local::now().date_naive()),
+            }
+        } else {
+            None
+        };
+
+        let properties: Vec<PropertyPair> = match entry.properties {
+            Some(ref ps) => {
+                let mut seen: HashSet<String> = HashSet::new();
+                for p in ps {
+                    if !is_valid_property_key(&p.key) {
+                        return Err(OrgModeError::InvalidPropertyKey(p.key.clone()));
+                    }
+                    if p.value.contains('\n') || p.value.contains('\r') {
+                        return Err(OrgModeError::InvalidPropertyValue {
+                            key: p.key.clone(),
+                            reason: "value must not contain newline or carriage return".to_string(),
+                        });
+                    }
+                    if !seen.insert(p.key.to_uppercase()) {
+                        return Err(OrgModeError::DuplicatePropertyKey(p.key.clone()));
+                    }
+                }
+                ps.clone()
+            }
+            None => Vec::new(),
+        };
+
+        Ok(ResolvedCapture {
+            file_rel,
+            scheduled,
+            deadline,
+            closed,
+            datetree_date,
+            properties,
+        })
     }
 
     fn lock_path_for(target: &Path) -> Result<PathBuf, OrgModeError> {
