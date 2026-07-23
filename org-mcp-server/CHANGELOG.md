@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.0...org-mcp-server-v0.1.1)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Updated the following local packages: org-core - ([0000000](https://github.com/szaffarano/org-mcp-server/commit/0000000))
+
+
 ## [0.1.0](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.7...org-mcp-server-v0.1.0)
 
 ### 🐛 Bug Fixes
