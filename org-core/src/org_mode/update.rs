@@ -1,8 +1,69 @@
 use std::collections::HashSet;
+use std::sync::LazyLock;
+
+use regex::Regex;
 
 use crate::OrgModeError;
 use crate::org_mode::capture::ParsedTimestamp;
 use crate::org_mode::{ClearField, OrgMode, UpdateEntry};
+
+static PLANNING_LINE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^\s*(?:SCHEDULED|DEADLINE|CLOSED):").unwrap());
+static PLANNING_KV_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(SCHEDULED|DEADLINE|CLOSED):\s*(\[[^\]]*\]|<[^>]*>)").unwrap());
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct PlanningValues {
+    pub scheduled: Option<String>,
+    pub deadline: Option<String>,
+    pub closed: Option<String>,
+}
+
+#[derive(Debug)]
+pub(crate) struct PlanningBlock {
+    pub first_line: usize,
+    pub line_count: usize,
+    pub values: PlanningValues,
+}
+
+pub(crate) fn parse_planning_block(lines: &[String], headline_line: usize) -> PlanningBlock {
+    let mut values = PlanningValues::default();
+    let mut line_count = 0;
+    for line in lines.iter().skip(headline_line + 1) {
+        if !PLANNING_LINE_RE.is_match(line) {
+            break;
+        }
+        line_count += 1;
+        for cap in PLANNING_KV_RE.captures_iter(line) {
+            let raw = cap[2].to_string();
+            match &cap[1] {
+                "SCHEDULED" => values.scheduled = Some(raw),
+                "DEADLINE" => values.deadline = Some(raw),
+                "CLOSED" => values.closed = Some(raw),
+                _ => unreachable!("regex only matches the three keywords"),
+            }
+        }
+    }
+    PlanningBlock {
+        first_line: headline_line + 1,
+        line_count,
+        values,
+    }
+}
+
+pub(crate) fn render_planning_line(values: &PlanningValues) -> Option<String> {
+    let mut parts = Vec::new();
+    if let Some(s) = &values.scheduled {
+        parts.push(format!("SCHEDULED: {s}"));
+    }
+    if let Some(d) = &values.deadline {
+        parts.push(format!("DEADLINE: {d}"));
+    }
+    if let Some(c) = &values.closed {
+        parts.push(format!("CLOSED: {c}"));
+    }
+    (!parts.is_empty()).then(|| parts.join(" "))
+}
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -277,5 +338,73 @@ mod tests {
         e.todo_state = None;
         e.clear = vec![ClearField::Priority];
         assert!(org_mode.validate_update(&e).is_ok());
+    }
+
+    fn lines_of(content: &str) -> Vec<String> {
+        content.lines().map(String::from).collect()
+    }
+
+    #[test]
+    fn test_parse_planning_single_line() {
+        let lines = lines_of(
+            "* TODO Task\nSCHEDULED: <2026-05-15 Fri ++1w> DEADLINE: \
+            <2026-05-20 Wed>\nbody\n",
+        );
+        let block = parse_planning_block(&lines, 0);
+        assert_eq!(block.first_line, 1);
+        assert_eq!(block.line_count, 1);
+        assert_eq!(
+            block.values.scheduled.as_deref(),
+            Some("<2026-05-15 Fri ++1w>")
+        );
+        assert_eq!(block.values.deadline.as_deref(), Some("<2026-05-20 Wed>"));
+        assert_eq!(block.values.closed, None);
+    }
+
+    #[test]
+    fn test_parse_planning_multi_line_and_closed() {
+        let lines = lines_of(
+            "* DONE Task\nCLOSED: [2026-05-16 Sat 10:00]\nSCHEDULED: <2026-05-15 Fri>\nbody\n",
+        );
+        let block = parse_planning_block(&lines, 0);
+        assert_eq!(block.line_count, 2);
+        assert_eq!(
+            block.values.closed.as_deref(),
+            Some("[2026-05-16 Sat 10:00]")
+        );
+        assert_eq!(block.values.scheduled.as_deref(), Some("<2026-05-15 Fri>"));
+    }
+
+    #[test]
+    fn test_parse_planning_absent() {
+        let lines = lines_of("* TODO Task\n:PROPERTIES:\n:END:\n");
+        let block = parse_planning_block(&lines, 0);
+        assert_eq!(block.line_count, 0);
+        assert_eq!(block.values, PlanningValues::default());
+    }
+
+    #[test]
+    fn test_parse_planning_stops_at_body() {
+        let lines = lines_of(
+            "* TODO Task\nSCHEDULED: <2026-05-15 Fri>\nA note\nDEADLINE: \
+            <2026-05-20 Wed>\n",
+        );
+        let block = parse_planning_block(&lines, 0);
+        assert_eq!(block.line_count, 1);
+        assert_eq!(block.values.deadline, None);
+    }
+
+    #[test]
+    fn test_render_planning_line_order_and_none() {
+        let values = PlanningValues {
+            scheduled: Some("<2026-05-15 Fri>".to_string()),
+            deadline: None,
+            closed: Some("[2026-05-16 Sat]".to_string()),
+        };
+        assert_eq!(
+            render_planning_line(&values).as_deref(),
+            Some("SCHEDULED: <2026-05-15 Fri> CLOSED: [2026-05-16 Sat]")
+        );
+        assert_eq!(render_planning_line(&PlanningValues::default()), None);
     }
 }
