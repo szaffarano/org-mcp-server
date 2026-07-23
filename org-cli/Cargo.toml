@@ -1,5 +1,5 @@
 [dependencies]
-org-core = { version = "0.0.8", path = "../org-core" }
+org-core = { version = "0.1.0", path = "../org-core" }
 clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
 chrono = { workspace = true }
@@ -22,7 +22,7 @@ description = "Command-line tool for searching, reading, and managing org-mode k
 edition = "2024"
 authors.workspace = true
 license.workspace = true
-version.workspace = true
+version = "0.1.0"
 readme.workspace = true
 documentation.workspace = true
 repository.workspace = true
