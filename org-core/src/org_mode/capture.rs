@@ -58,87 +58,95 @@ impl OrgMode {
     pub fn capture_append(&self, entry: CaptureEntry) -> Result<CaptureResult, OrgModeError> {
         let resolved = self.validate_and_resolve(&entry)?;
         let full_path = self.prepare_target_path(&resolved.file_rel)?;
+        let file_rel = resolved.file_rel.as_str();
 
         let lock_path = Self::lock_path_for(&full_path)?;
         let lock_file = Self::acquire_capture_lock(&lock_path)?;
 
-        let result: Result<CaptureResult, OrgModeError> = (|| {
-            let content = if full_path.exists() {
-                fs::read_to_string(&full_path).map_err(OrgModeError::IoError)?
-            } else {
-                String::new()
-            };
-
-            let parse_config = ParseConfig {
-                todo_keywords: (
-                    self.config.unfinished_keywords(),
-                    self.config.finished_keywords(),
-                ),
-                ..Default::default()
-            };
-            let mut org = parse_config.parse(&content);
-
-            let (insert_pos, prefix_text, parent_level, under_target) =
-                self.build_target_context(&org, &entry, resolved.datetree_date, content.len())?;
-
-            let level = match entry.level {
-                Some(l) if under_target.is_some() => {
-                    let computed = l.max(parent_level + 1);
-                    if computed > MAX_HEADING_LEVEL {
-                        return Err(OrgModeError::InvalidLevel(computed));
-                    }
-                    computed
-                }
-                Some(l) => l,
-                None if under_target.is_some() => {
-                    let computed = parent_level + 1;
-                    if computed > MAX_HEADING_LEVEL {
-                        return Err(OrgModeError::InvalidLevel(computed));
-                    }
-                    computed
-                }
-                None => 1,
-            };
-
-            let heading_line = Self::format_heading(
-                level,
-                entry.todo_state.as_deref(),
-                entry.priority.as_deref(),
-                &entry.title,
-                entry.tags.as_deref(),
-            );
-
-            let insert_text = self.build_insert_text(
-                &prefix_text,
-                &heading_line,
-                content.is_empty(),
-                &resolved,
-                entry.body.as_deref(),
-            );
-
-            org.replace_range(TextRange::empty(insert_pos), &insert_text);
-            let new_content = org.to_org();
-
-            Self::atomic_write(&full_path, new_content.as_bytes())?;
-
-            Ok(CaptureResult {
-                file_path: resolved.file_rel.clone(),
-                level,
-                heading_line,
-                under_target,
-            })
-        })();
+        let result = self.write_entry(&full_path, file_rel, &entry, &resolved);
 
         // On Unix, unlink while holding the lock so a racing locker that opens the same
         // path gets a different inode and retries (stat-after-lock invariant).
-        // On non-Unix (Windows), the file must be closed before it can be removed.
         #[cfg(unix)]
         let _ = fs::remove_file(&lock_path);
         drop(lock_file);
+        // On non-Unix (Windows), the file must be closed before it can be removed.
         #[cfg(not(unix))]
         let _ = fs::remove_file(&lock_path);
 
         result
+    }
+
+    fn write_entry(
+        &self,
+        full_path: &Path,
+        file_rel: &str,
+        entry: &CaptureEntry,
+        resolved: &ResolvedCapture,
+    ) -> Result<CaptureResult, OrgModeError> {
+        let content = if full_path.exists() {
+            fs::read_to_string(full_path).map_err(OrgModeError::IoError)?
+        } else {
+            String::new()
+        };
+
+        let parse_config = ParseConfig {
+            todo_keywords: (
+                self.config.unfinished_keywords(),
+                self.config.finished_keywords(),
+            ),
+            ..Default::default()
+        };
+        let mut org = parse_config.parse(&content);
+
+        let (insert_pos, prefix_text, parent_level, under_target) =
+            self.build_target_context(&org, entry, resolved.datetree_date, content.len())?;
+
+        let level = match entry.level {
+            Some(l) if under_target.is_some() => {
+                let computed = l.max(parent_level + 1);
+                if computed > MAX_HEADING_LEVEL {
+                    return Err(OrgModeError::InvalidLevel(computed));
+                }
+                computed
+            }
+            Some(l) => l,
+            None if under_target.is_some() => {
+                let computed = parent_level + 1;
+                if computed > MAX_HEADING_LEVEL {
+                    return Err(OrgModeError::InvalidLevel(computed));
+                }
+                computed
+            }
+            None => 1,
+        };
+
+        let heading_line = Self::format_heading(
+            level,
+            entry.todo_state.as_deref(),
+            entry.priority.as_deref(),
+            &entry.title,
+            entry.tags.as_deref(),
+        );
+
+        let insert_text = self.build_insert_text(
+            &prefix_text,
+            &heading_line,
+            content.is_empty(),
+            resolved,
+            entry.body.as_deref(),
+        );
+
+        org.replace_range(TextRange::empty(insert_pos), &insert_text);
+        let new_content = org.to_org();
+        Self::atomic_write(full_path, new_content.as_bytes())?;
+
+        Ok(CaptureResult {
+            file_path: file_rel.to_string(),
+            level,
+            heading_line,
+            under_target,
+        })
     }
 
     fn build_target_context(
@@ -314,6 +322,9 @@ impl OrgMode {
                 }
             } else {
                 let mut ancestor = parent;
+                // Validate the nearest existing ancestor before creating any
+                // directories to prevent symlinks inside org_dir from escaping
+                // the root before the post-creation canonicalization check runs.
                 loop {
                     match ancestor.parent() {
                         Some(p) if p.exists() => {
