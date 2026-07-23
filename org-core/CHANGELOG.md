@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.9](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.8...org-core-v0.0.9)
+
+### ✨ Features
+
+
+- *(org)* Implement capture functionality ([#171](https://github.com/szaffarano/org-mcp-server/pull/171)) - ([a3690d4](https://github.com/szaffarano/org-mcp-server/commit/a3690d4c0b1654a49d12f2d1a0318aaee0174c8a))
+
+
 ## [0.0.8](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.7...org-core-v0.0.8)
 
 ### ⚙️ Miscellaneous Tasks
