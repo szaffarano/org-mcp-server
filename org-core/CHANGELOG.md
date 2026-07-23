@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.1.0...org-core-v0.2.0)
+
+### ✨ Features
+
+
+- *(agenda)* Show past-scheduled TODO tasks in today's agenda view ([#208](https://github.com/szaffarano/org-mcp-server/pull/208)) - ([665744b](https://github.com/szaffarano/org-mcp-server/commit/665744b39c9b5f7a6a4230af8e8da384aa584a2b))
+
+
 ## [0.1.0](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.0.7...org-core-v0.1.0)
 
 ### ⚙️ Miscellaneous Tasks
