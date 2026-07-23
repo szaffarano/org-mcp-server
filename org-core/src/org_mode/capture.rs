@@ -306,7 +306,22 @@ impl OrgMode {
                     "path resolves to a directory, not a file: {file_rel}"
                 )));
             }
-            let canonical_file = full_path.canonicalize().map_err(OrgModeError::IoError)?;
+            // Canonicalize the parent directory instead of the full path.
+            // canonicalize(full_path) opens a handle to the target file, which
+            // races with a concurrent atomic rename on Windows: MoveFileExW with
+            // MOVEFILE_REPLACE_EXISTING fails with ERROR_ACCESS_DENIED when any
+            // handle to the target is open.  The parent is never atomically
+            // replaced, so canonicalize(parent) is race-free.  Appending the
+            // bare filename is safe: rename() replaces a symlink as a directory
+            // entry rather than following it, so a file-level symlink cannot
+            // redirect writes outside the org directory.
+            let canonical_file = match full_path.parent() {
+                Some(parent) => parent
+                    .canonicalize()
+                    .map(|p| p.join(full_path.file_name().unwrap_or_default()))
+                    .map_err(OrgModeError::IoError)?,
+                None => full_path.canonicalize().map_err(OrgModeError::IoError)?,
+            };
             if !canonical_file.starts_with(&canonical_org_dir) {
                 return Err(OrgModeError::InvalidDirectory(format!(
                     "Path is outside org directory: {file_rel}"

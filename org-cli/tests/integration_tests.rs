@@ -1970,3 +1970,61 @@ fn test_capture_help() {
         .stdout(predicate::str::contains("--priority"))
         .stdout(predicate::str::contains("--datetree"));
 }
+
+#[test]
+fn test_agenda_today_shows_scheduled_overdue_annotation() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{path_str}"
+org_agenda_files = ["agenda.org"]
+"#
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    // The agenda.org fixture has a task scheduled @TODAY-21@ — it must appear
+    // in today's output with a "Sched. Xd ago" annotation.
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("today")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Sched."))
+        .stdout(predicate::str::contains("d ago"));
+}
+
+#[test]
+fn test_agenda_today_shows_deadline_only_overdue_annotation() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{path_str}"
+org_agenda_files = ["agenda.org"]
+"#
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    // The agenda.org fixture has a task with only DEADLINE: <@TODAY-14@> and no
+    // SCHEDULED.  It must appear in today's output with a plain "Xd ago"
+    // annotation (no "Sched." prefix), exercising the deadline-only overdue
+    // branch of the CLI formatter.
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("today")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Overdue deadline-only task"))
+        .stdout(predicate::str::contains("14d ago").or(predicate::str::contains("15d ago")));
+}

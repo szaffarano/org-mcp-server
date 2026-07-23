@@ -65,6 +65,8 @@ pub struct AgendaItem {
     pub tags: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub position: Option<Position>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub days_overdue: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

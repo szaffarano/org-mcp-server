@@ -260,11 +260,21 @@ impl AgendaCommand {
                             .map(|p| format!("[#{p:?}]"))
                             .unwrap_or_default();
 
+                        let overdue_suffix = match task.days_overdue {
+                            Some(d) if task.scheduled.is_some() => format!("  (Sched. {d}d ago)"),
+                            Some(d) => format!("  ({d}d ago)"),
+                            None => String::new(),
+                        };
+
                         let date_info = match (&task.scheduled, &task.deadline) {
-                            (Some(s), Some(d)) if s == d => format!("SCHEDULED+DEADLINE: {s}"),
-                            (Some(s), Some(d)) => format!("SCHEDULED: {s}, DEADLINE: {d}"),
-                            (Some(s), None) => format!("SCHEDULED: {s}"),
-                            (None, Some(d)) => format!("DEADLINE: {d}"),
+                            (Some(s), Some(d)) if s == d => {
+                                format!("SCHEDULED+DEADLINE: {s}{overdue_suffix}")
+                            }
+                            (Some(s), Some(d)) => {
+                                format!("SCHEDULED: {s}, DEADLINE: {d}{overdue_suffix}")
+                            }
+                            (Some(s), None) => format!("SCHEDULED: {s}{overdue_suffix}"),
+                            (None, Some(d)) => format!("DEADLINE: {d}{overdue_suffix}"),
                             (None, None) => String::new(),
                         };
 

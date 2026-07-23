@@ -45,6 +45,7 @@ impl Traverser for TodoList {
                 scheduled: headline.scheduled().map(|d| d.raw()),
                 tags: vec![],
                 position: Some(Position { start: 10, end: 20 }),
+                days_overdue: None,
             };
             self.tasks.push(task);
         }

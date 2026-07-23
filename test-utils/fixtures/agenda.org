@@ -129,3 +129,17 @@
    :ID: tagged-task-004
    :END:
    Published blog post about Rust async.
+
+* Overdue Tasks
+** TODO Overdue task from three weeks ago
+   SCHEDULED: <@TODAY-21@ Mon>
+   :PROPERTIES:
+   :ID: overdue-task-001
+   :END:
+   This task was scheduled 21 days ago and has not been completed.
+** TODO Overdue deadline-only task
+   DEADLINE: <@TODAY-14@ Mon>
+   :PROPERTIES:
+   :ID: overdue-deadline-001
+   :END:
+   This task has a past deadline but no scheduled date.
