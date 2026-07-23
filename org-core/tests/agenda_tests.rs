@@ -1093,3 +1093,88 @@ fn test_agenda_week_includes_all_week_tasks() {
     // depending on which day of the week "today" is. If today is Sunday,
     // then @TODAY+1@ tasks are in next week, not this week.
 }
+
+#[test]
+fn test_agenda_today_includes_past_scheduled_todos() {
+    let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+    let view = org_mode
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
+        .expect("Failed to get today's agenda");
+
+    let overdue = view
+        .items
+        .iter()
+        .find(|item| item.heading.contains("Overdue task from three weeks ago"));
+
+    assert!(
+        overdue.is_some(),
+        "Today's agenda should include past-scheduled TODO tasks, got: {:?}",
+        view.items.iter().map(|i| &i.heading).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn test_agenda_today_excludes_past_done_tasks() {
+    let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+    let view = org_mode
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
+        .expect("Failed to get today's agenda");
+
+    // "Update documentation" is DONE, scheduled for @TODAY-1@
+    let done_past = view
+        .items
+        .iter()
+        .find(|item| item.heading.contains("Update documentation"));
+
+    assert!(
+        done_past.is_none(),
+        "Today's agenda must not include past DONE tasks"
+    );
+}
+
+#[test]
+fn test_agenda_today_past_task_has_days_overdue() {
+    let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+    let view = org_mode
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
+        .expect("Failed to get today's agenda");
+
+    let overdue = view
+        .items
+        .iter()
+        .find(|item| item.heading.contains("Overdue task from three weeks ago"))
+        .expect("Should find the overdue task");
+
+    assert!(
+        overdue.days_overdue.is_some(),
+        "Overdue task should have days_overdue set"
+    );
+    assert!(
+        overdue.days_overdue.unwrap() >= 21,
+        "Task scheduled 21 days ago should have days_overdue >= 21, got {:?}",
+        overdue.days_overdue
+    );
+}
+
+#[test]
+fn test_agenda_day_excludes_past_overdue() {
+    use chrono::Days;
+
+    let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+
+    // A specific Day view must NOT show overdue tasks — only Today does that.
+    let yesterday = Local::now().checked_sub_days(Days::new(1)).unwrap();
+    let view = org_mode
+        .get_agenda_view(AgendaViewType::Day(yesterday), None, None, None)
+        .expect("Failed to get specific day agenda");
+
+    let overdue = view
+        .items
+        .iter()
+        .find(|item| item.heading.contains("Overdue task from three weeks ago"));
+
+    assert!(
+        overdue.is_none(),
+        "AgendaViewType::Day must not include past overdue tasks (Today-only behaviour)"
+    );
+}

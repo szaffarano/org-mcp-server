@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::{fs, io, path::PathBuf};
 
-use chrono::{Local, TimeZone};
+use chrono::{DateTime, Local, TimeZone};
 use globset::{Glob, GlobSetBuilder};
 use ignore::{Walk, WalkBuilder};
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
@@ -455,7 +455,7 @@ impl OrgMode {
                         })
                         .unwrap_or(true)
             })
-            .map(|(headline, file_path)| Self::headline_to_agenda_item(&headline, file_path))
+            .map(|(headline, file_path)| Self::headline_to_agenda_item(&headline, file_path, None))
             .take(limit.unwrap_or(usize::MAX))
             .collect::<Vec<_>>();
 
@@ -469,6 +469,8 @@ impl OrgMode {
         tags: Option<&[String]>,
         limit: Option<usize>,
     ) -> Result<AgendaView, OrgModeError> {
+        let reference_date = matches!(agenda_view_type, AgendaViewType::Today).then(Local::now);
+
         let mut items = self
             .agenda_tasks()
             .filter(|(headline, _)| {
@@ -489,7 +491,9 @@ impl OrgMode {
                         .unwrap_or(true)
                     && self.is_in_agenda_range(headline, &agenda_view_type)
             })
-            .map(|(headline, file_path)| Self::headline_to_agenda_item(&headline, file_path))
+            .map(|(headline, file_path)| {
+                Self::headline_to_agenda_item(&headline, file_path, reference_date)
+            })
             .collect::<Vec<_>>();
 
         if let Some(limit) = limit {
@@ -549,7 +553,10 @@ impl OrgMode {
 
                     current_date >= start_date && current_date <= end_date
                 } else {
-                    date >= start_date && date <= end_date
+                    let is_past_todo = matches!(agenda_view_type, AgendaViewType::Today)
+                        && date < start_date
+                        && headline.is_todo();
+                    is_past_todo || (date >= start_date && date <= end_date)
                 }
             } else {
                 false
@@ -569,7 +576,23 @@ impl OrgMode {
         convert_timestamp!(ts, end)
     }
 
-    fn headline_to_agenda_item(headline: &Headline, file_path: String) -> AgendaItem {
+    fn headline_to_agenda_item(
+        headline: &Headline,
+        file_path: String,
+        reference_date: Option<DateTime<Local>>,
+    ) -> AgendaItem {
+        let days_overdue = reference_date.and_then(|today| {
+            let ts = headline.scheduled().or_else(|| headline.deadline())?;
+            let naive = OrgMode::start_to_chrono(&ts)?;
+            let today_date = today.date_naive();
+            let sched_date = naive.date();
+            if sched_date < today_date {
+                Some((today_date - sched_date).num_days())
+            } else {
+                None
+            }
+        });
+
         AgendaItem {
             file_path,
             heading: headline.title_raw(),
@@ -583,7 +606,7 @@ impl OrgMode {
                 start: headline.start().into(),
                 end: headline.end().into(),
             }),
-            days_overdue: None,
+            days_overdue,
         }
     }
 }
