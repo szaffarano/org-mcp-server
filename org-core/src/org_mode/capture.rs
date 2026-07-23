@@ -108,64 +108,13 @@ impl OrgMode {
                 entry.tags.as_deref(),
             );
 
-            let mut insert_text = String::new();
-            if !content.is_empty() {
-                insert_text.push('\n');
-            }
-            insert_text.push_str(&prefix_text);
-            insert_text.push_str(&heading_line);
-            insert_text.push('\n');
-
-            let mut planning_parts: Vec<String> = Vec::new();
-            if let Some(ref ts) = resolved.scheduled {
-                planning_parts.push(format!(
-                    "SCHEDULED: {}",
-                    Self::format_org_timestamp(ts, true)
-                ));
-            }
-            if let Some(ref ts) = resolved.deadline {
-                planning_parts.push(format!(
-                    "DEADLINE: {}",
-                    Self::format_org_timestamp(ts, true)
-                ));
-            }
-            if let Some(ref ts) = resolved.closed {
-                planning_parts.push(format!("CLOSED: {}", Self::format_org_timestamp(ts, false)));
-            }
-            if !planning_parts.is_empty() {
-                insert_text.push_str(&planning_parts.join(" "));
-                insert_text.push('\n');
-            }
-
-            let user_has_created = resolved
-                .properties
-                .iter()
-                .any(|p| p.key.eq_ignore_ascii_case("CREATED"));
-            let mut effective: Vec<PropertyPair> = Vec::new();
-            if self.config.org_auto_created_property && !user_has_created {
-                let now = chrono::Local::now();
-                let dow = now.format("%a");
-                effective.push(PropertyPair {
-                    key: "CREATED".to_string(),
-                    value: format!("[{} {dow} {}]", now.format("%Y-%m-%d"), now.format("%H:%M")),
-                });
-            }
-            effective.extend(resolved.properties.iter().cloned());
-
-            if !effective.is_empty() {
-                insert_text.push_str(":PROPERTIES:\n");
-                for pp in &effective {
-                    insert_text.push_str(&format!(":{}: {}\n", pp.key, pp.value));
-                }
-                insert_text.push_str(":END:\n");
-            }
-
-            if let Some(ref body) = entry.body {
-                insert_text.push_str(body);
-                if !body.ends_with('\n') {
-                    insert_text.push('\n');
-                }
-            }
+            let insert_text = self.build_insert_text(
+                &prefix_text,
+                &heading_line,
+                content.is_empty(),
+                &resolved,
+                entry.body.as_deref(),
+            );
 
             org.replace_range(TextRange::empty(insert_pos), &insert_text);
             let new_content = org.to_org();
@@ -260,6 +209,76 @@ impl OrgMode {
                 None,
             ))
         }
+    }
+
+    fn build_insert_text(
+        &self,
+        prefix_text: &str,
+        heading_line: &str,
+        content_is_empty: bool,
+        resolved: &ResolvedCapture,
+        body: Option<&str>,
+    ) -> String {
+        let mut insert_text = String::new();
+        if !content_is_empty {
+            insert_text.push('\n');
+        }
+        insert_text.push_str(prefix_text);
+        insert_text.push_str(heading_line);
+        insert_text.push('\n');
+
+        let mut planning_parts: Vec<String> = Vec::new();
+        if let Some(ref ts) = resolved.scheduled {
+            planning_parts.push(format!(
+                "SCHEDULED: {}",
+                Self::format_org_timestamp(ts, true)
+            ));
+        }
+        if let Some(ref ts) = resolved.deadline {
+            planning_parts.push(format!(
+                "DEADLINE: {}",
+                Self::format_org_timestamp(ts, true)
+            ));
+        }
+        if let Some(ref ts) = resolved.closed {
+            planning_parts.push(format!("CLOSED: {}", Self::format_org_timestamp(ts, false)));
+        }
+        if !planning_parts.is_empty() {
+            insert_text.push_str(&planning_parts.join(" "));
+            insert_text.push('\n');
+        }
+
+        let user_has_created = resolved
+            .properties
+            .iter()
+            .any(|p| p.key.eq_ignore_ascii_case("CREATED"));
+        let mut effective: Vec<PropertyPair> = Vec::new();
+        if self.config.org_auto_created_property && !user_has_created {
+            let now = chrono::Local::now();
+            let dow = now.format("%a");
+            effective.push(PropertyPair {
+                key: "CREATED".to_string(),
+                value: format!("[{} {dow} {}]", now.format("%Y-%m-%d"), now.format("%H:%M")),
+            });
+        }
+        effective.extend(resolved.properties.iter().cloned());
+
+        if !effective.is_empty() {
+            insert_text.push_str(":PROPERTIES:\n");
+            for pp in &effective {
+                insert_text.push_str(&format!(":{}: {}\n", pp.key, pp.value));
+            }
+            insert_text.push_str(":END:\n");
+        }
+
+        if let Some(body) = body {
+            insert_text.push_str(body);
+            if !body.ends_with('\n') {
+                insert_text.push('\n');
+            }
+        }
+
+        insert_text
     }
 
     fn prepare_target_path(&self, file_rel: &str) -> Result<PathBuf, OrgModeError> {
