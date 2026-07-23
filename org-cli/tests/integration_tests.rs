@@ -1395,6 +1395,34 @@ org_agenda_files = ["agenda.org"]
 }
 
 #[test]
+fn test_agenda_today_task_with_active_body_timestamp_no_scheduled_no_deadline() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+org_agenda_files = ["agenda.org"]
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    // "Team meeting" has an active body timestamp for today but no SCHEDULED or DEADLINE,
+    // so it exercises the (None, None) arm in print_agenda_view.
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("agenda")
+        .arg("today")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Team meeting"));
+}
+
+#[test]
 fn test_agenda_week_json_format() {
     let temp_dir = setup_test_org_files_with_dates().unwrap();
 
