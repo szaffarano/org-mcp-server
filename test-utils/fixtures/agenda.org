@@ -81,6 +81,14 @@
    :END:
    Present Q3 results and Q4 roadmap to client.
 
+* Active Timestamps
+** TODO Team meeting :work:
+   <@TODAY@ Mon 15:00>
+   :PROPERTIES:
+   :ID: active-ts-001
+   :END:
+   Meeting with the team at 3pm.
+
 * Someday/Maybe
 ** Research new framework
    :PROPERTIES:
