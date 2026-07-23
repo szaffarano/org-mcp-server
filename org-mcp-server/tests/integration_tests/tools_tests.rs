@@ -966,3 +966,408 @@ async fn test_org_agenda_tool_limit_as_string() -> Result<(), Box<dyn std::error
     service.cancel().await?;
     Ok(())
 }
+
+// --- org-capture tool tests ---
+
+/// Tests that the org-capture tool is listed among available tools.
+#[tokio::test]
+#[traced_test]
+async fn test_list_tools_includes_capture() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let tools = service.list_tools(Default::default()).await?;
+    let tool_names: Vec<&str> = tools.tools.iter().map(|t| t.name.as_ref()).collect();
+    assert!(
+        tool_names.contains(&"org-capture"),
+        "org-capture should be listed"
+    );
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests simple capture to a new file.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_simple() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-capture tool");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Captured Note".into()));
+    args.insert("file".to_string(), Value::String("capture_test.org".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    info!("org-capture result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let capture_result: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Should be valid JSON");
+            assert_eq!(capture_result["file_path"], "capture_test.org");
+            assert_eq!(capture_result["heading_line"], "* Captured Note");
+        } else {
+            panic!("Expected text content in org-capture result");
+        }
+    }
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests capture with TODO state, tags, and priority.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_with_metadata() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-capture tool with metadata");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Important Task".into()));
+    args.insert("todo_state".to_string(), Value::String("TODO".into()));
+    args.insert("priority".to_string(), Value::String("A".into()));
+    args.insert(
+        "tags".to_string(),
+        Value::Array(vec![Value::String("work".into())]),
+    );
+    args.insert("file".to_string(), Value::String("capture_meta.org".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    assert!(!result.content.is_empty());
+
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let capture_result: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Should be valid JSON");
+            assert_eq!(
+                capture_result["heading_line"],
+                "* TODO [#A] Important Task :work:"
+            );
+        } else {
+            panic!("Expected text content");
+        }
+    }
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that target_heading does NOT match a heading living under a sibling subtree.
+/// Regression test for the silent-misplacement bug.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_target_heading_respects_hierarchy()
+-> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-capture target_heading hierarchy");
+
+    let temp_dir = setup_test_org_files()?;
+    let target_path = temp_dir.path().join("hierarchy.org");
+    std::fs::write(&target_path, "* A\n* B\n** Work\n")?;
+
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Item".into()));
+    args.insert("file".to_string(), Value::String("hierarchy.org".into()));
+    args.insert("target_heading".to_string(), Value::String("A/Work".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    info!("org-capture target_heading hierarchy result: {:#?}", result);
+    assert!(!result.content.is_empty());
+
+    let content = std::fs::read_to_string(&target_path)?;
+    assert!(
+        content.contains("* B\n** Work"),
+        "B's existing ** Work must remain intact:\n{content}"
+    );
+    let a_pos = content.find("* A").unwrap();
+    let b_pos = content.find("* B").unwrap();
+    let item_pos = content
+        .find("*** Item")
+        .expect("Item must be inserted at level 3");
+    assert!(
+        item_pos > a_pos && item_pos < b_pos,
+        "Item must land under A, not under B:\n{content}"
+    );
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that an empty title is rejected with an error.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_rejects_empty_title() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("".into()));
+    args.insert("file".to_string(), Value::String("test.org".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await;
+
+    assert!(result.is_err(), "Expected error for empty title");
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that a malformed tag is rejected with an error.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_rejects_malformed_tag() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Title".into()));
+    args.insert(
+        "tags".to_string(),
+        Value::Array(vec![Value::String("bad tag".into())]),
+    );
+    args.insert("file".to_string(), Value::String("test.org".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await;
+
+    assert!(result.is_err(), "Expected error for malformed tag");
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that invalid TODO keyword returns an error.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_invalid_todo_keyword() -> Result<(), Box<dyn std::error::Error>> {
+    info!("Starting MCP client to test org-capture with invalid TODO keyword");
+
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Task".into()));
+    args.insert(
+        "todo_state".to_string(),
+        Value::String("INVALID_STATE".into()),
+    );
+    args.insert("file".to_string(), Value::String("test.org".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await;
+
+    assert!(result.is_err(), "Expected error for invalid TODO keyword");
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests scheduled + deadline land on the planning line.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_with_scheduled_deadline() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Plan".into()));
+    args.insert("file".to_string(), Value::String("plan.org".into()));
+    args.insert("scheduled".to_string(), Value::String("2026-05-15".into()));
+    args.insert(
+        "deadline".to_string(),
+        Value::String("2026-05-20 17:00".into()),
+    );
+
+    service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    let content = std::fs::read_to_string(temp_dir.path().join("plan.org"))?;
+    assert!(
+        content.contains("SCHEDULED: <2026-05-15 Fri> DEADLINE: <2026-05-20 Wed 17:00>"),
+        "missing planning line:\n{content}"
+    );
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests properties drawer round-trips through MCP.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_with_properties_drawer() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("WithProps".into()));
+    args.insert("file".to_string(), Value::String("p.org".into()));
+    args.insert(
+        "properties".to_string(),
+        Value::Array(vec![
+            serde_json::json!({"key": "CATEGORY", "value": "demo"}),
+        ]),
+    );
+
+    service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    let content = std::fs::read_to_string(temp_dir.path().join("p.org"))?;
+    assert!(content.contains(":PROPERTIES:"));
+    assert!(content.contains(":CATEGORY: demo"));
+    assert!(content.contains(":END:"));
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that a malformed timestamp returns INVALID_PARAMS.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_rejects_bad_timestamp() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("X".into()));
+    args.insert("file".to_string(), Value::String("p.org".into()));
+    args.insert("scheduled".to_string(), Value::String("nope".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await;
+
+    assert!(result.is_err(), "Expected error for bad timestamp");
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that a malformed property key returns INVALID_PARAMS.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_rejects_malformed_property_key() -> Result<(), Box<dyn std::error::Error>>
+{
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("X".into()));
+    args.insert("file".to_string(), Value::String("p.org".into()));
+    args.insert(
+        "properties".to_string(),
+        Value::Array(vec![serde_json::json!({"key": "BAD KEY", "value": "v"})]),
+    );
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await;
+
+    assert!(result.is_err(), "Expected error for malformed property key");
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests SCHEDULED with a repeater suffix round-trips end-to-end.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_with_repeater() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Recur".into()));
+    args.insert("file".to_string(), Value::String("recur.org".into()));
+    args.insert(
+        "scheduled".to_string(),
+        Value::String("2026-05-15 ++1w".into()),
+    );
+
+    service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    let content = std::fs::read_to_string(temp_dir.path().join("recur.org"))?;
+    assert!(
+        content.contains("SCHEDULED: <2026-05-15 Fri ++1w>"),
+        "missing repeater output:\n{content}"
+    );
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests auto-CREATED is on by default and emits the property drawer.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_auto_created_on() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Note".into()));
+    args.insert("file".to_string(), Value::String("ac.org".into()));
+
+    service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    let content = std::fs::read_to_string(temp_dir.path().join("ac.org"))?;
+    assert!(content.contains(":PROPERTIES:"));
+    assert!(content.contains(":CREATED:"));
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests datetree creates Year/Month/Day on first capture for the day.
+#[tokio::test]
+#[traced_test]
+async fn test_org_capture_datetree() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("title".to_string(), Value::String("Standup".into()));
+    args.insert("file".to_string(), Value::String("dt.org".into()));
+    args.insert("datetree".to_string(), Value::Bool(true));
+    args.insert(
+        "datetree_date".to_string(),
+        Value::String("2026-05-10".into()),
+    );
+
+    service
+        .call_tool(CallToolRequestParams::new("org-capture").with_arguments(args))
+        .await?;
+
+    let content = std::fs::read_to_string(temp_dir.path().join("dt.org"))?;
+    assert!(content.contains("* 2026"));
+    assert!(content.contains("** 2026-05 May"));
+    assert!(content.contains("*** 2026-05-10 Sunday"));
+    assert!(content.contains("**** Standup"));
+
+    service.cancel().await?;
+    Ok(())
+}

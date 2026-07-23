@@ -1628,3 +1628,345 @@ org_agenda_files = ["agenda.org"]
         .success()
         .stdout(predicate::str::contains("Found"));
 }
+
+// --- capture command tests ---
+
+#[test]
+fn test_capture_command_basic() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("My Captured Note")
+        .arg("--file")
+        .arg("capture_test.org")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Captured to capture_test.org"))
+        .stdout(predicate::str::contains("* My Captured Note"));
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_test.org")).unwrap();
+    assert!(content.contains("* My Captured Note"));
+}
+
+#[test]
+fn test_capture_command_json_format() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("JSON Note")
+        .arg("--file")
+        .arg("capture_json.org")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"file_path\""))
+        .stdout(predicate::str::contains("\"heading_line\""));
+}
+
+#[test]
+fn test_capture_command_with_todo_state() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("TODO Task")
+        .arg("--file")
+        .arg("capture_todo.org")
+        .arg("--todo-state")
+        .arg("TODO")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("* TODO TODO Task"));
+}
+
+#[test]
+fn test_capture_command_with_priority() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Important")
+        .arg("--file")
+        .arg("capture_prio.org")
+        .arg("--priority")
+        .arg("A")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("* [#A] Important"));
+}
+
+#[test]
+fn test_capture_command_with_tags() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Tagged")
+        .arg("--file")
+        .arg("capture_tags.org")
+        .arg("--tags")
+        .arg("work,urgent")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("* Tagged :work:urgent:"));
+}
+
+#[test]
+fn test_capture_command_with_body() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Body Note")
+        .arg("--file")
+        .arg("capture_body.org")
+        .arg("--body")
+        .arg("This is the body content.")
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_body.org")).unwrap();
+    assert!(content.contains("* Body Note"));
+    assert!(content.contains("This is the body content."));
+}
+
+#[test]
+fn test_capture_command_with_scheduled() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Scheduled Task")
+        .arg("--file")
+        .arg("capture_sched.org")
+        .arg("--scheduled")
+        .arg("2026-06-01")
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_sched.org")).unwrap();
+    assert!(content.contains("SCHEDULED: <2026-06-01"));
+}
+
+#[test]
+fn test_capture_command_with_deadline() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Deadline Task")
+        .arg("--file")
+        .arg("capture_deadline.org")
+        .arg("--deadline")
+        .arg("2026-06-15 17:00")
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_deadline.org")).unwrap();
+    assert!(content.contains("DEADLINE: <2026-06-15"));
+}
+
+#[test]
+fn test_capture_command_with_properties() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Property Note")
+        .arg("--file")
+        .arg("capture_props.org")
+        .arg("--property")
+        .arg("CATEGORY=test")
+        .arg("--property")
+        .arg("EFFORT=1h")
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_props.org")).unwrap();
+    assert!(content.contains(":PROPERTIES:"));
+    assert!(content.contains(":CATEGORY: test"));
+    assert!(content.contains(":EFFORT: 1h"));
+    assert!(content.contains(":END:"));
+}
+
+#[test]
+fn test_capture_command_with_target_heading() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+    fs::write(temp_dir.path().join("target.org"), "* Projects\nIntro.\n").unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Sub Project")
+        .arg("--file")
+        .arg("target.org")
+        .arg("--target-heading")
+        .arg("Projects")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("** Sub Project"));
+}
+
+#[test]
+fn test_capture_command_with_datetree() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Standup")
+        .arg("--file")
+        .arg("capture_dt.org")
+        .arg("--datetree")
+        .arg("--datetree-date")
+        .arg("2026-05-10")
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_dt.org")).unwrap();
+    assert!(content.contains("* 2026"));
+    assert!(content.contains("** 2026-05 May"));
+    assert!(content.contains("*** 2026-05-10 Sunday"));
+    assert!(content.contains("**** Standup"));
+}
+
+#[test]
+fn test_capture_command_invalid_todo() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Bad Task")
+        .arg("--file")
+        .arg("capture_bad.org")
+        .arg("--todo-state")
+        .arg("INVALID_KEYWORD")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Invalid TODO keyword"));
+}
+
+#[test]
+fn test_capture_command_invalid_property() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Bad Prop")
+        .arg("--file")
+        .arg("capture_bad.org")
+        .arg("--property")
+        .arg("no_equals_sign")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("property must be KEY=VALUE"));
+}
+
+#[test]
+fn test_capture_command_with_level() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Deep Heading")
+        .arg("--file")
+        .arg("capture_level.org")
+        .arg("--level")
+        .arg("3")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("*** Deep Heading"));
+}
+
+#[test]
+fn test_capture_command_with_closed() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("capture")
+        .arg("Done Thing")
+        .arg("--file")
+        .arg("capture_closed.org")
+        .arg("--closed")
+        .arg("2026-05-01")
+        .assert()
+        .success();
+
+    let content = fs::read_to_string(temp_dir.path().join("capture_closed.org")).unwrap();
+    assert!(content.contains("CLOSED: [2026-05-01"));
+}
+
+#[test]
+fn test_capture_command_default_format_from_config() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    let config_path = temp_dir.path().join("config.toml");
+    let path_str = temp_dir.path().to_str().unwrap().replace('\\', "/");
+    let config_content = format!(
+        r#"
+[org]
+org_directory = "{}"
+
+[cli]
+default_format = "json"
+"#,
+        path_str
+    );
+    fs::write(&config_path, config_content).unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--config")
+        .arg(config_path.to_str().unwrap())
+        .arg("capture")
+        .arg("Config Format Note")
+        .arg("--file")
+        .arg("capture_cfg_fmt.org")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"file_path\""))
+        .stdout(predicate::str::contains("\"heading_line\""));
+}
+
+#[test]
+fn test_capture_help() {
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("capture")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Capture a new heading"))
+        .stdout(predicate::str::contains("--todo-state"))
+        .stdout(predicate::str::contains("--priority"))
+        .stdout(predicate::str::contains("--datetree"));
+}

@@ -45,6 +45,7 @@ impl ServerHandler for OrgModeRouter {
             "- org-file-list\n",
             "- org-search\n",
             "- org-agenda\n",
+            "- org-capture\n",
             "Resources:\n",
             "- org:// (List all org-mode files in the configured directory tree)\n",
             "- org://{file} (Access the raw content of an allowed Org file)\n",
