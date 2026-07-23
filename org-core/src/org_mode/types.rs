@@ -1,5 +1,6 @@
 use chrono::{DateTime, Local};
-use serde::{Deserialize, Serialize};
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::config::OrgConfig;
 
@@ -137,6 +138,93 @@ pub struct CaptureResult {
     pub heading_line: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub under_target: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ClearField {
+    TodoState,
+    Priority,
+    Tags,
+    Scheduled,
+    Deadline,
+    Closed,
+}
+
+impl std::fmt::Display for ClearField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ClearField::TodoState => "todo_state",
+            ClearField::Priority => "priority",
+            ClearField::Tags => "tags",
+            ClearField::Scheduled => "scheduled",
+            ClearField::Deadline => "deadline",
+            ClearField::Closed => "closed",
+        };
+        write!(f, "{name}")
+    }
+}
+
+impl std::str::FromStr for ClearField {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "todo_state" | "todo-state" => Ok(ClearField::TodoState),
+            "priority" => Ok(ClearField::Priority),
+            "tags" => Ok(ClearField::Tags),
+            "scheduled" => Ok(ClearField::Scheduled),
+            "deadline" => Ok(ClearField::Deadline),
+            "closed" => Ok(ClearField::Closed),
+            other => Err(format!(
+                "invalid clear field '{other}': expected todo_state, priority, tags, \
+                 scheduled, deadline, or closed"
+            )),
+        }
+    }
+}
+
+impl Serialize for ClearField {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for ClearField {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map_err(D::Error::custom)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateEntry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub heading_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub todo_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deadline: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closed: Option<String>,
+    #[serde(default)]
+    pub clear: Vec<ClearField>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateResult {
+    pub file_path: String,
+    pub heading_line: String,
+    pub changes: Vec<String>,
 }
 
 impl TreeNode {

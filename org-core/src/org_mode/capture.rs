@@ -32,7 +32,7 @@ struct ResolvedCapture {
     properties: Vec<PropertyPair>,
 }
 
-fn is_valid_tag(tag: &str) -> bool {
+pub(crate) fn is_valid_tag(tag: &str) -> bool {
     !tag.is_empty()
         && tag
             .chars()
@@ -519,7 +519,7 @@ impl OrgMode {
         Ok(parent.join(name))
     }
 
-    fn validate_relative_file_path(file_rel: &str) -> Result<(), OrgModeError> {
+    pub(crate) fn validate_relative_file_path(file_rel: &str) -> Result<(), OrgModeError> {
         use std::path::Component;
         let p = Path::new(file_rel);
         if p.is_absolute() {

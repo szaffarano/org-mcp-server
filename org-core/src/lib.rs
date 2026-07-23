@@ -9,5 +9,6 @@ mod error_tests;
 pub use config::{LoggingConfig, OrgConfig};
 pub use error::OrgModeError;
 pub use org_mode::{
-    AgendaItem, AgendaView, CaptureEntry, CaptureResult, OrgMode, Priority, PropertyPair, TodoState,
+    AgendaItem, AgendaView, CaptureEntry, CaptureResult, ClearField, OrgMode, Priority,
+    PropertyPair, TodoState, UpdateEntry, UpdateResult,
 };

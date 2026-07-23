@@ -2,6 +2,7 @@ mod agenda;
 mod capture;
 mod core;
 mod types;
+mod update;
 
 pub use types::*;
 
