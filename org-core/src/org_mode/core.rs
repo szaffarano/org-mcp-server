@@ -583,6 +583,7 @@ impl OrgMode {
                 start: headline.start().into(),
                 end: headline.end().into(),
             }),
+            days_overdue: None,
         }
     }
 }
