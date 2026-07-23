@@ -1178,3 +1178,35 @@ fn test_agenda_day_excludes_past_overdue() {
         "AgendaViewType::Day must not include past overdue tasks (Today-only behaviour)"
     );
 }
+
+#[test]
+fn test_agenda_today_deadline_only_overdue_has_days_overdue() {
+    let (org_mode, _temp_dir) = create_test_org_mode_with_agenda_files();
+    let view = org_mode
+        .get_agenda_view(AgendaViewType::Today, None, None, None)
+        .expect("Failed to get today's agenda");
+
+    let overdue = view
+        .items
+        .iter()
+        .find(|item| item.heading.contains("Overdue deadline-only task"))
+        .expect("Should find the deadline-only overdue task");
+
+    assert!(
+        overdue.scheduled.is_none(),
+        "Deadline-only task must not have a scheduled date"
+    );
+    assert!(
+        overdue.deadline.is_some(),
+        "Deadline-only task must have a deadline date"
+    );
+    assert!(
+        overdue.days_overdue.is_some(),
+        "Deadline-only overdue task should have days_overdue set"
+    );
+    assert!(
+        overdue.days_overdue.unwrap() >= 14,
+        "Task with deadline 14 days ago should have days_overdue >= 14, got {:?}",
+        overdue.days_overdue
+    );
+}

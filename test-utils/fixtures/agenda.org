@@ -137,3 +137,9 @@
    :ID: overdue-task-001
    :END:
    This task was scheduled 21 days ago and has not been completed.
+** TODO Overdue deadline-only task
+   DEADLINE: <@TODAY-14@ Mon>
+   :PROPERTIES:
+   :ID: overdue-deadline-001
+   :END:
+   This task has a past deadline but no scheduled date.
