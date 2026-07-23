@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8](https://github.com/szaffarano/org-mcp-server/compare/org-cli-v0.0.7...org-cli-v0.0.8)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Migrate from unmaintained paste crate to pastey ([#174](https://github.com/szaffarano/org-mcp-server/pull/174)) - ([6f51563](https://github.com/szaffarano/org-mcp-server/commit/6f515636a1ed943fbfaca950ecdd56a3e09b665e))
+
+### ⬆️ Dependency updates
+
+
+- *(deps)* Update rust crate tokio to v1.53.1 ([#201](https://github.com/szaffarano/org-mcp-server/pull/201)) - ([6aa8892](https://github.com/szaffarano/org-mcp-server/commit/6aa8892a58cb6f427b6fe6bd834bc9c209bb38f3))
+
+
 ## [0.0.7](https://github.com/szaffarano/org-mcp-server/compare/org-cli-v0.0.6...org-cli-v0.0.7)
 
 ### ⚙️ Miscellaneous Tasks
