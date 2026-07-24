@@ -30,5 +30,6 @@ impl OrgModeRouter {
             + Self::tool_router_search()
             + Self::tool_router_agenda()
             + Self::tool_router_capture()
+            + Self::tool_router_update_todo()
     }
 }
