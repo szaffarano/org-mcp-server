@@ -503,7 +503,7 @@ impl OrgMode {
                         matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level: h.level(),
-                            title: h.title_raw(),
+                            title: h.title_raw().trim_end().to_string(),
                             keyword: h.todo_keyword().map(|t| t.to_string()),
                             priority: h.priority().map(|p| p.to_string()),
                             tags: h.tags().map(|s| s.to_string()).collect(),
@@ -997,5 +997,173 @@ Body line must survive.
             org_mode.update_todo(e).unwrap_err(),
             OrgModeError::AmbiguousTarget(_)
         ));
+    }
+
+    #[test]
+    fn test_update_by_id_preserves_single_spacing_with_tags() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("ids.org"),
+            "* TODO Tagged task :a:b:\n:PROPERTIES:\n:ID: tagged-1\n:END:\nbody\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("tagged-1");
+        e.priority = Some("A".to_string());
+        let result = org_mode.update_todo(e).unwrap();
+        assert_eq!(result.heading_line, "* TODO [#A] Tagged task :a:b:");
+        let content = fs::read_to_string(temp_dir.path().join("ids.org")).unwrap();
+        assert!(content.contains("* TODO [#A] Tagged task :a:b:\n"));
+        assert!(content.contains("\nbody\n"));
+    }
+
+    #[test]
+    fn test_clear_scheduled_and_priority() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let e = UpdateEntry {
+            id: None,
+            file: Some("notes.org".to_string()),
+            heading_path: Some("Projects/Work/Refactor API".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![ClearField::Scheduled, ClearField::Priority],
+        };
+        let result = org_mode.update_todo(e).unwrap();
+        assert_eq!(result.heading_line, "*** TODO Refactor API");
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(
+            !content.contains("SCHEDULED:"),
+            "planning line removed:\n{content}"
+        );
+        assert!(content.contains("Body line must survive."));
+        assert!(
+            result
+                .changes
+                .iter()
+                .any(|c| c.starts_with("scheduled: ") && c.ends_with("-> <none>")),
+            "expected a scheduled removal entry, got {:?}",
+            result.changes
+        );
+    }
+
+    #[test]
+    fn test_clear_todo_state_strips_keyword_and_closed() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-book-789");
+        e.clear = vec![ClearField::TodoState];
+        let result = org_mode.update_todo(e).unwrap();
+        assert_eq!(result.heading_line, "** Read book");
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(
+            !content.contains("CLOSED:"),
+            "CLOSED removed with keyword:\n{content}"
+        );
+    }
+
+    #[test]
+    fn test_clear_tags_only() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("tags.org"),
+            "* TODO Tagged task :a:b:\nbody\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        let e = UpdateEntry {
+            id: None,
+            file: Some("tags.org".to_string()),
+            heading_path: Some("Tagged task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![ClearField::Tags],
+        };
+        let result = org_mode.update_todo(e).unwrap();
+        assert_eq!(result.heading_line, "* TODO Tagged task");
+        let content = fs::read_to_string(temp_dir.path().join("tags.org")).unwrap();
+        assert_eq!(content, "* TODO Tagged task\nbody\n");
+    }
+
+    #[test]
+    fn test_planning_lands_before_property_drawer() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.scheduled = Some("2026-05-18".to_string());
+        org_mode.update_todo(e).unwrap();
+
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        let block_start = content.find("** TODO Buy groceries").unwrap();
+        let rest = &content[block_start..];
+        let planning_pos = rest.find("SCHEDULED: <2026-05-18 Mon>").unwrap();
+        let drawer_pos = rest.find(":PROPERTIES:").unwrap();
+        assert!(
+            planning_pos < drawer_pos,
+            "planning line must come before the property drawer:\n{rest}"
+        );
+    }
+
+    #[test]
+    fn test_auto_closed_disabled_keeps_stale_closed() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = OrgMode::new(OrgConfig {
+            org_directory: temp_dir.path().to_str().unwrap().to_string(),
+            org_auto_closed_timestamp: false,
+            ..OrgConfig::default()
+        })
+        .unwrap();
+
+        let mut e = update_by_id("task-book-789");
+        e.todo_state = Some("TODO".to_string());
+        org_mode.update_todo(e.clone()).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("** TODO Read book"));
+        assert!(
+            content.contains("CLOSED: [2026-05-01 Fri 09:00]"),
+            "config off keeps existing CLOSED:\n{content}"
+        );
+
+        // and no auto-stamp on a fresh DONE either
+        let mut e2 = update_by_id("task-groceries-456");
+        e2.todo_state = Some("DONE".to_string());
+        org_mode.update_todo(e2).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        let groceries = &content[content.find("** DONE Buy groceries").unwrap()..];
+        assert!(
+            !groceries.lines().nth(1).unwrap_or("").contains("CLOSED:"),
+            "config off must not stamp CLOSED:\n{groceries}"
+        );
+        let _ = e;
+    }
+
+    #[test]
+    fn test_lock_file_cleaned_up() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.priority = Some("B".to_string());
+        org_mode.update_todo(e).unwrap();
+
+        assert!(!temp_dir.path().join(".notes.org.lock").exists());
     }
 }
