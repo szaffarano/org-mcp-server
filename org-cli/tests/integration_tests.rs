@@ -2089,3 +2089,58 @@ fn test_update_todo_not_found_fails() {
         .assert()
         .failure();
 }
+
+#[test]
+fn test_update_todo_missing_target_is_usage_error() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("update-todo")
+        .arg("--todo-state")
+        .arg("DONE")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "required arguments were not provided",
+        ));
+}
+
+#[test]
+fn test_update_todo_missing_mutation_is_usage_error() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("update-todo")
+        .arg("--file")
+        .arg("notes.org")
+        .arg("--heading")
+        .arg("Daily Tasks/Buy groceries")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "required arguments were not provided",
+        ));
+}
+
+#[test]
+fn test_update_todo_domain_error_has_no_backtrace() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("update-todo")
+        .arg("--id")
+        .arg("no-such-id")
+        .arg("--todo-state")
+        .arg("DONE")
+        .env("RUST_BACKTRACE", "1")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Error: Heading not found"))
+        .stderr(predicate::str::contains("Stack backtrace").not());
+}

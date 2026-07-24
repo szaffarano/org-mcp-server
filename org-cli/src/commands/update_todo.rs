@@ -1,9 +1,29 @@
 use crate::config::CliConfig;
 use anyhow::{Result, anyhow};
-use clap::Args;
+use clap::{ArgGroup, Args};
 use org_core::{ClearField, OrgMode, UpdateEntry};
 
 #[derive(Args)]
+#[command(group(
+    ArgGroup::new("target")
+        .args(["id", "file"])
+        .required(true)
+        .multiple(true),
+))]
+#[command(group(
+    ArgGroup::new("mutation")
+        .args([
+            "todo_state",
+            "priority",
+            "tags",
+            "scheduled",
+            "deadline",
+            "closed",
+            "clear",
+        ])
+        .required(true)
+        .multiple(true),
+))]
 pub struct UpdateTodoCommand {
     /// Org ID property of the target heading (wins over --file/--heading)
     #[arg(long)]
