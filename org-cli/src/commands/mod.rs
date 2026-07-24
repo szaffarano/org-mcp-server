@@ -7,6 +7,7 @@ pub mod list;
 pub mod outline;
 pub mod read;
 pub mod search;
+pub mod update_todo;
 
 pub use agenda::AgendaCommand;
 pub use capture::CaptureCommand;
@@ -17,3 +18,4 @@ pub use list::ListCommand;
 pub use outline::OutlineCommand;
 pub use read::ReadCommand;
 pub use search::SearchCommand;
+pub use update_todo::UpdateTodoCommand;

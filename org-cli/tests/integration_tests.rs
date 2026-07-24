@@ -2028,3 +2028,64 @@ org_agenda_files = ["agenda.org"]
         .stdout(predicate::str::contains("Overdue deadline-only task"))
         .stdout(predicate::str::contains("14d ago").or(predicate::str::contains("15d ago")));
 }
+
+#[test]
+fn test_update_todo_by_id_plain_output() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("update-todo")
+        .arg("--id")
+        .arg("task-groceries-456")
+        .arg("--todo-state")
+        .arg("DONE")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Updated notes.org"))
+        .stdout(predicate::str::contains("DONE Buy groceries"));
+
+    let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+    assert!(content.contains("DONE Buy groceries"));
+    assert!(content.contains("CLOSED: ["));
+}
+
+#[test]
+fn test_update_todo_json_output() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("update-todo")
+        .arg("--file")
+        .arg("notes.org")
+        .arg("--heading")
+        .arg("Daily Tasks/Buy groceries")
+        .arg("--priority")
+        .arg("A")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"file_path\": \"notes.org\""))
+        .stdout(predicate::str::contains("[#A]"))
+        .stdout(predicate::str::contains("\"changes\""));
+}
+
+#[test]
+fn test_update_todo_not_found_fails() {
+    let temp_dir = setup_test_org_files_with_dates().unwrap();
+
+    cargo::cargo_bin_cmd!("org-cli")
+        .arg("--root-directory")
+        .arg(temp_dir.path().to_str().unwrap())
+        .arg("update-todo")
+        .arg("--id")
+        .arg("no-such-id")
+        .arg("--todo-state")
+        .arg("DONE")
+        .assert()
+        .failure();
+}

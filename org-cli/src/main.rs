@@ -6,7 +6,7 @@ mod commands;
 mod config;
 use commands::{
     AgendaCommand, CaptureCommand, ConfigCommand, ElementByIdCommand, HeadingCommand, ListCommand,
-    OutlineCommand, ReadCommand, SearchCommand,
+    OutlineCommand, ReadCommand, SearchCommand, UpdateTodoCommand,
 };
 use config::CliAppConfig;
 
@@ -47,6 +47,8 @@ enum Commands {
     ElementById(ElementByIdCommand),
     /// Search for text content across all org files using fuzzy matching
     Search(SearchCommand),
+    /// Update TODO state and planning metadata of an existing heading
+    UpdateTodo(UpdateTodoCommand),
 }
 
 fn main() -> Result<()> {
@@ -73,6 +75,7 @@ fn main() -> Result<()> {
                 Commands::Heading(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::ElementById(cmd) => cmd.execute(org_mode, config.cli),
                 Commands::Search(cmd) => cmd.execute(org_mode, config.cli),
+                Commands::UpdateTodo(cmd) => cmd.execute(org_mode, config.cli),
             }
         }
     }
