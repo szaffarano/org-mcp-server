@@ -35,6 +35,10 @@ linking capabilities for your org-mode files through the MCP protocol.
   priority, tags, body, SCHEDULED/DEADLINE/CLOSED timestamps (with optional repeater
   and warning suffixes), property drawer entries, and Year/Month/Day datetree expansion.
   Can target a specific heading or append to end of file.
+- `org-update-todo` — Update the TODO state and planning metadata of an existing
+  heading (target by org ID or file + heading path). Set or clear todo_state, priority,
+  tags, and SCHEDULED/DEADLINE/CLOSED timestamps. CLOSED is auto-managed on done/active
+  transitions (disable with `org_auto_closed_timestamp = false`).
 
 ### CLI Tool
 
@@ -56,6 +60,9 @@ linking capabilities for your org-mode files through the MCP protocol.
 - `org-cli agenda range` — Show tasks in custom date range
 - `org-cli capture` — Append a new heading to an org file with optional TODO state,
   priority, tags, body, planning timestamps, property drawer, and datetree expansion
+- `org-cli update-todo` — Update an existing heading's TODO state, priority, tags, and
+  planning timestamps in place; supports clearing fields via `--clear` and auto-stamps
+  CLOSED on done transitions
 
 ## Configuration
 
@@ -92,6 +99,9 @@ org_todo_keywords = [
 # `:CREATED: [YYYY-MM-DD Day HH:MM]` (with the current local time) to the property
 # drawer of new entries. User-supplied CREATED (case-insensitive) wins.
 org_auto_created_property = true
+# When true, updating a TODO to a done keyword automatically stamps CLOSED with the
+# current local time, and reactivating a done task removes its CLOSED timestamp.
+org_auto_closed_timestamp = true
 
 [logging]
 # Log level: trace, debug, info, warn, error
@@ -112,6 +122,8 @@ default_format = "plain"  # plain | json
 - `ORG_ORG__ORG_AGENDA_FILES` — Comma-separated list of agenda files
 - `ORG_ORG__ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES` — Comma-separated extra search files
 - `ORG_ORG__ORG_AUTO_CREATED_PROPERTY` — `true`/`false`; auto-add `:CREATED:` on capture (default: true)
+- `ORG_ORG__ORG_AUTO_CLOSED_TIMESTAMP` — `true`/`false`; auto-manage `CLOSED` on todo
+  state transitions (default: true)
 
 #### Logging Configuration
 - `ORG_LOGGING__LEVEL` — Log level (debug, info, warn, error, trace)
