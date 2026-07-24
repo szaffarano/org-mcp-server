@@ -71,8 +71,6 @@ pub(crate) fn render_planning_line(values: &PlanningValues) -> Option<String> {
 
 #[derive(Debug)]
 pub(crate) struct ResolvedUpdate {
-    #[allow(dead_code)]
-    pub file_rel: Option<String>,
     pub scheduled: Option<ParsedTimestamp>,
     pub deadline: Option<ParsedTimestamp>,
     pub closed: Option<ParsedTimestamp>,
@@ -207,16 +205,11 @@ impl OrgMode {
             .map(|v| Self::parse_iso_timestamp("closed", v))
             .transpose()?;
 
-        let file_rel = match entry.file {
-            Some(ref f) => {
-                Self::validate_relative_file_path(f)?;
-                Some(f.clone())
-            }
-            None => None,
-        };
+        if let Some(ref f) = entry.file {
+            Self::validate_relative_file_path(f)?;
+        }
 
         Ok(ResolvedUpdate {
-            file_rel,
             scheduled,
             deadline,
             closed,
@@ -711,6 +704,18 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_rejects_empty_heading_path_segment() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.heading_path = Some("Daily Tasks//Buy groceries".to_string());
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidHeadingPath(_)
+        ));
+    }
+
+    #[test]
     fn test_validate_accepts_clear_only_update() {
         let temp_dir = tempfile::tempdir().unwrap();
         let org_mode = make_org_mode(&temp_dir);
@@ -1133,7 +1138,7 @@ Body line must survive.
 
         let mut e = update_by_id("task-book-789");
         e.todo_state = Some("TODO".to_string());
-        org_mode.update_todo(e.clone()).unwrap();
+        org_mode.update_todo(e).unwrap();
         let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
         assert!(content.contains("** TODO Read book"));
         assert!(
@@ -1151,7 +1156,6 @@ Body line must survive.
             !groceries.lines().nth(1).unwrap_or("").contains("CLOSED:"),
             "config off must not stamp CLOSED:\n{groceries}"
         );
-        let _ = e;
     }
 
     #[test]
