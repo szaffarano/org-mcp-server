@@ -11,8 +11,10 @@ use crate::OrgModeError;
 use crate::org_mode::capture::ParsedTimestamp;
 use crate::org_mode::{ClearField, OrgMode, UpdateEntry, UpdateResult};
 
+#[allow(dead_code)]
 static PLANNING_LINE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*(?:SCHEDULED|DEADLINE|CLOSED):").unwrap());
+#[allow(dead_code)]
 static PLANNING_KV_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(SCHEDULED|DEADLINE|CLOSED):\s*(\[[^\]]*\]|<[^>]*>)").unwrap());
 
@@ -23,6 +25,7 @@ pub(crate) struct PlanningValues {
     pub closed: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct PlanningBlock {
     pub first_line: usize,
@@ -30,6 +33,7 @@ pub(crate) struct PlanningBlock {
     pub values: PlanningValues,
 }
 
+#[allow(dead_code)]
 pub(crate) fn parse_planning_block(lines: &[String], headline_line: usize) -> PlanningBlock {
     let mut values = PlanningValues::default();
     let mut line_count = 0;
@@ -349,7 +353,6 @@ impl OrgMode {
         };
 
         let mut lines: Vec<String> = content.lines().map(String::from).collect();
-
         // Resulting field values: explicit set > clear > existing.
         let cleared = |f: ClearField| entry.clear.contains(&f);
 
