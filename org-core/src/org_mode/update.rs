@@ -69,19 +69,56 @@ fn extract_planning(h: &orgize::ast::Headline, content: &str) -> (usize, usize, 
             let p_start: usize = p.start().into();
             let p_end: usize = p.end().into();
             let first_line = line_index_at(content, p_start);
-            // orgize's planning span ends at the first byte of the next node
-            // (i.e. it includes the trailing '\n' of each planning line), so
-            // counting newlines gives the exact number of lines to splice.
-            let line_count = content[p_start..p_end]
+            // orgize's planning span ends before the trailing '\n' only at EOF; max(1) guards that.
+            let ast_line_count = content[p_start..p_end]
                 .bytes()
                 .filter(|&b| b == b'\n')
-                .count();
-            let values = PlanningValues {
+                .count()
+                .max(1);
+            let mut values = PlanningValues {
                 scheduled: p.scheduled().map(|ts| ts.raw()),
                 deadline: p.deadline().map(|ts| ts.raw()),
                 closed: p.closed().map(|ts| ts.raw()),
             };
-            (first_line, line_count, values)
+            // Extend line_count over any additional consecutive planning lines that
+            // orgize does not include in its span (non-standard but written by some tools).
+            // Also extract any timestamps from those extra lines so they survive the splice.
+            let all_lines: Vec<&str> = content.lines().collect();
+            let mut extra = 0;
+            let mut next = first_line + ast_line_count;
+            while let Some(line) = all_lines.get(next) {
+                let t = line.trim_start();
+                let keyword = if t.starts_with("SCHEDULED:") {
+                    Some("SCHEDULED")
+                } else if t.starts_with("DEADLINE:") {
+                    Some("DEADLINE")
+                } else if t.starts_with("CLOSED:") {
+                    Some("CLOSED")
+                } else {
+                    None
+                };
+                if let Some(kw) = keyword {
+                    // Extract the raw timestamp (everything after "KEYWORD: ").
+                    let raw = t[kw.len()..].trim_start_matches(':').trim().to_string();
+                    match kw {
+                        "SCHEDULED" if values.scheduled.is_none() => {
+                            values.scheduled = Some(raw);
+                        }
+                        "DEADLINE" if values.deadline.is_none() => {
+                            values.deadline = Some(raw);
+                        }
+                        "CLOSED" if values.closed.is_none() => {
+                            values.closed = Some(raw);
+                        }
+                        _ => {}
+                    }
+                    extra += 1;
+                    next += 1;
+                } else {
+                    break;
+                }
+            }
+            (first_line, ast_line_count + extra, values)
         }
     }
 }
@@ -1144,5 +1181,76 @@ Body line must survive.
         org_mode.update_todo(e).unwrap();
 
         assert!(!temp_dir.path().join(".notes.org.lock").exists());
+    }
+
+    #[test]
+    fn test_update_planning_at_eof_no_trailing_newline() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("eof.org"),
+            "* TODO Task\nSCHEDULED: <2026-05-15 Fri>", // no trailing newline
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("eof.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: Some("DONE".to_string()),
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("eof.org")).unwrap();
+        // Must not contain a duplicate SCHEDULED line
+        assert_eq!(
+            content.matches("SCHEDULED:").count(),
+            1,
+            "duplicate planning line:\n{content}"
+        );
+        assert!(content.contains("* DONE Task"));
+    }
+
+    #[test]
+    fn test_update_multi_line_planning_no_orphan() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("multi.org"),
+            "* TODO Task\nSCHEDULED: <2026-05-15 Fri>\nDEADLINE: <2026-05-20 Wed>\nbody\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("multi.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: Some("DONE".to_string()),
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("multi.org")).unwrap();
+        assert_eq!(
+            content.matches("SCHEDULED:").count(),
+            1,
+            "duplicate SCHEDULED:\n{content}"
+        );
+        assert_eq!(
+            content.matches("DEADLINE:").count(),
+            1,
+            "duplicate DEADLINE:\n{content}"
+        );
+        assert!(
+            content.contains("body"),
+            "body line must survive:\n{content}"
+        );
     }
 }
