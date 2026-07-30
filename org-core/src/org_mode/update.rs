@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-use orgize::export::{Container, Event, from_fn};
+use orgize::export::{Container, Event, from_fn, from_fn_with_ctx};
 use orgize::{Org, ParseConfig};
 use regex::Regex;
 
@@ -85,6 +85,9 @@ struct TargetHeadline {
     priority: Option<String>,
     tags: Vec<String>,
     ambiguity: Option<String>,
+    planning_first_line: usize,
+    planning_line_count: usize,
+    planning_values: PlanningValues,
 }
 
 fn line_index_at(content: &str, byte_offset: usize) -> usize {
@@ -92,6 +95,32 @@ fn line_index_at(content: &str, byte_offset: usize) -> usize {
         .bytes()
         .filter(|b| *b == b'\n')
         .count()
+}
+
+fn extract_planning(h: &orgize::ast::Headline, content: &str) -> (usize, usize, PlanningValues) {
+    match h.planning() {
+        None => (
+            line_index_at(content, h.start().into()) + 1,
+            0,
+            PlanningValues::default(),
+        ),
+        Some(p) => {
+            let p_start: usize = p.start().into();
+            let p_end: usize = p.end().into();
+            let first_line = line_index_at(content, p_start);
+            let line_count = content[p_start..p_end]
+                .bytes()
+                .filter(|&b| b == b'\n')
+                .count()
+                + 1;
+            let values = PlanningValues {
+                scheduled: p.scheduled().map(|ts| ts.raw()),
+                deadline: p.deadline().map(|ts| ts.raw()),
+                closed: p.closed().map(|ts| ts.raw()),
+            };
+            (first_line, line_count, values)
+        }
+    }
 }
 
 impl OrgMode {
@@ -268,7 +297,7 @@ impl OrgMode {
 
     fn file_contains_id(content: &str, id: &str) -> bool {
         let mut found = false;
-        let mut handler = from_fn(|event| {
+        let mut handler = from_fn_with_ctx(|event, ctx| {
             if let Event::Enter(Container::Headline(ref h)) = event
                 && h.properties()
                     .and_then(|props| {
@@ -280,6 +309,7 @@ impl OrgMode {
                     .is_some()
             {
                 found = true;
+                ctx.stop();
             }
         });
         Org::parse(content).traverse(&mut handler);
@@ -409,9 +439,14 @@ impl OrgMode {
             replacement,
         );
 
-        let mut out = lines.join("\n");
+        let newline = if content.contains("\r\n") {
+            "\r\n"
+        } else {
+            "\n"
+        };
+        let mut out = lines.join(newline);
         if content.ends_with('\n') {
-            out.push('\n');
+            out.push_str(newline);
         }
         Self::atomic_write(full_path, out.as_bytes())?;
 
@@ -481,7 +516,7 @@ impl OrgMode {
         let mut matches: Vec<TargetHeadline> = Vec::new();
 
         if let Some(ref id) = entry.id {
-            let mut handler = from_fn(|event| {
+            let mut handler = from_fn_with_ctx(|event, ctx| {
                 if let Event::Enter(Container::Headline(ref h)) = event {
                     let has_id = h
                         .properties()
@@ -493,6 +528,8 @@ impl OrgMode {
                         })
                         .is_some();
                     if has_id {
+                        let (planning_first_line, planning_line_count, planning_values) =
+                            extract_planning(h, content);
                         matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level: h.level(),
@@ -501,7 +538,14 @@ impl OrgMode {
                             priority: h.priority().map(|p| p.to_string()),
                             tags: h.tags().map(|s| s.to_string()).collect(),
                             ambiguity: None,
+                            planning_first_line,
+                            planning_line_count,
+                            planning_values,
                         });
+                        // Two matches suffice to report ambiguity; stop early.
+                        if matches.len() == 2 {
+                            ctx.stop();
+                        }
                     }
                 }
             });
@@ -510,18 +554,9 @@ impl OrgMode {
             let path = entry.heading_path.clone().unwrap_or_default();
             let parts: Vec<&str> = path.split('/').collect();
             let mut stack: Vec<(usize, String)> = Vec::new();
-            let mut pending: Option<TargetHeadline> = None;
             let mut handler = from_fn(|event| {
                 if let Event::Enter(Container::Headline(ref h)) = event {
                     let level = h.level();
-                    // A pending match is a leaf only if the next sibling/ancestor
-                    // (any headline at level <= target) follows it; a deeper child
-                    // proves the previous match is a non-leaf parent.
-                    if let Some(p) = pending.take()
-                        && level <= p.level
-                    {
-                        matches.push(p);
-                    }
                     while stack.last().map(|(l, _)| *l >= level).unwrap_or(false) {
                         stack.pop();
                     }
@@ -535,7 +570,9 @@ impl OrgMode {
                             .map(|(_, t)| t.as_str())
                             .eq(parts.iter().copied())
                     {
-                        pending = Some(TargetHeadline {
+                        let (planning_first_line, planning_line_count, planning_values) =
+                            extract_planning(h, content);
+                        matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level,
                             title: h.title_raw().trim_end().to_string(),
@@ -543,15 +580,14 @@ impl OrgMode {
                             priority: h.priority().map(|p| p.to_string()),
                             tags: h.tags().map(|s| s.to_string()).collect(),
                             ambiguity: None,
+                            planning_first_line,
+                            planning_line_count,
+                            planning_values,
                         });
                     }
                 }
             });
             org.traverse(&mut handler);
-            // End of file: any remaining pending is a leaf.
-            if let Some(p) = pending.take() {
-                matches.push(p);
-            }
         }
 
         match matches.len() {
@@ -570,6 +606,9 @@ impl OrgMode {
                     priority: None,
                     tags: vec![],
                     ambiguity: Some(shown),
+                    planning_first_line: 0,
+                    planning_line_count: 0,
+                    planning_values: PlanningValues::default(),
                 }))
             }
         }
@@ -967,10 +1006,39 @@ Body line must survive.
         ));
 
         e.heading_path = Some("Daily Tasks".to_string());
-        assert!(matches!(
-            org_mode.update_todo(e).unwrap_err(),
-            OrgModeError::HeadingNotFound(_)
-        ));
+        // Non-leaf paths are valid targets: "Daily Tasks" has children but is a
+        // unique full-path match. Guards the behavior flipped by PR review.
+        let result = org_mode.update_todo(e).unwrap();
+        assert_eq!(result.heading_line, "* DONE Daily Tasks");
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("* DONE Daily Tasks"));
+    }
+
+    #[test]
+    fn test_update_preserves_crlf_line_endings() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("crlf.org"),
+            "* TODO Task\r\nSCHEDULED: <2026-05-15 Fri>\r\nbody\r\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("irrelevant");
+        e.id = None;
+        e.file = Some("crlf.org".to_string());
+        e.heading_path = Some("Task".to_string());
+        e.todo_state = Some("DONE".to_string());
+        org_mode.update_todo(e).unwrap();
+
+        let content = fs::read_to_string(temp_dir.path().join("crlf.org")).unwrap();
+        assert!(content.contains("* DONE Task\r\n"));
+        assert!(content.contains("\r\nbody\r\n"));
+        assert!(content.contains("CLOSED: ["));
+        assert!(
+            !content.replace("\r\n", "").contains('\n'),
+            "found bare LF after CRLF update:\n{content}"
+        );
     }
 
     #[test]
