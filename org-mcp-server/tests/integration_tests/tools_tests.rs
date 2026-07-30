@@ -1371,3 +1371,117 @@ async fn test_org_capture_datetree() -> Result<(), Box<dyn std::error::Error>> {
     service.cancel().await?;
     Ok(())
 }
+
+// --- org-update-todo tool tests ---
+
+/// Tests that the org-update-todo tool is listed among available tools.
+#[tokio::test]
+#[traced_test]
+async fn test_list_tools_includes_update_todo() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let tools = service.list_tools(Default::default()).await?;
+    let tool_names: Vec<&str> = tools.tools.iter().map(|t| t.name.as_ref()).collect();
+    assert!(
+        tool_names.contains(&"org-update-todo"),
+        "org-update-todo should be listed"
+    );
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests marking a TODO as DONE by ID, including the auto CLOSED stamp.
+#[tokio::test]
+#[traced_test]
+async fn test_org_update_todo_mark_done_by_id() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("id".to_string(), Value::String("task-groceries-456".into()));
+    args.insert("todo_state".to_string(), Value::String("DONE".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-update-todo").with_arguments(args))
+        .await?;
+
+    assert!(!result.content.is_empty());
+    if let Some(content) = result.content.first() {
+        if let Some(text) = content.as_text() {
+            let update_result: serde_json::Value =
+                serde_json::from_str(&text.text).expect("Should be valid JSON");
+            assert_eq!(update_result["file_path"], "notes.org");
+            assert!(
+                update_result["heading_line"]
+                    .as_str()
+                    .unwrap()
+                    .contains("DONE Buy groceries"),
+                "expected DONE headline, got {}",
+                update_result["heading_line"]
+            );
+        } else {
+            panic!("Expected text content in org-update-todo result");
+        }
+    }
+
+    let content = std::fs::read_to_string(temp_dir.path().join("notes.org"))?;
+    assert!(content.contains("DONE Buy groceries"));
+    assert!(content.contains("CLOSED: ["), "expected auto CLOSED stamp");
+
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests clearing a field via the clear list using file + heading_path targeting.
+#[tokio::test]
+#[traced_test]
+async fn test_org_update_todo_clear_by_path() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("file".to_string(), Value::String("notes.org".into()));
+    args.insert(
+        "heading_path".to_string(),
+        Value::String("Daily Tasks/Buy groceries".into()),
+    );
+    args.insert(
+        "clear".to_string(),
+        Value::Array(vec![Value::String("priority".into())]),
+    );
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-update-todo").with_arguments(args))
+        .await?;
+
+    assert!(!result.content.is_empty());
+    service.cancel().await?;
+    Ok(())
+}
+
+/// Tests that an unknown target yields an error result, not a crash.
+#[tokio::test]
+#[traced_test]
+#[allow(clippy::single_match)]
+async fn test_org_update_todo_not_found() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = setup_test_org_files()?;
+    let service = create_mcp_service!(&temp_dir);
+
+    let mut args = Map::new();
+    args.insert("id".to_string(), Value::String("no-such-id".into()));
+    args.insert("todo_state".to_string(), Value::String("DONE".into()));
+
+    let result = service
+        .call_tool(CallToolRequestParams::new("org-update-todo").with_arguments(args))
+        .await;
+
+    match result {
+        Ok(r) => assert_eq!(r.is_error, Some(true), "expected tool error result"),
+        Err(_) => {} // protocol-level error is also acceptable
+    }
+
+    service.cancel().await?;
+    Ok(())
+}

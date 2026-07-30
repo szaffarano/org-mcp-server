@@ -23,6 +23,8 @@ pub struct OrgConfig {
     pub org_todo_keywords: Vec<String>,
     #[serde(default = "default_org_auto_created_property")]
     pub org_auto_created_property: bool,
+    #[serde(default = "default_org_auto_closed_timestamp")]
+    pub org_auto_closed_timestamp: bool,
 }
 
 /// Logging configuration (shared across CLI and server)
@@ -43,6 +45,7 @@ impl Default for OrgConfig {
             org_agenda_text_search_extra_files: Vec::default(),
             org_todo_keywords: default_todo_keywords(),
             org_auto_created_property: default_org_auto_created_property(),
+            org_auto_closed_timestamp: default_org_auto_closed_timestamp(),
         }
     }
 }
@@ -220,6 +223,10 @@ pub fn load_org_config(
         .set_default(
             "org.org_auto_created_property",
             default_org_auto_created_property(),
+        )?
+        .set_default(
+            "org.org_auto_closed_timestamp",
+            default_org_auto_closed_timestamp(),
         )?;
 
     let config = build_config_with_file_and_env(config_file, builder)?;
@@ -290,6 +297,10 @@ pub fn default_log_file() -> String {
 }
 
 pub fn default_org_auto_created_property() -> bool {
+    true
+}
+
+pub fn default_org_auto_closed_timestamp() -> bool {
     true
 }
 
@@ -758,5 +769,30 @@ file = "/var/log/test.log"
 
         let result = config.validate();
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_org_auto_closed_timestamp_defaults_true() {
+        let config = OrgConfig::default();
+        assert!(config.org_auto_closed_timestamp);
+    }
+
+    #[test]
+    #[serial]
+    fn test_load_auto_closed_timestamp_from_toml() {
+        let temp_dir = tempdir().unwrap();
+        let path_str = test_utils::config::normalize_path(temp_dir.path());
+        let toml_config = format!(
+            r#"
+[org]
+org_directory = "{path_str}"
+org_auto_closed_timestamp = false
+"#,
+        );
+
+        let config_path = test_utils::config::create_toml_config(&temp_dir, &toml_config).unwrap();
+
+        let config = load_org_config(Some(config_path.to_str().unwrap()), None).unwrap();
+        assert!(!config.org_auto_closed_timestamp);
     }
 }

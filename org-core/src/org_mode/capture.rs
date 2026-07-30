@@ -32,7 +32,7 @@ struct ResolvedCapture {
     properties: Vec<PropertyPair>,
 }
 
-fn is_valid_tag(tag: &str) -> bool {
+pub(crate) fn is_valid_tag(tag: &str) -> bool {
     !tag.is_empty()
         && tag
             .chars()
@@ -289,7 +289,7 @@ impl OrgMode {
         insert_text
     }
 
-    fn prepare_target_path(&self, file_rel: &str) -> Result<PathBuf, OrgModeError> {
+    pub(crate) fn prepare_target_path(&self, file_rel: &str) -> Result<PathBuf, OrgModeError> {
         let org_dir = PathBuf::from(&self.config.org_directory);
         let full_path = org_dir.join(file_rel);
 
@@ -500,7 +500,7 @@ impl OrgMode {
         })
     }
 
-    fn lock_path_for(target: &Path) -> Result<PathBuf, OrgModeError> {
+    pub(crate) fn lock_path_for(target: &Path) -> Result<PathBuf, OrgModeError> {
         let parent = target.parent().ok_or_else(|| {
             OrgModeError::IoError(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -519,7 +519,7 @@ impl OrgMode {
         Ok(parent.join(name))
     }
 
-    fn validate_relative_file_path(file_rel: &str) -> Result<(), OrgModeError> {
+    pub(crate) fn validate_relative_file_path(file_rel: &str) -> Result<(), OrgModeError> {
         use std::path::Component;
         let p = Path::new(file_rel);
         if p.is_absolute() {
@@ -558,7 +558,7 @@ impl OrgMode {
     }
 
     #[cfg(unix)]
-    fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
+    pub(crate) fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
         loop {
             let fd = OpenOptions::new()
                 .read(true)
@@ -581,7 +581,7 @@ impl OrgMode {
     }
 
     #[cfg(not(unix))]
-    fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
+    pub(crate) fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
         let fd = OpenOptions::new()
             .read(true)
             .write(true)
@@ -593,7 +593,7 @@ impl OrgMode {
         Ok(fd)
     }
 
-    fn atomic_write(target: &Path, bytes: &[u8]) -> Result<(), OrgModeError> {
+    pub(crate) fn atomic_write(target: &Path, bytes: &[u8]) -> Result<(), OrgModeError> {
         let parent = target.parent().ok_or_else(|| {
             OrgModeError::IoError(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -619,7 +619,7 @@ impl OrgMode {
         Ok(())
     }
 
-    fn format_heading(
+    pub(crate) fn format_heading(
         level: usize,
         todo_state: Option<&str>,
         priority: Option<&str>,

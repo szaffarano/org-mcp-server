@@ -22,6 +22,9 @@ pub enum OrgModeError {
     DuplicatePropertyKey(String),
     InvalidDatetreeDate(String),
     DatetreeDateWithoutFlag,
+    HeadingNotFound(String),
+    AmbiguousTarget(String),
+    InvalidUpdate(String),
 }
 
 impl fmt::Display for OrgModeError {
@@ -74,6 +77,18 @@ impl fmt::Display for OrgModeError {
             }
             OrgModeError::DatetreeDateWithoutFlag => {
                 write!(f, "Datetree date specified without enabling datetree")
+            }
+            OrgModeError::HeadingNotFound(target) => {
+                write!(f, "Heading not found: {target}")
+            }
+            OrgModeError::AmbiguousTarget(target) => {
+                write!(
+                    f,
+                    "Ambiguous target (matches more than one heading): {target}"
+                )
+            }
+            OrgModeError::InvalidUpdate(reason) => {
+                write!(f, "Invalid update: {reason}")
             }
         }
     }
@@ -208,5 +223,32 @@ mod tests {
     fn test_display_datetree_date_without_flag() {
         let s = format!("{}", OrgModeError::DatetreeDateWithoutFlag);
         assert_eq!(s, "Datetree date specified without enabling datetree");
+    }
+
+    #[test]
+    fn test_display_heading_not_found() {
+        let s = format!("{}", OrgModeError::HeadingNotFound("task-123".to_string()));
+        assert_eq!(s, "Heading not found: task-123");
+    }
+
+    #[test]
+    fn test_display_ambiguous_target() {
+        let s = format!(
+            "{}",
+            OrgModeError::AmbiguousTarget("Projects/Work".to_string())
+        );
+        assert_eq!(
+            s,
+            "Ambiguous target (matches more than one heading): Projects/Work"
+        );
+    }
+
+    #[test]
+    fn test_display_invalid_update() {
+        let s = format!(
+            "{}",
+            OrgModeError::InvalidUpdate("nothing to update".to_string())
+        );
+        assert_eq!(s, "Invalid update: nothing to update");
     }
 }
