@@ -108,11 +108,13 @@ fn extract_planning(h: &orgize::ast::Headline, content: &str) -> (usize, usize, 
             let p_start: usize = p.start().into();
             let p_end: usize = p.end().into();
             let first_line = line_index_at(content, p_start);
+            // orgize's planning span ends at the first byte of the next node
+            // (i.e. it includes the trailing '\n' of each planning line), so
+            // counting newlines gives the exact number of lines to splice.
             let line_count = content[p_start..p_end]
                 .bytes()
                 .filter(|&b| b == b'\n')
-                .count()
-                + 1;
+                .count();
             let values = PlanningValues {
                 scheduled: p.scheduled().map(|ts| ts.raw()),
                 deadline: p.deadline().map(|ts| ts.raw()),
@@ -347,7 +349,6 @@ impl OrgMode {
         };
 
         let mut lines: Vec<String> = content.lines().map(String::from).collect();
-        let planning = parse_planning_block(&lines, target.line_idx);
 
         // Resulting field values: explicit set > clear > existing.
         let cleared = |f: ClearField| entry.clear.contains(&f);
@@ -374,7 +375,7 @@ impl OrgMode {
                 .scheduled
                 .as_ref()
                 .map(|ts| Self::format_org_timestamp(ts, true))
-                .or(planning.values.scheduled.clone())
+                .or(target.planning_values.scheduled.clone())
         };
         let new_deadline = if cleared(ClearField::Deadline) {
             None
@@ -383,7 +384,7 @@ impl OrgMode {
                 .deadline
                 .as_ref()
                 .map(|ts| Self::format_org_timestamp(ts, true))
-                .or(planning.values.deadline.clone())
+                .or(target.planning_values.deadline.clone())
         };
 
         let is_done = new_keyword
@@ -395,7 +396,7 @@ impl OrgMode {
         } else if let Some(ts) = &resolved.closed {
             Some(Self::format_org_timestamp(ts, false))
         } else if is_done {
-            match planning.values.closed.clone() {
+            match target.planning_values.closed.clone() {
                 Some(existing) => Some(existing),
                 None if self.config.org_auto_closed_timestamp => {
                     let now = chrono::Local::now();
@@ -415,7 +416,7 @@ impl OrgMode {
             // Reactivated or keyword-less heading: drop the stale CLOSED.
             None
         } else {
-            planning.values.closed.clone()
+            target.planning_values.closed.clone()
         };
 
         let new_headline = Self::format_heading(
@@ -435,7 +436,7 @@ impl OrgMode {
         lines[target.line_idx] = new_headline.clone();
         let replacement: Vec<String> = new_planning.into_iter().collect();
         lines.splice(
-            planning.first_line..planning.first_line + planning.line_count,
+            target.planning_first_line..target.planning_first_line + target.planning_line_count,
             replacement,
         );
 
@@ -474,19 +475,19 @@ impl OrgMode {
         Self::push_change(
             &mut changes,
             "scheduled",
-            planning.values.scheduled.as_deref(),
+            target.planning_values.scheduled.as_deref(),
             new_scheduled.as_deref(),
         );
         Self::push_change(
             &mut changes,
             "deadline",
-            planning.values.deadline.as_deref(),
+            target.planning_values.deadline.as_deref(),
             new_deadline.as_deref(),
         );
         Self::push_change(
             &mut changes,
             "closed",
-            planning.values.closed.as_deref(),
+            target.planning_values.closed.as_deref(),
             new_closed.as_deref(),
         );
 
