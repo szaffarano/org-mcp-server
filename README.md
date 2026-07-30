@@ -421,8 +421,9 @@ cargo run --example <name>
 ### Phase 3: Extended Capabilities 🚧
 
 - [x] Content creation via `org-capture` (heading + planning + properties + datetree)
-- [ ] Content modification (edit existing TODOs: state changes, planning updates,
-      property updates, CLOCK / LOGBOOK entries)
+- [x] Content modification: TODO state, priority, tags, and planning updates via
+      `org-update-todo` / `org-cli update-todo`
+- [ ] Content modification: property drawer updates and CLOCK / LOGBOOK entries
 - [ ] Media file reference handling
 - [ ] Integration with org-roam databases
 - [ ] Real-time file watching and updates
