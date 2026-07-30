@@ -12,7 +12,7 @@ mod resource_tests;
 use org_core::org_mode::AgendaViewType;
 use rmcp::model::{
     Implementation, InitializeRequestParams, InitializeResult, ListResourceTemplatesResult,
-    ListResourcesResult, PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResult,
+    ListResourcesResult, PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResponse,
     Resource, ResourceTemplate,
 };
 use rmcp::service::RequestContext;
@@ -73,24 +73,20 @@ impl ServerHandler for OrgModeRouter {
         _request: Option<PaginatedRequestParams>,
         _: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
-        Ok(ListResourcesResult {
-            resources: vec![
-                Resource::new("org://", "org")
-                    .with_description("List all org-mode files in the configured directory tree")
-                    .with_mime_type("application/json"),
-                Resource::new("org-agenda://", "org-agenda")
-                    .with_description("List all agenda items and tasks")
-                    .with_mime_type("application/json"),
-                Resource::new("org-agenda://today", "org-agenda-today")
-                    .with_description("Today's scheduled agenda items")
-                    .with_mime_type("application/json"),
-                Resource::new("org-agenda://week", "org-agenda-week")
-                    .with_description("This week's scheduled agenda items")
-                    .with_mime_type("application/json"),
-            ],
-            next_cursor: None,
-            meta: None,
-        })
+        Ok(ListResourcesResult::with_all_items(vec![
+            Resource::new("org://", "org")
+                .with_description("List all org-mode files in the configured directory tree")
+                .with_mime_type("application/json"),
+            Resource::new("org-agenda://", "org-agenda")
+                .with_description("List all agenda items and tasks")
+                .with_mime_type("application/json"),
+            Resource::new("org-agenda://today", "org-agenda-today")
+                .with_description("Today's scheduled agenda items")
+                .with_mime_type("application/json"),
+            Resource::new("org-agenda://week", "org-agenda-week")
+                .with_description("This week's scheduled agenda items")
+                .with_mime_type("application/json"),
+        ]))
     }
 
     async fn list_resource_templates(
@@ -98,49 +94,45 @@ impl ServerHandler for OrgModeRouter {
         _: Option<PaginatedRequestParams>,
         _: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, McpError> {
-        Ok(ListResourceTemplatesResult {
-            next_cursor: None,
-            meta: None,
-            resource_templates: vec![
-                ResourceTemplate::new("org://{file}", "org-file")
-                    .with_description("Access the raw content of an org-mode file by its path")
-                    .with_mime_type("text/org"),
-                ResourceTemplate::new("org-outline://{file}", "org-outline-file")
-                    .with_description(
-                        "Get the hierarchical outline structure of an org-mode file as JSON",
-                    )
-                    .with_mime_type("application/json"),
-                ResourceTemplate::new("org-heading://{file}#{heading}", "org-heading-file")
-                    .with_description(
-                        "Access the content of a specific heading within an org-mode file",
-                    )
-                    .with_mime_type("application/json"),
-                ResourceTemplate::new("org-id://{id}", "org-element-by-id")
-                    .with_description(
-                        "Access the content of any org-mode element by its unique ID property",
-                    )
-                    .with_mime_type("plain/text"),
-                ResourceTemplate::new("org-agenda://day/{date}", "org-agenda-day")
-                    .with_description("Access the agenda items for a specific day (YYYY-MM-DD)")
-                    .with_mime_type("application/json"),
-                ResourceTemplate::new("org-agenda://week/{num}", "org-agenda-week")
-                    .with_description("Access the agenda items for the specified week number")
-                    .with_mime_type("application/json"),
-                ResourceTemplate::new("org-agenda://month/{num}", "org-agenda-month")
-                    .with_description("Access the agenda items for the specified month number")
-                    .with_mime_type("application/json"),
-                ResourceTemplate::new("org-agenda://query/from/{from}/to/{to}", "org-agenda-query")
-                    .with_description("Access the agenda items for the specified date range")
-                    .with_mime_type("application/json"),
-            ],
-        })
+        Ok(ListResourceTemplatesResult::with_all_items(vec![
+            ResourceTemplate::new("org://{file}", "org-file")
+                .with_description("Access the raw content of an org-mode file by its path")
+                .with_mime_type("text/org"),
+            ResourceTemplate::new("org-outline://{file}", "org-outline-file")
+                .with_description(
+                    "Get the hierarchical outline structure of an org-mode file as JSON",
+                )
+                .with_mime_type("application/json"),
+            ResourceTemplate::new("org-heading://{file}#{heading}", "org-heading-file")
+                .with_description(
+                    "Access the content of a specific heading within an org-mode file",
+                )
+                .with_mime_type("application/json"),
+            ResourceTemplate::new("org-id://{id}", "org-element-by-id")
+                .with_description(
+                    "Access the content of any org-mode element by its unique ID property",
+                )
+                .with_mime_type("plain/text"),
+            ResourceTemplate::new("org-agenda://day/{date}", "org-agenda-day")
+                .with_description("Access the agenda items for a specific day (YYYY-MM-DD)")
+                .with_mime_type("application/json"),
+            ResourceTemplate::new("org-agenda://week/{num}", "org-agenda-week")
+                .with_description("Access the agenda items for the specified week number")
+                .with_mime_type("application/json"),
+            ResourceTemplate::new("org-agenda://month/{num}", "org-agenda-month")
+                .with_description("Access the agenda items for the specified month number")
+                .with_mime_type("application/json"),
+            ResourceTemplate::new("org-agenda://query/from/{from}/to/{to}", "org-agenda-query")
+                .with_description("Access the agenda items for the specified date range")
+                .with_mime_type("application/json"),
+        ]))
     }
 
     async fn read_resource(
         &self,
         ReadResourceRequestParams { uri, .. }: ReadResourceRequestParams,
         _context: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
+    ) -> Result<ReadResourceResponse, McpError> {
         match OrgModeRouter::parse_resource(uri.clone()) {
             Some(OrgResource::OrgFiles) => self.list_files(uri).await,
             Some(OrgResource::Org { path }) => self.read_file(uri, path).await,
@@ -158,6 +150,7 @@ impl ServerHandler for OrgModeRouter {
                 Some(json!({"uri": uri})),
             )),
         }
+        .map(Into::into)
     }
 
     async fn initialize(
