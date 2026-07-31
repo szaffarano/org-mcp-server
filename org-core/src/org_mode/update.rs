@@ -129,36 +129,39 @@ fn extract_planning(h: &orgize::ast::Headline, content: &str) -> (usize, usize, 
 }
 
 fn extract_property_drawer(
-    _h: &orgize::ast::Headline,
+    h: &orgize::ast::Headline,
     content: &str,
     after_line: usize,
 ) -> (usize, usize, Vec<(String, String)>) {
-    let all_lines: Vec<&str> = content.lines().collect();
-    let candidate = all_lines.get(after_line).map(|l| l.trim());
-    if candidate != Some(":PROPERTIES:") {
-        return (after_line, 0, vec![]);
-    }
-    let drawer_start = after_line;
-    let mut properties = Vec::new();
-    let mut end_line = drawer_start;
-    for (i, line) in all_lines[drawer_start + 1..].iter().enumerate() {
-        let trimmed = line.trim();
-        if trimmed.eq_ignore_ascii_case(":END:") {
-            end_line = drawer_start + 1 + i;
-            break;
-        }
-        if let Some(rest) = trimmed.strip_prefix(':')
-            && let Some(colon_pos) = rest.find(':')
-        {
-            let key = rest[..colon_pos].to_string();
-            let value = rest[colon_pos + 1..].trim().to_string();
-            if !key.is_empty() {
-                properties.push((key, value));
-            }
-        }
-    }
-    let drawer_line_count = end_line - drawer_start + 1;
-    (drawer_start, drawer_line_count, properties)
+    use orgize::rowan::ast::AstNode;
+
+    let drawer = match h.properties() {
+        Some(d) => d,
+        None => return (after_line, 0, vec![]),
+    };
+
+    let range = drawer.syntax().text_range();
+    let start_offset = usize::from(range.start());
+    let end_offset = usize::from(range.end());
+
+    let start_line = content[..start_offset]
+        .chars()
+        .filter(|&c| c == '\n')
+        .count();
+    let drawer_text = &content[start_offset..end_offset];
+    let newlines = drawer_text.chars().filter(|&c| c == '\n').count();
+    let drawer_line_count = if drawer_text.ends_with('\n') {
+        newlines
+    } else {
+        newlines + 1
+    };
+
+    let properties = drawer
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
+    (start_line, drawer_line_count, properties)
 }
 
 fn find_body_last_line(content: &str, body_first_line: usize) -> usize {
