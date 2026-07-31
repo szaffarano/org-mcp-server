@@ -49,11 +49,8 @@ struct TargetHeadline {
     planning_first_line: usize,
     planning_line_count: usize,
     planning_values: PlanningValues,
-    #[allow(dead_code)]
     property_drawer_first_line: usize,
-    #[allow(dead_code)]
     property_drawer_line_count: usize,
-    #[allow(dead_code)]
     existing_properties: Vec<(String, String)>,
     body_first_line: usize,
     body_last_line: usize,
@@ -540,8 +537,89 @@ impl OrgMode {
         };
 
         let plan_delta: isize = replacement_len as isize - target.planning_line_count as isize;
-        let body_first = (target.body_first_line as isize + plan_delta) as usize;
-        let body_last = (target.body_last_line as isize + plan_delta) as usize;
+
+        // --- Property drawer splice ---
+        let drawer_first = (target.property_drawer_first_line as isize + plan_delta) as usize;
+        let drawer_count = target.property_drawer_line_count;
+        let need_drawer_update = entry.properties.is_some() || entry.remove_properties.is_some();
+        let drawer_delta: isize;
+        let mut changes = Vec::new();
+
+        if need_drawer_update {
+            let mut props: Vec<(String, String)> = target.existing_properties.clone();
+
+            if let Some(ref new_props) = entry.properties {
+                for pair in new_props {
+                    let key_upper = pair.key.to_uppercase();
+                    if let Some(existing) = props
+                        .iter_mut()
+                        .find(|(k, _)| k.to_uppercase() == key_upper)
+                    {
+                        existing.1 = pair.value.clone();
+                    } else {
+                        props.push((pair.key.clone(), pair.value.clone()));
+                    }
+                }
+            }
+
+            if let Some(ref removes) = entry.remove_properties {
+                for key in removes {
+                    let key_upper = key.to_uppercase();
+                    props.retain(|(k, _)| k.to_uppercase() != key_upper);
+                }
+            }
+
+            let new_drawer_lines: Vec<String> = if props.is_empty() {
+                vec![]
+            } else {
+                let mut drawer = vec![":PROPERTIES:".to_string()];
+                for (k, v) in &props {
+                    drawer.push(format!(":{k}: {v}"));
+                }
+                drawer.push(":END:".to_string());
+                drawer
+            };
+
+            drawer_delta = new_drawer_lines.len() as isize - drawer_count as isize;
+
+            let old_map: std::collections::HashMap<String, String> = target
+                .existing_properties
+                .iter()
+                .map(|(k, v)| (k.to_uppercase(), v.clone()))
+                .collect();
+
+            if let Some(ref new_props) = entry.properties {
+                for pair in new_props {
+                    let old_val = old_map.get(&pair.key.to_uppercase()).map(|s| s.as_str());
+                    Self::push_change(
+                        &mut changes,
+                        &format!("property:{}", pair.key),
+                        old_val,
+                        Some(&pair.value),
+                    );
+                }
+            }
+            if let Some(ref removes) = entry.remove_properties {
+                for key in removes {
+                    if let Some(old_val) = old_map.get(&key.to_uppercase()) {
+                        Self::push_change(
+                            &mut changes,
+                            &format!("property:{key}"),
+                            Some(old_val.as_str()),
+                            None,
+                        );
+                    }
+                }
+            }
+
+            lines.splice(drawer_first..drawer_first + drawer_count, new_drawer_lines);
+        } else {
+            drawer_delta = 0;
+        }
+
+        // --- Body splice (adjust for both plan_delta and drawer_delta) ---
+        let body_first = (target.body_first_line as isize + plan_delta + drawer_delta) as usize;
+        let body_last = (target.body_last_line as isize + plan_delta + drawer_delta) as usize;
 
         let new_body: Option<Vec<String>> = if entry.clear.contains(&ClearField::Body) {
             Some(vec![])
@@ -570,7 +648,6 @@ impl OrgMode {
         }
         Self::atomic_write(full_path, out.as_bytes())?;
 
-        let mut changes = Vec::new();
         Self::push_change(
             &mut changes,
             "todo_state",
@@ -1648,5 +1725,163 @@ Body line must survive.
         org_mode.update_todo(e).unwrap();
         let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
         assert!(content.contains("Remember the milk."));
+    }
+
+    #[test]
+    fn test_update_property_upsert_existing_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "EFFORT".to_string(),
+            value: "30m".to_string(),
+        }]);
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains(":EFFORT: 30m"), "upserted:\n{content}");
+        assert!(
+            content.contains(":ID: task-groceries-456"),
+            "ID preserved:\n{content}"
+        );
+    }
+
+    #[test]
+    fn test_update_property_upsert_creates_drawer_when_absent() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("nodrawer.org"),
+            "* TODO No drawer task\nbody text\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("nodrawer.org".to_string()),
+            heading_path: Some("No drawer task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: Some(vec![crate::PropertyPair {
+                key: "CATEGORY".to_string(),
+                value: "work".to_string(),
+            }]),
+            remove_properties: None,
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("nodrawer.org")).unwrap();
+        assert!(
+            content.contains(":PROPERTIES:"),
+            "drawer created:\n{content}"
+        );
+        assert!(
+            content.contains(":CATEGORY: work"),
+            "property set:\n{content}"
+        );
+        assert!(content.contains(":END:"), "drawer ended:\n{content}");
+        assert!(content.contains("body text"), "body preserved:\n{content}");
+    }
+
+    #[test]
+    fn test_update_property_remove_existing_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("props.org"),
+            "* TODO Task\n:PROPERTIES:\n:ID: p-1\n:EFFORT: 1h\n:END:\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("props.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: Some(vec!["EFFORT".to_string()]),
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("props.org")).unwrap();
+        assert!(!content.contains(":EFFORT:"), "removed:\n{content}");
+        assert!(content.contains(":ID: p-1"), "ID preserved:\n{content}");
+    }
+
+    #[test]
+    fn test_update_property_remove_nonexistent_is_noop() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("noop.org"),
+            "* TODO Task\n:PROPERTIES:\n:ID: noop-1\n:END:\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("noop.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: Some(vec!["NONEXISTENT".to_string()]),
+        };
+        let before = fs::read_to_string(temp_dir.path().join("noop.org")).unwrap();
+        org_mode.update_todo(e).unwrap();
+        let after = fs::read_to_string(temp_dir.path().join("noop.org")).unwrap();
+        assert_eq!(before, after, "noop removal must not change file");
+    }
+
+    #[test]
+    fn test_update_property_remove_all_keys_removes_drawer() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("drain.org"),
+            "* TODO Task\n:PROPERTIES:\n:EFFORT: 1h\n:END:\nbody\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("drain.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: Some(vec!["EFFORT".to_string()]),
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("drain.org")).unwrap();
+        assert!(
+            !content.contains(":PROPERTIES:"),
+            "drawer removed:\n{content}"
+        );
+        assert!(content.contains("body"), "body preserved:\n{content}");
     }
 }
