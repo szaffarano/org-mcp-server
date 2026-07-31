@@ -33,228 +33,183 @@ linking capabilities for your org-mode files through the MCP protocol.
 ### MCP Tools
 
 - `org-file-list` — List all org files in configured directories
-- `org-search` — Search for text content across all org files using fuzzy matching
+- `org-search` — Full-text fuzzy search across all org files
 - `org-agenda` — Query agenda items with filtering by dates, states, tags, and priorities
-- `org-capture` — Append a fully-formed heading to an org file. Supports TODO state,
-  priority, tags, body, SCHEDULED/DEADLINE/CLOSED timestamps (with optional repeater
-  and warning suffixes), property drawer entries, and Year/Month/Day datetree expansion.
-  Can target a specific heading or append to end of file.
-- `org-update-todo` — Update the TODO state and planning metadata of an existing
-  heading (target by org ID or file + heading path). Set or clear todo_state,
-  priority, tags, SCHEDULED/DEADLINE/CLOSED timestamps, heading title, body text,
-  and property drawer entries (per-key upsert/remove).
+- `org-capture` — Append a heading to an org file. Supports TODO state, priority, tags,
+  body, SCHEDULED/DEADLINE/CLOSED timestamps (with repeater and warning suffixes),
+  property drawer entries, and datetree expansion.
+- `org-update-todo` — Update an existing heading in place. Set or clear todo_state,
+  priority, tags, planning timestamps, heading title, body text, and property drawer
+  entries (per-key upsert/remove).
 
-### CLI Tool
+## Agent Skills Plugin
 
-- `org-cli config init` — Create default configuration file
-- `org-cli config show` — Display current configuration
-- `org-cli config path` — Show configuration file location
-- `org-cli list` — List all .org files in configured directory
-- `org-cli init` — Initialize or validate an org directory
-- `org-cli read` — Read the contents of an org file
-- `org-cli outline` — Get the outline (headings) of an org file
-- `org-cli heading` — Extract content from a specific heading in an org file
-- `org-cli element-by-id` — Extract content from an element by ID across all
-  org files
-- `org-cli search` — Search for text content across all org files using fuzzy
-  matching
-- `org-cli agenda list` — List all tasks (TODO/DONE items)
-- `org-cli agenda today` — Show today's scheduled tasks
-- `org-cli agenda week` — Show this week's scheduled tasks
-- `org-cli agenda range` — Show tasks in custom date range
-- `org-cli capture` — Append a new heading to an org file with optional TODO state,
-  priority, tags, body, planning timestamps, property drawer, and datetree expansion
-- `org-cli update-todo` — Update an existing heading's TODO state, priority, tags, and
-  planning timestamps in place; supports clearing fields via `--clear` and auto-stamps
-  CLOSED on done transitions
+This repository ships skills for Claude Code, Codex, Cursor, and OpenCode that guide
+agents to use the MCP server effectively.
+
+| Skill | Purpose |
+|---|---|
+| `org-agenda` | Query agenda items by date, state, priority, and tags |
+| `org-search` | Search and browse org files and headings |
+| `org-capture` | Create new headings, tasks, and journal entries |
+| `org-update-todo` | Update TODO state, title, body, properties, and timestamps |
+
+### Claude Code
+
+```bash
+claude plugin install github:szaffarano/org-mcp-server
+```
+
+Or add to `.claude/settings.json`:
+
+```json
+{ "plugins": ["github:szaffarano/org-mcp-server"] }
+```
+
+### Codex / Cursor
+
+Add to your plugin configuration using `.codex-plugin/plugin.json` or
+`.cursor-plugin/plugin.json` from this repository.
+
+### OpenCode
+
+```json
+{ "plugin": ["org-mcp-server@git+https://github.com/szaffarano/org-mcp-server.git"] }
+```
+
+See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for full setup instructions.
+
+## Setup
+
+### Pre-built Binaries
+
+Download the latest pre-built binaries from [GitHub Releases](https://github.com/szaffarano/org-mcp-server/releases/latest):
+
+```bash
+curl -LO https://github.com/szaffarano/org-mcp-server/releases/latest/download/org-mcp-server-x86_64-unknown-linux-gnu.tar.gz
+tar xzf org-mcp-server-x86_64-unknown-linux-gnu.tar.gz
+sudo mv org-mcp-server /usr/local/bin/
+```
+
+Binaries are available for Linux, macOS, and Windows. Check the
+[releases page](https://github.com/szaffarano/org-mcp-server/releases) for all targets.
+
+### Cargo
+
+```bash
+cargo install org-mcp-server --locked
+cargo install org-cli --locked
+```
+
+### Nix
+
+```bash
+nix run github:szaffarano/org-mcp-server       # run directly
+nix profile install github:szaffarano/org-mcp-server  # install to profile
+nix develop github:szaffarano/org-mcp-server   # development shell
+```
+
+### From Source
+
+```bash
+git clone https://github.com/szaffarano/org-mcp-server
+cd org-mcp-server
+cargo build --release
+```
+
+## MCP Server Integration
+
+Add to your AI agent configuration (e.g., `~/.claude.json`, `opencode.json`):
+
+```json
+{
+  "mcpServers": {
+    "org-mode": {
+      "command": "/path/to/org-mcp-server",
+      "args": [],
+      "env": {
+        "ORG_ORG__ORG_DIRECTORY": "/path/to/your/org/files"
+      }
+    }
+  }
+}
+```
+
+Or via Nix:
+
+```json
+{
+  "mcpServers": {
+    "org-mode": {
+      "command": "nix",
+      "args": ["run", "github:szaffarano/org-mcp-server"]
+    }
+  }
+}
+```
 
 ## Configuration
 
-The project uses a TOML configuration file located at
-`~/.config/org-mcp/config.toml` (or `$XDG_CONFIG_HOME/org-mcp/config.toml`).
-
-### Configuration Hierarchy
-
-Configuration is resolved in the following order (highest priority first):
-
-1. **CLI flags** — Command-line arguments override everything
-2. **Environment variables** — `ORG_*` prefixed variables
-3. **Configuration file** — TOML file in config directory
-4. **Default values** — Built-in fallbacks
-
-### Configuration File Format
+Config file: `~/.config/org-mcp/config.toml` (or `$XDG_CONFIG_HOME/org-mcp/config.toml`).
 
 ```toml
 [org]
-# Root directory containing org-mode files
 org_directory = "~/org/"
-# Default notes file for new notes
 org_default_notes_file = "notes.org"
-# Agenda files to include
 org_agenda_files = ["agenda.org", "projects.org"]
-# Extra files for text search beyond regular org files
-org_agenda_text_search_extra_files = ["archive.org"]
-org_todo_keywords = [
-    "TODO",
-    "|",
-    "DONE",
-]
-# When true, capture automatically prepends an inactive timestamp like
-# `:CREATED: [YYYY-MM-DD Day HH:MM]` (with the current local time) to the property
-# drawer of new entries. User-supplied CREATED (case-insensitive) wins.
+org_todo_keywords = ["TODO", "|", "DONE"]
+# Auto-prepend :CREATED: property on capture (default: true)
 org_auto_created_property = true
-# When true, updating a TODO to a done keyword automatically stamps CLOSED with the
-# current local time, and reactivating a done task removes its CLOSED timestamp.
+# Auto-stamp CLOSED on done transitions (default: true)
 org_auto_closed_timestamp = true
 
 [logging]
-# Log level: trace, debug, info, warn, error
 level = "info"
-# Log file location (MCP server only, CLI logs to stderr)
 file = "~/.local/share/org-mcp-server/logs/server.log"
 
 [cli]
-# Default output format for CLI commands
 default_format = "plain"  # plain | json
 ```
 
-### Environment Variables
-
-#### Org-mode Configuration
-- `ORG_ORG__ORG_DIRECTORY` — Root directory for org files
-- `ORG_ORG__ORG_DEFAULT_NOTES_FILE` — Default notes file name
-- `ORG_ORG__ORG_AGENDA_FILES` — Comma-separated list of agenda files
-- `ORG_ORG__ORG_AGENDA_TEXT_SEARCH_EXTRA_FILES` — Comma-separated extra search files
-- `ORG_ORG__ORG_AUTO_CREATED_PROPERTY` — `true`/`false`; auto-add `:CREATED:` on capture (default: true)
-- `ORG_ORG__ORG_AUTO_CLOSED_TIMESTAMP` — `true`/`false`; auto-manage `CLOSED` on todo
-  state transitions (default: true)
-
-#### Logging Configuration
-- `ORG_LOGGING__LEVEL` — Log level (debug, info, warn, error, trace)
-- `ORG_LOGGING__FILE` — Log file location
-
-#### Server Configuration
-- `ORG_SERVER__MAX_CONNECTIONS` — Maximum number of concurrent connections (default: 10)
-
-#### CLI Configuration
-- `ORG_CLI__DEFAULT_FORMAT` — Default output format for CLI commands (plain, json)
-
-### Configuration Commands
+Configuration is resolved in order: CLI flags → environment variables (`ORG_` prefix,
+`__` separator, e.g. `ORG_ORG__ORG_DIRECTORY`) → config file → defaults.
 
 ```bash
-# Create default configuration file
-org-cli config init
-
-# Show current resolved configuration
-org-cli config show
-
-# Show configuration file path
-org-cli config path
+org-cli config init   # create default config file
+org-cli config show   # display current resolved config
+org-cli config path   # show config file location
 ```
 
-## Usage Examples
+## CLI Tool
 
-### Basic Commands
+`org-cli` mirrors the MCP server's capabilities for scripting and testing.
+Run `org-cli --help` or `org-cli <subcommand> --help` for full usage.
+
+Quick examples:
 
 ```bash
-# List all org files using configuration
-org-cli list
-
-# List with JSON output
-org-cli list --format json
-
-# Search across all configured org files
+# Search across all org files
 org-cli search "project planning"
 
-# Search with custom parameters
-org-cli search "TODO" --limit 5 --format json --snippet-size 75
-
-# Override root directory for a single command
-org-cli --root-directory ~/documents/org search "meeting notes"
-```
-
-### Agenda Commands
-
-```bash
-# List all tasks (TODO/DONE items)
-org-cli agenda list
-
-# List tasks with specific TODO states
-org-cli agenda list --states TODO,IN_PROGRESS
-
-# Filter tasks by priority
-org-cli agenda list --priority A
-
-# Filter by tags
-org-cli agenda list --tags work,urgent
-
-# Show today's scheduled tasks
+# Agenda
 org-cli agenda today
+org-cli agenda list --states TODO,IN_PROGRESS --tags work
 
-# Show this week's tasks
-org-cli agenda week
+# Capture a TODO with planning
+org-cli capture "Fix login bug" --todo-state TODO --priority A \
+    --scheduled "2026-05-15" --deadline "2026-05-20 -3d"
 
-# Show tasks in custom date range
-org-cli agenda range --start 2025-10-20 --end 2025-10-27
+# Capture under a datetree
+org-cli capture "Standup notes" --file journal.org --target-heading Logs --datetree
 
-# JSON output for agenda
-org-cli agenda list --format json --limit 10
+# Update an existing heading
+org-cli update-todo --id abc123 --todo-state DONE
+org-cli update-todo --file projects.org --heading-path "Work/Task" \
+    --title "Renamed task" --property "EFFORT=2h"
 ```
 
-### Capture Commands
-
-```bash
-# Quick capture into the default notes file
-org-cli capture "Review PR #42"
-
-# Capture a TODO with priority and tags
-org-cli capture "Fix login bug" \
-    --todo-state TODO --priority A --tags work,urgent
-
-# Capture under a target heading (creates missing levels)
-org-cli capture "Migrate database" \
-    --file projects.org --target-heading "Projects/Backend"
-
-# Capture with planning fields (SCHEDULED, DEADLINE, optional CLOSED)
-org-cli capture "Ship v2 release" \
-    --scheduled "2026-05-15" \
-    --deadline "2026-05-20 17:00"
-
-# Recurring task: SCHEDULED with a repeater (++1w means weekly)
-org-cli capture "Weekly review" --scheduled "2026-05-15 ++1w"
-
-# DEADLINE with a 3-day warning lead
-org-cli capture "Submit report" --deadline "2026-05-20 -3d"
-
-# Property drawer entries (repeatable; KEY=VALUE)
-org-cli capture "Quarterly planning" \
-    --property "CATEGORY=planning" \
-    --property "EFFORT=2h"
-
-# Datetree journaling: lands under <today's> Year/Month/Day under "Logs"
-org-cli capture "Standup notes" \
-    --file journal.org --target-heading Logs --datetree
-
-# Backfill an entry under a specific past day
-org-cli capture "Retro reflection" \
-    --file journal.org --datetree --datetree-date 2026-04-01
-
-# Body content via --body
-org-cli capture "Idea" --body "Use a Bloom filter for dedup."
-```
-
-Timestamp grammar (used by `--scheduled`, `--deadline`, `--closed`):
-
-```
-YYYY-MM-DD [HH:MM] [REPEATER] [WARNING]
-```
-
-- Repeater: `+N{u}`, `++N{u}`, or `.+N{u}` where `N` is a positive integer and
-  `u ∈ {h, d, w, m, y}` (e.g., `++1w`, `.+3m`).
-- Warning: `-N{u}` (e.g., `-3d`).
-
-CLOSED renders with inactive brackets `[...]`; SCHEDULED and DEADLINE use
-active brackets `<...>`. The day-of-week abbreviation is added automatically.
+Timestamp grammar for `--scheduled`, `--deadline`, `--closed`:
+`YYYY-MM-DD [HH:MM] [+N{h|d|w|m|y} | ++N{u} | .+N{u}] [-N{u}]`
 
 ## Architecture
 
@@ -264,194 +219,18 @@ Multi-crate Rust workspace:
 - **org-mcp-server** — MCP protocol implementation
 - **org-cli** — CLI interface for testing and direct usage
 
-Built with:
-
-- [orgize](https://crates.io/crates/orgize) for org-mode parsing
-- [rmcp](https://crates.io/crates/rmcp) for MCP protocol
-- [tokio](https://crates.io/crates/tokio) for async runtime
-- [nucleo-matcher](https://crates.io/crates/nucleo-matcher) for fuzzy text search
-
-## Setup
-
-### Pre-built Binaries
-
-Download the latest pre-built binaries from [GitHub Releases](https://github.com/szaffarano/org-mcp-server/releases/latest):
-
-```bash
-# Download org-cli
-curl -LO https://github.com/szaffarano/org-mcp-server/releases/latest/download/org-cli-x86_64-unknown-linux-gnu.tar.gz
-tar xzf org-cli-x86_64-unknown-linux-gnu.tar.gz
-sudo mv org-cli /usr/local/bin/
-
-# Download org-mcp-server
-curl -LO https://github.com/szaffarano/org-mcp-server/releases/latest/download/org-mcp-server-x86_64-unknown-linux-gnu.tar.gz
-tar xzf org-mcp-server-x86_64-unknown-linux-gnu.tar.gz
-sudo mv org-mcp-server /usr/local/bin/
-```
-
-Pre-built binaries are available for multiple platforms. Check the [releases page](https://github.com/szaffarano/org-mcp-server/releases) for all available downloads.
-
-### Cargo Install
-
-Install from [crates.io](https://crates.io) using Cargo:
-
-```bash
-# Install CLI tool
-cargo install org-cli --locked
-
-# Install MCP server
-cargo install org-mcp-server --locked
-```
-
-### Using Nix Flakes
-
-```bash
-# Run directly with nix
-nix run github:szaffarano/org-mcp-server
-
-# Install to profile
-nix profile install github:szaffarano/org-mcp-server
-
-# Development environment
-nix develop github:szaffarano/org-mcp-server
-```
-
-### From Source
-
-```bash
-# Clone and build
-git clone https://github.com/szaffarano/org-mcp-server
-cd org-mcp-server
-cargo build --release
-
-# Run MCP server
-cargo run --bin org-mcp-server
-
-# Test with CLI
-cargo run --bin org-cli -- list
-```
-
-## MCP Server Integration
-
-### AI Agent Configuration
-
-Add the following to your agent configuration (e.g.,
-`~/.config/opencode/opencode.json`, `~/.claude.json`, etc.):
-
-```json
-{
-  "mcpServers": {
-    "org-mode": {
-      "command": "/path/to/org-mcp-server",
-      "args": [],
-      "env": {}
-    }
-  }
-}
-```
-
-Or if installed via Nix:
-
-```json
-{
-  "mcpServers": {
-    "org-mode": {
-      "command": "nix",
-      "args": ["run", "github:szaffarano/org-mcp-server"],
-      "env": {}
-    }
-  }
-}
-```
-
-### Environment Variable Configuration
-
-You can configure the MCP server through environment variables in your agent configuration:
-
-```json
-{
-  "mcpServers": {
-    "org-mode": {
-      "command": "/path/to/org-mcp-server",
-      "args": [],
-      "env": {
-        "ORG_ORG__ORG_DIRECTORY": "/path/to/your/org/files",
-        "ORG_LOGGING__LEVEL": "info",
-        "ORG_SERVER__MAX_CONNECTIONS": "20"
-      }
-    }
-  }
-}
-```
-
-## Agent Skills Plugin
-
-This repository ships skills for Claude Code, Codex, Cursor, and OpenCode that
-guide agents to use the MCP server effectively. Skills cover agenda queries,
-document search, note capture, and task updates.
-
-| Skill | Purpose |
-|---|---|
-| `org-agenda` | Query agenda items by date, state, priority, and tags |
-| `org-search` | Search and browse org files and headings |
-| `org-capture` | Create new headings, tasks, and journal entries |
-| `org-update-todo` | Update TODO state, priority, tags, and timestamps |
-
-### Claude Code
-
-Install the plugin by pointing Claude Code at this repository:
-
-```bash
-# Add to your Claude Code plugin config
-claude plugin install github:szaffarano/org-mcp-server
-```
-
-Or add to `.claude/settings.json` manually:
-
-```json
-{
-  "plugins": ["github:szaffarano/org-mcp-server"]
-}
-```
-
-### Codex
-
-Add to your Codex plugin configuration using `.codex-plugin/plugin.json` from
-this repository.
-
-### Cursor
-
-Add to your Cursor plugin configuration using `.cursor-plugin/plugin.json` from
-this repository.
-
-### OpenCode
-
-Add to the `plugin` array in your `opencode.json`:
-
-```json
-{
-  "plugin": ["org-mcp-server@git+https://github.com/szaffarano/org-mcp-server.git"]
-}
-```
-
-See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for full OpenCode setup
-instructions.
+Built with [orgize](https://crates.io/crates/orgize) (org-mode parsing),
+[rmcp](https://crates.io/crates/rmcp) (MCP protocol),
+[tokio](https://crates.io/crates/tokio) (async runtime), and
+[nucleo-matcher](https://crates.io/crates/nucleo-matcher) (fuzzy search).
 
 ## Development
 
 ```bash
-# Run all tests
-cargo test
-
-# Run specific crate tests
-cargo test -p org-core
-
-# Format and lint
-cargo fmt
-cargo clippy
-
-# Run examples
-cargo run --example <name>
+cargo test                                              # run all tests
+cargo test -p org-core                                  # test specific crate
+cargo fmt && cargo clippy --all-targets --all-features  # format and lint
+cargo run --bin org-cli -- --help                       # run CLI
 ```
 
 ## Roadmap
