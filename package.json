@@ -1,0 +1,26 @@
+{
+  "name": "org-mcp-server",
+  "version": "0.1.0",
+  "description": "Org-mode skills for coding agents: agenda, task management, and document search",
+  "type": "module",
+  "main": ".opencode/plugins/org-mcp-server.js",
+  "keywords": [
+    "org-mode",
+    "agenda",
+    "tasks",
+    "search",
+    "notes",
+    "knowledge-management",
+    "skills"
+  ],
+  "author": {
+    "name": "Sebastián Zaffarano",
+    "email": "sebas@zaffarano.com.ar"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/szaffarano/org-mcp-server.git"
+  },
+  "homepage": "https://github.com/szaffarano/org-mcp-server"
+}

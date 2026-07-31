@@ -1,0 +1,23 @@
+{
+  "name": "org-mcp-server",
+  "displayName": "Org MCP Server",
+  "description": "Org-mode skills for Cursor: agenda, task management, and document search",
+  "version": "0.1.0",
+  "author": {
+    "name": "Sebastián Zaffarano",
+    "email": "sebas@zaffarano.com.ar"
+  },
+  "homepage": "https://github.com/szaffarano/org-mcp-server",
+  "repository": "https://github.com/szaffarano/org-mcp-server",
+  "license": "MIT",
+  "keywords": [
+    "org-mode",
+    "agenda",
+    "tasks",
+    "search",
+    "notes",
+    "knowledge-management"
+  ],
+  "skills": "./skills/",
+  "hooks": {}
+}

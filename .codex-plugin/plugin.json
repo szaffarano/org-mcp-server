@@ -1,0 +1,23 @@
+{
+  "name": "org-mcp-server",
+  "version": "0.1.0",
+  "description": "Org-mode skills for Codex: agenda, task management, and document search.",
+  "author": {
+    "name": "Sebastián Zaffarano",
+    "email": "sebas@zaffarano.com.ar",
+    "url": "https://github.com/szaffarano"
+  },
+  "homepage": "https://github.com/szaffarano/org-mcp-server",
+  "repository": "https://github.com/szaffarano/org-mcp-server",
+  "license": "MIT",
+  "keywords": [
+    "org-mode",
+    "agenda",
+    "tasks",
+    "search",
+    "notes",
+    "knowledge-management"
+  ],
+  "skills": "./skills/",
+  "hooks": {}
+}
