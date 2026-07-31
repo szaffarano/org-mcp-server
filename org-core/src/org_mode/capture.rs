@@ -70,9 +70,11 @@ impl OrgMode {
         #[cfg(unix)]
         let _ = fs::remove_file(&lock_path);
         drop(lock_file);
-        // On non-Unix (Windows), the file must be closed before it can be removed.
-        #[cfg(not(unix))]
-        let _ = fs::remove_file(&lock_path);
+        // On Windows, do NOT delete the lock file after releasing it. Deleting after
+        // CloseHandle (which releases LockFileEx) lets a new thread create a fresh file
+        // at the same path and acquire it immediately — bypassing the serialisation while
+        // the previous waiter also holds what it thinks is the same lock. The stale file
+        // is harmless: LockFileEx is sufficient on its own.
 
         result
     }
