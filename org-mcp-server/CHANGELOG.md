@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.0...org-mcp-server-v0.1.1)
+
+### ✨ Features
+
+
+- *(org)* Add org-update-todo tool and CLI command for updating TODOs ([#213](https://github.com/szaffarano/org-mcp-server/pull/213)) - ([8316984](https://github.com/szaffarano/org-mcp-server/commit/831698408cfd4faf30046a45e3c452843c97660f))
+
+### 🐛 Bug Fixes
+
+
+- *(deps)* Update rust crate rmcp to v3 ([#212](https://github.com/szaffarano/org-mcp-server/pull/212)) - ([c5d819d](https://github.com/szaffarano/org-mcp-server/commit/c5d819d7e76f3893df0eb299252eb7dc69af8dd2))
+
+
 ## [0.1.0](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.0.7...org-mcp-server-v0.1.0)
 
 ### 🐛 Bug Fixes
