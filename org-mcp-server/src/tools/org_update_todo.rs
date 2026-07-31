@@ -94,6 +94,10 @@ impl OrgModeRouter {
             deadline,
             closed,
             clear,
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
 
         let org_mode = self.org_mode.lock().await;

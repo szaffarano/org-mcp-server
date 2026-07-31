@@ -183,6 +183,7 @@ impl OrgMode {
                 ClearField::Scheduled => entry.scheduled.is_some(),
                 ClearField::Deadline => entry.deadline.is_some(),
                 ClearField::Closed => entry.closed.is_some(),
+                ClearField::Body => entry.body.is_some(),
             };
             if conflict {
                 return Err(OrgModeError::InvalidUpdate(format!(
@@ -638,6 +639,10 @@ mod tests {
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         }
     }
 
@@ -816,6 +821,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         }
     }
 
@@ -859,6 +868,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e.clone()).unwrap();
         assert_eq!(result.heading_line, "** TODO Read book");
@@ -908,6 +921,10 @@ Body line must survive.
             deadline: Some("2026-05-20 17:00".to_string()),
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e.clone()).unwrap();
         assert_eq!(result.heading_line, "*** TODO [#A] Refactor API :backend:");
@@ -1052,6 +1069,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![ClearField::Scheduled, ClearField::Priority],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e).unwrap();
         assert_eq!(result.heading_line, "*** TODO Refactor API");
@@ -1109,6 +1130,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![ClearField::Tags],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e).unwrap();
         assert_eq!(result.heading_line, "* TODO Tagged task");
@@ -1203,6 +1228,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         org_mode.update_todo(e).unwrap();
         let content = fs::read_to_string(temp_dir.path().join("eof.org")).unwrap();
@@ -1235,6 +1264,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         org_mode.update_todo(e).unwrap();
         let content = fs::read_to_string(temp_dir.path().join("multi.org")).unwrap();

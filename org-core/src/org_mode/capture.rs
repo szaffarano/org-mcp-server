@@ -39,7 +39,7 @@ pub(crate) fn is_valid_tag(tag: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '@')
 }
 
-fn is_valid_property_key(key: &str) -> bool {
+pub(crate) fn is_valid_property_key(key: &str) -> bool {
     !key.is_empty()
         && key
             .chars()

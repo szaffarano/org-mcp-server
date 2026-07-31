@@ -148,6 +148,7 @@ pub enum ClearField {
     Scheduled,
     Deadline,
     Closed,
+    Body,
 }
 
 impl std::fmt::Display for ClearField {
@@ -159,6 +160,7 @@ impl std::fmt::Display for ClearField {
             ClearField::Scheduled => "scheduled",
             ClearField::Deadline => "deadline",
             ClearField::Closed => "closed",
+            ClearField::Body => "body",
         };
         write!(f, "{name}")
     }
@@ -175,9 +177,10 @@ impl std::str::FromStr for ClearField {
             "scheduled" => Ok(ClearField::Scheduled),
             "deadline" => Ok(ClearField::Deadline),
             "closed" => Ok(ClearField::Closed),
+            "body" => Ok(ClearField::Body),
             other => Err(format!(
                 "invalid clear field '{other}': expected todo_state, priority, tags, \
-                 scheduled, deadline, or closed"
+                 scheduled, deadline, closed, or body"
             )),
         }
     }
@@ -218,6 +221,14 @@ pub struct UpdateEntry {
     pub closed: Option<String>,
     #[serde(default)]
     pub clear: Vec<ClearField>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub properties: Option<Vec<PropertyPair>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub remove_properties: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

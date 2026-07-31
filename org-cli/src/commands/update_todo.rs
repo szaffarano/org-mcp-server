@@ -98,6 +98,10 @@ impl UpdateTodoCommand {
             deadline: self.deadline.clone(),
             closed: self.closed.clone(),
             clear,
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
 
         let result = org_mode.update_todo(entry)?;
