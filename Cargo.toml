@@ -1,7 +1,7 @@
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-authors = ["Sebastián Zaffarano <sebastian.zaffarano@elastic.co>"]
+authors = ["Sebastián Zaffarano <sebas@zaffarano.com.ar>"]
 license = "MIT"
 repository = "https://github.com/szaffarano/org-mcp-server"
 documentation = "https://github.com/szaffarano/org-mcp-server"

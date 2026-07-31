@@ -25,6 +25,10 @@ linking capabilities for your org-mode files through the MCP protocol.
 - `org-agenda://` — List all agenda items and tasks
 - `org-agenda://today` — Today's scheduled agenda items
 - `org-agenda://week` — This week's scheduled agenda items
+- `org-agenda://day/{YYYY-MM-DD}` — Agenda for a specific day
+- `org-agenda://week/{N}` — Agenda for week number N
+- `org-agenda://month/{N}` — Agenda for month number N
+- `org-agenda://query/from/{YYYY-MM-DD}/to/{YYYY-MM-DD}` — Custom date range
 
 ### MCP Tools
 
@@ -379,6 +383,59 @@ You can configure the MCP server through environment variables in your agent con
   }
 }
 ```
+
+## Agent Skills Plugin
+
+This repository ships skills for Claude Code, Codex, Cursor, and OpenCode that
+guide agents to use the MCP server effectively. Skills cover agenda queries,
+document search, note capture, and task updates.
+
+| Skill | Purpose |
+|---|---|
+| `org-agenda` | Query agenda items by date, state, priority, and tags |
+| `org-search` | Search and browse org files and headings |
+| `org-capture` | Create new headings, tasks, and journal entries |
+| `org-update-todo` | Update TODO state, priority, tags, and timestamps |
+
+### Claude Code
+
+Install the plugin by pointing Claude Code at this repository:
+
+```bash
+# Add to your Claude Code plugin config
+claude plugin install github:szaffarano/org-mcp-server
+```
+
+Or add to `.claude/settings.json` manually:
+
+```json
+{
+  "plugins": ["github:szaffarano/org-mcp-server"]
+}
+```
+
+### Codex
+
+Add to your Codex plugin configuration using `.codex-plugin/plugin.json` from
+this repository.
+
+### Cursor
+
+Add to your Cursor plugin configuration using `.cursor-plugin/plugin.json` from
+this repository.
+
+### OpenCode
+
+Add to the `plugin` array in your `opencode.json`:
+
+```json
+{
+  "plugin": ["org-mcp-server@git+https://github.com/szaffarano/org-mcp-server.git"]
+}
+```
+
+See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for full OpenCode setup
+instructions.
 
 ## Development
 
