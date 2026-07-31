@@ -49,6 +49,11 @@ struct TargetHeadline {
     planning_first_line: usize,
     planning_line_count: usize,
     planning_values: PlanningValues,
+    property_drawer_first_line: usize,
+    property_drawer_line_count: usize,
+    existing_properties: Vec<(String, String)>,
+    body_first_line: usize,
+    body_last_line: usize,
 }
 
 fn line_index_at(content: &str, byte_offset: usize) -> usize {
@@ -123,6 +128,51 @@ fn extract_planning(h: &orgize::ast::Headline, content: &str) -> (usize, usize, 
     }
 }
 
+fn extract_property_drawer(
+    h: &orgize::ast::Headline,
+    content: &str,
+    after_line: usize,
+) -> (usize, usize, Vec<(String, String)>) {
+    use orgize::rowan::ast::AstNode;
+
+    let drawer = match h.properties() {
+        Some(d) => d,
+        None => return (after_line, 0, vec![]),
+    };
+
+    let range = drawer.syntax().text_range();
+    let start_offset = usize::from(range.start());
+    let end_offset = usize::from(range.end());
+
+    let start_line = content[..start_offset]
+        .chars()
+        .filter(|&c| c == '\n')
+        .count();
+    let drawer_text = &content[start_offset..end_offset];
+    let newlines = drawer_text.chars().filter(|&c| c == '\n').count();
+    let drawer_line_count = if drawer_text.ends_with('\n') {
+        newlines
+    } else {
+        newlines + 1
+    };
+
+    let properties = drawer
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
+    (start_line, drawer_line_count, properties)
+}
+
+fn find_body_last_line(content: &str, body_first_line: usize) -> usize {
+    let all_lines: Vec<&str> = content.lines().collect();
+    all_lines[body_first_line..]
+        .iter()
+        .position(|line| line.starts_with('*'))
+        .map(|pos| body_first_line + pos)
+        .unwrap_or(all_lines.len())
+}
+
 impl OrgMode {
     pub(crate) fn validate_update(
         &self,
@@ -163,6 +213,10 @@ impl OrgMode {
             && entry.scheduled.is_none()
             && entry.deadline.is_none()
             && entry.closed.is_none()
+            && entry.title.is_none()
+            && entry.body.is_none()
+            && entry.properties.is_none()
+            && entry.remove_properties.is_none()
             && entry.clear.is_empty()
         {
             return Err(OrgModeError::InvalidUpdate("nothing to update".to_string()));
@@ -183,6 +237,7 @@ impl OrgMode {
                 ClearField::Scheduled => entry.scheduled.is_some(),
                 ClearField::Deadline => entry.deadline.is_some(),
                 ClearField::Closed => entry.closed.is_some(),
+                ClearField::Body => entry.body.is_some(),
             };
             if conflict {
                 return Err(OrgModeError::InvalidUpdate(format!(
@@ -233,6 +288,45 @@ impl OrgMode {
             .as_deref()
             .map(|v| Self::parse_iso_timestamp("closed", v))
             .transpose()?;
+
+        if let Some(ref t) = entry.title {
+            let trimmed = t.trim();
+            if trimmed.is_empty() || t.contains('\n') || t.contains('\r') {
+                return Err(OrgModeError::InvalidTitle(t.clone()));
+            }
+        }
+
+        if let Some(ref props) = entry.properties {
+            let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+            for p in props {
+                if !super::capture::is_valid_property_key(&p.key) {
+                    return Err(OrgModeError::InvalidPropertyKey(p.key.clone()));
+                }
+                if p.value.contains('\n') || p.value.contains('\r') {
+                    return Err(OrgModeError::InvalidPropertyValue {
+                        key: p.key.clone(),
+                        reason: "value must not contain newline or carriage return".to_string(),
+                    });
+                }
+                if !seen.insert(p.key.to_uppercase()) {
+                    return Err(OrgModeError::DuplicatePropertyKey(p.key.clone()));
+                }
+            }
+        }
+
+        // Conflict: same key in both properties and remove_properties
+        if let (Some(props), Some(removes)) = (&entry.properties, &entry.remove_properties) {
+            let remove_upper: std::collections::HashSet<String> =
+                removes.iter().map(|k| k.to_uppercase()).collect();
+            for p in props {
+                if remove_upper.contains(&p.key.to_uppercase()) {
+                    return Err(OrgModeError::InvalidUpdate(format!(
+                        "property key '{}' appears in both properties and remove_properties",
+                        p.key
+                    )));
+                }
+            }
+        }
 
         if let Some(ref f) = entry.file {
             Self::validate_relative_file_path(f)?;
@@ -416,11 +510,12 @@ impl OrgMode {
             target.planning_values.closed.clone()
         };
 
+        let new_title = entry.title.as_deref().unwrap_or(&target.title);
         let new_headline = Self::format_heading(
             target.level,
             new_keyword.as_deref(),
             new_priority.as_deref(),
-            &target.title,
+            new_title,
             Some(&new_tags),
         );
         let new_planning = render_planning_line(&PlanningValues {
@@ -432,6 +527,7 @@ impl OrgMode {
         // Splice: headline line replaced; planning block (0..n lines) replaced by 0..1 lines.
         lines[target.line_idx] = new_headline.clone();
         let replacement: Vec<String> = new_planning.into_iter().collect();
+        let replacement_len = replacement.len();
         lines.splice(
             target.planning_first_line..target.planning_first_line + target.planning_line_count,
             replacement,
@@ -442,13 +538,119 @@ impl OrgMode {
         } else {
             "\n"
         };
+
+        let plan_delta: isize = replacement_len as isize - target.planning_line_count as isize;
+
+        // --- Property drawer splice ---
+        let drawer_first = (target.property_drawer_first_line as isize + plan_delta) as usize;
+        let drawer_count = target.property_drawer_line_count;
+        let need_drawer_update = entry.properties.is_some() || entry.remove_properties.is_some();
+        let drawer_delta: isize;
+        let mut changes = Vec::new();
+
+        if need_drawer_update {
+            let mut props: Vec<(String, String)> = target.existing_properties.clone();
+
+            if let Some(ref new_props) = entry.properties {
+                for pair in new_props {
+                    let key_upper = pair.key.to_uppercase();
+                    if let Some(existing) = props
+                        .iter_mut()
+                        .find(|(k, _)| k.to_uppercase() == key_upper)
+                    {
+                        existing.1 = pair.value.clone();
+                    } else {
+                        props.push((pair.key.clone(), pair.value.clone()));
+                    }
+                }
+            }
+
+            if let Some(ref removes) = entry.remove_properties {
+                for key in removes {
+                    let key_upper = key.to_uppercase();
+                    props.retain(|(k, _)| k.to_uppercase() != key_upper);
+                }
+            }
+
+            let new_drawer_lines: Vec<String> = if props.is_empty() {
+                vec![]
+            } else {
+                let mut drawer = vec![":PROPERTIES:".to_string()];
+                for (k, v) in &props {
+                    drawer.push(format!(":{k}: {v}"));
+                }
+                drawer.push(":END:".to_string());
+                drawer
+            };
+
+            drawer_delta = new_drawer_lines.len() as isize - drawer_count as isize;
+
+            let old_map: std::collections::HashMap<String, String> = target
+                .existing_properties
+                .iter()
+                .map(|(k, v)| (k.to_uppercase(), v.clone()))
+                .collect();
+
+            if let Some(ref new_props) = entry.properties {
+                for pair in new_props {
+                    let old_val = old_map.get(&pair.key.to_uppercase()).map(|s| s.as_str());
+                    Self::push_change(
+                        &mut changes,
+                        &format!("property:{}", pair.key),
+                        old_val,
+                        Some(&pair.value),
+                    );
+                }
+            }
+            if let Some(ref removes) = entry.remove_properties {
+                for key in removes {
+                    if let Some(old_val) = old_map.get(&key.to_uppercase()) {
+                        Self::push_change(
+                            &mut changes,
+                            &format!("property:{key}"),
+                            Some(old_val.as_str()),
+                            None,
+                        );
+                    }
+                }
+            }
+
+            lines.splice(drawer_first..drawer_first + drawer_count, new_drawer_lines);
+        } else {
+            drawer_delta = 0;
+        }
+
+        // --- Body splice (adjust for both plan_delta and drawer_delta) ---
+        let body_first = (target.body_first_line as isize + plan_delta + drawer_delta) as usize;
+        let body_last = (target.body_last_line as isize + plan_delta + drawer_delta) as usize;
+
+        let new_body: Option<Vec<String>> = if entry.clear.contains(&ClearField::Body) {
+            Some(vec![])
+        } else if let Some(ref b) = entry.body {
+            if b.is_empty() {
+                Some(vec![])
+            } else {
+                Some(b.lines().map(String::from).collect())
+            }
+        } else {
+            None
+        };
+
+        let body_diff: Option<(String, String)> = if let Some(new_body_lines) = new_body {
+            let old_body_text = lines[body_first..body_last].join(newline);
+            let new_body_text = new_body_lines.join(newline);
+            lines.splice(body_first..body_last, new_body_lines);
+            Some((old_body_text, new_body_text))
+        } else {
+            None
+        };
+
         let mut out = lines.join(newline);
         if content.ends_with('\n') {
             out.push_str(newline);
         }
         Self::atomic_write(full_path, out.as_bytes())?;
 
-        let mut changes = Vec::new();
         Self::push_change(
             &mut changes,
             "todo_state",
@@ -487,6 +689,28 @@ impl OrgMode {
             target.planning_values.closed.as_deref(),
             new_closed.as_deref(),
         );
+        Self::push_change(
+            &mut changes,
+            "title",
+            Some(target.title.as_str()),
+            Some(new_title),
+        );
+        if let Some((ref old_body, ref new_body_text)) = body_diff {
+            Self::push_change(
+                &mut changes,
+                "body",
+                if old_body.is_empty() {
+                    None
+                } else {
+                    Some(old_body.as_str())
+                },
+                if new_body_text.is_empty() {
+                    None
+                } else {
+                    Some(new_body_text.as_str())
+                },
+            );
+        }
 
         Ok(UpdateResult {
             file_path: file_rel.to_string(),
@@ -528,6 +752,15 @@ impl OrgMode {
                     if has_id {
                         let (planning_first_line, planning_line_count, planning_values) =
                             extract_planning(h, content);
+                        let after_planning = planning_first_line + planning_line_count;
+                        let (
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                        ) = extract_property_drawer(h, content, after_planning);
+                        let body_first_line =
+                            property_drawer_first_line + property_drawer_line_count;
+                        let body_last_line = find_body_last_line(content, body_first_line);
                         matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level: h.level(),
@@ -539,6 +772,11 @@ impl OrgMode {
                             planning_first_line,
                             planning_line_count,
                             planning_values,
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                            body_first_line,
+                            body_last_line,
                         });
                         // Two matches suffice to report ambiguity; stop early.
                         if matches.len() == 2 {
@@ -570,6 +808,15 @@ impl OrgMode {
                     {
                         let (planning_first_line, planning_line_count, planning_values) =
                             extract_planning(h, content);
+                        let after_planning = planning_first_line + planning_line_count;
+                        let (
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                        ) = extract_property_drawer(h, content, after_planning);
+                        let body_first_line =
+                            property_drawer_first_line + property_drawer_line_count;
+                        let body_last_line = find_body_last_line(content, body_first_line);
                         matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level,
@@ -581,6 +828,11 @@ impl OrgMode {
                             planning_first_line,
                             planning_line_count,
                             planning_values,
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                            body_first_line,
+                            body_last_line,
                         });
                     }
                 }
@@ -607,6 +859,11 @@ impl OrgMode {
                     planning_first_line: 0,
                     planning_line_count: 0,
                     planning_values: PlanningValues::default(),
+                    property_drawer_first_line: 0,
+                    property_drawer_line_count: 0,
+                    existing_properties: vec![],
+                    body_first_line: 0,
+                    body_last_line: 0,
                 }))
             }
         }
@@ -638,6 +895,10 @@ mod tests {
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         }
     }
 
@@ -816,6 +1077,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         }
     }
 
@@ -859,6 +1124,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e.clone()).unwrap();
         assert_eq!(result.heading_line, "** TODO Read book");
@@ -908,6 +1177,10 @@ Body line must survive.
             deadline: Some("2026-05-20 17:00".to_string()),
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e.clone()).unwrap();
         assert_eq!(result.heading_line, "*** TODO [#A] Refactor API :backend:");
@@ -1052,6 +1325,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![ClearField::Scheduled, ClearField::Priority],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e).unwrap();
         assert_eq!(result.heading_line, "*** TODO Refactor API");
@@ -1109,6 +1386,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![ClearField::Tags],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         let result = org_mode.update_todo(e).unwrap();
         assert_eq!(result.heading_line, "* TODO Tagged task");
@@ -1203,6 +1484,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         org_mode.update_todo(e).unwrap();
         let content = fs::read_to_string(temp_dir.path().join("eof.org")).unwrap();
@@ -1213,6 +1498,36 @@ Body line must survive.
             "duplicate planning line:\n{content}"
         );
         assert!(content.contains("* DONE Task"));
+    }
+
+    #[test]
+    fn test_locate_headline_captures_drawer_and_body_spans() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("spans.org"),
+            "* TODO Task\nSCHEDULED: <2026-05-15 Fri>\n\
+             :PROPERTIES:\n:ID: span-1\n:EFFORT: 2h\n:END:\nfirst body\nsecond body\n\
+             * Other\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = update_by_id("span-1");
+        e.todo_state = Some("DONE".to_string());
+        let result = org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("spans.org")).unwrap();
+        assert!(
+            content.contains("first body"),
+            "body must survive:\n{content}"
+        );
+        assert!(
+            content.contains("second body"),
+            "body must survive:\n{content}"
+        );
+        assert!(
+            content.contains(":EFFORT: 2h"),
+            "drawer must survive:\n{content}"
+        );
+        assert_eq!(result.heading_line, "* DONE Task");
     }
 
     #[test]
@@ -1235,6 +1550,10 @@ Body line must survive.
             deadline: None,
             closed: None,
             clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: None,
         };
         org_mode.update_todo(e).unwrap();
         let content = fs::read_to_string(temp_dir.path().join("multi.org")).unwrap();
@@ -1252,5 +1571,320 @@ Body line must survive.
             content.contains("body"),
             "body line must survive:\n{content}"
         );
+    }
+
+    #[test]
+    fn test_validate_rejects_empty_title() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.title = Some("  ".to_string());
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidTitle(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_title_with_newline() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.title = Some("bad\ntitle".to_string());
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidTitle(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_body_and_clear_body_together() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.body = Some("some text".to_string());
+        e.clear = vec![ClearField::Body];
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidUpdate(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_property_key_conflict() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "EFFORT".to_string(),
+            value: "1h".to_string(),
+        }]);
+        e.remove_properties = Some(vec!["EFFORT".to_string()]);
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidUpdate(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_invalid_property_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "bad key".to_string(),
+            value: "v".to_string(),
+        }]);
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidPropertyKey(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_property_value_with_newline() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "NOTE".to_string(),
+            value: "line1\nline2".to_string(),
+        }]);
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidPropertyValue { .. }
+        ));
+    }
+
+    #[test]
+    fn test_update_title_rename() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.title = Some("Buy organic groceries".to_string());
+        let result = org_mode.update_todo(e).unwrap();
+
+        assert_eq!(result.heading_line, "** TODO Buy organic groceries");
+        assert!(
+            result.changes.iter().any(|c| c.starts_with("title:")),
+            "expected title change entry, got {:?}",
+            result.changes
+        );
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("** TODO Buy organic groceries"));
+        assert!(!content.contains("** TODO Buy groceries\n"));
+    }
+
+    #[test]
+    fn test_update_body_replace() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = UpdateEntry {
+            id: None,
+            file: Some("notes.org".to_string()),
+            heading_path: Some("Projects/Work/Refactor API".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: Some("New body content.\nSecond line.".to_string()),
+            properties: None,
+            remove_properties: None,
+        };
+        org_mode.update_todo(e.clone()).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("New body content.\nSecond line."));
+        assert!(!content.contains("Body line must survive."));
+
+        e.body = None;
+        e.clear = vec![ClearField::Body];
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(!content.contains("New body content."));
+    }
+
+    #[test]
+    fn test_update_body_heading_without_body() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.body = Some("Remember the milk.".to_string());
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("Remember the milk."));
+    }
+
+    #[test]
+    fn test_update_property_upsert_existing_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "EFFORT".to_string(),
+            value: "30m".to_string(),
+        }]);
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains(":EFFORT: 30m"), "upserted:\n{content}");
+        assert!(
+            content.contains(":ID: task-groceries-456"),
+            "ID preserved:\n{content}"
+        );
+    }
+
+    #[test]
+    fn test_update_property_upsert_creates_drawer_when_absent() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("nodrawer.org"),
+            "* TODO No drawer task\nbody text\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("nodrawer.org".to_string()),
+            heading_path: Some("No drawer task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: Some(vec![crate::PropertyPair {
+                key: "CATEGORY".to_string(),
+                value: "work".to_string(),
+            }]),
+            remove_properties: None,
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("nodrawer.org")).unwrap();
+        assert!(
+            content.contains(":PROPERTIES:"),
+            "drawer created:\n{content}"
+        );
+        assert!(
+            content.contains(":CATEGORY: work"),
+            "property set:\n{content}"
+        );
+        assert!(content.contains(":END:"), "drawer ended:\n{content}");
+        assert!(content.contains("body text"), "body preserved:\n{content}");
+    }
+
+    #[test]
+    fn test_update_property_remove_existing_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("props.org"),
+            "* TODO Task\n:PROPERTIES:\n:ID: p-1\n:EFFORT: 1h\n:END:\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("props.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: Some(vec!["EFFORT".to_string()]),
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("props.org")).unwrap();
+        assert!(!content.contains(":EFFORT:"), "removed:\n{content}");
+        assert!(content.contains(":ID: p-1"), "ID preserved:\n{content}");
+    }
+
+    #[test]
+    fn test_update_property_remove_nonexistent_is_noop() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("noop.org"),
+            "* TODO Task\n:PROPERTIES:\n:ID: noop-1\n:END:\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("noop.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: Some(vec!["NONEXISTENT".to_string()]),
+        };
+        let before = fs::read_to_string(temp_dir.path().join("noop.org")).unwrap();
+        org_mode.update_todo(e).unwrap();
+        let after = fs::read_to_string(temp_dir.path().join("noop.org")).unwrap();
+        assert_eq!(before, after, "noop removal must not change file");
+    }
+
+    #[test]
+    fn test_update_property_remove_all_keys_removes_drawer() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("drain.org"),
+            "* TODO Task\n:PROPERTIES:\n:EFFORT: 1h\n:END:\nbody\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let e = UpdateEntry {
+            id: None,
+            file: Some("drain.org".to_string()),
+            heading_path: Some("Task".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: None,
+            properties: None,
+            remove_properties: Some(vec!["EFFORT".to_string()]),
+        };
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("drain.org")).unwrap();
+        assert!(
+            !content.contains(":PROPERTIES:"),
+            "drawer removed:\n{content}"
+        );
+        assert!(content.contains("body"), "body preserved:\n{content}");
     }
 }

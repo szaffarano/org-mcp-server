@@ -39,7 +39,7 @@ pub(crate) fn is_valid_tag(tag: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '@')
 }
 
-fn is_valid_property_key(key: &str) -> bool {
+pub(crate) fn is_valid_property_key(key: &str) -> bool {
     !key.is_empty()
         && key
             .chars()
@@ -70,7 +70,10 @@ impl OrgMode {
         #[cfg(unix)]
         let _ = fs::remove_file(&lock_path);
         drop(lock_file);
-        // On non-Unix (Windows), the file must be closed before it can be removed.
+        // On Windows, attempt to delete after close. The lock file is opened without
+        // FILE_SHARE_DELETE, so remove_file only succeeds when no other thread has it
+        // open (i.e. no waiters). When it fails we ignore the error — the file persists
+        // but serialisation is maintained because all waiters open the same inode.
         #[cfg(not(unix))]
         let _ = fs::remove_file(&lock_path);
 
@@ -582,11 +585,18 @@ impl OrgMode {
 
     #[cfg(not(unix))]
     pub(crate) fn acquire_capture_lock(lock_path: &Path) -> Result<std::fs::File, OrgModeError> {
+        use std::os::windows::fs::OpenOptionsExt;
+        // Open without FILE_SHARE_DELETE (READ=0x1 | WRITE=0x2, no DELETE=0x4).
+        // This makes remove_file fail with a sharing violation while any other thread
+        // has the file open, which prevents the race where a new thread creates a fresh
+        // inode and acquires an uncontested lock while the previous waiter still holds
+        // what it believes to be the same exclusive lock.
         let fd = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .truncate(false)
+            .share_mode(0x00000001 | 0x00000002)
             .open(lock_path)
             .map_err(OrgModeError::IoError)?;
         fd.lock().map_err(OrgModeError::IoError)?;

@@ -1,7 +1,7 @@
 use crate::config::CliConfig;
 use anyhow::{Result, anyhow};
 use clap::{ArgGroup, Args};
-use org_core::{ClearField, OrgMode, UpdateEntry};
+use org_core::{ClearField, OrgMode, PropertyPair, UpdateEntry};
 
 #[derive(Args)]
 #[command(group(
@@ -20,6 +20,10 @@ use org_core::{ClearField, OrgMode, UpdateEntry};
             "deadline",
             "closed",
             "clear",
+            "title",
+            "body",
+            "properties",
+            "remove_properties",
         ])
         .required(true)
         .multiple(true),
@@ -61,9 +65,25 @@ pub struct UpdateTodoCommand {
     #[arg(long)]
     closed: Option<String>,
 
-    /// Fields to remove: todo-state,priority,tags,scheduled,deadline,closed
+    /// Fields to remove: todo-state,priority,tags,scheduled,deadline,closed,body
     #[arg(long, value_delimiter = ',')]
     clear: Vec<String>,
+
+    /// Replace the heading title
+    #[arg(long)]
+    title: Option<String>,
+
+    /// Replace body text (use --clear body to remove)
+    #[arg(long)]
+    body: Option<String>,
+
+    /// Upsert a property drawer entry (KEY=VALUE, repeatable)
+    #[arg(long = "property", value_name = "KEY=VALUE")]
+    properties: Vec<String>,
+
+    /// Remove a property drawer entry by key (repeatable)
+    #[arg(long = "remove-property", value_name = "KEY")]
+    remove_properties: Vec<String>,
 
     /// Output format
     #[arg(short = 'f', long)]
@@ -87,6 +107,31 @@ impl UpdateTodoCommand {
             })
             .collect::<Result<Vec<_>>>()?;
 
+        let properties: Option<Vec<PropertyPair>> = if self.properties.is_empty() {
+            None
+        } else {
+            Some(
+                self.properties
+                    .iter()
+                    .map(|s| {
+                        let (k, v) = s
+                            .split_once('=')
+                            .ok_or_else(|| anyhow!("--property must be KEY=VALUE, got '{s}'"))?;
+                        Ok(PropertyPair {
+                            key: k.to_string(),
+                            value: v.to_string(),
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        };
+
+        let remove_properties: Option<Vec<String>> = if self.remove_properties.is_empty() {
+            None
+        } else {
+            Some(self.remove_properties.clone())
+        };
+
         let entry = UpdateEntry {
             id: self.id.clone(),
             file: self.file.clone(),
@@ -98,6 +143,10 @@ impl UpdateTodoCommand {
             deadline: self.deadline.clone(),
             closed: self.closed.clone(),
             clear,
+            title: self.title.clone(),
+            body: self.body.clone(),
+            properties,
+            remove_properties,
         };
 
         let result = org_mode.update_todo(entry)?;
