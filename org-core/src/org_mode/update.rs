@@ -49,6 +49,17 @@ struct TargetHeadline {
     planning_first_line: usize,
     planning_line_count: usize,
     planning_values: PlanningValues,
+    // new fields — consumed by Task 3; suppress dead_code until then
+    #[allow(dead_code)]
+    property_drawer_first_line: usize,
+    #[allow(dead_code)]
+    property_drawer_line_count: usize,
+    #[allow(dead_code)]
+    existing_properties: Vec<(String, String)>,
+    #[allow(dead_code)]
+    body_first_line: usize,
+    #[allow(dead_code)]
+    body_last_line: usize,
 }
 
 fn line_index_at(content: &str, byte_offset: usize) -> usize {
@@ -121,6 +132,48 @@ fn extract_planning(h: &orgize::ast::Headline, content: &str) -> (usize, usize, 
             (first_line, ast_line_count + extra, values)
         }
     }
+}
+
+fn extract_property_drawer(
+    _h: &orgize::ast::Headline,
+    content: &str,
+    after_line: usize,
+) -> (usize, usize, Vec<(String, String)>) {
+    let all_lines: Vec<&str> = content.lines().collect();
+    let candidate = all_lines.get(after_line).map(|l| l.trim());
+    if candidate != Some(":PROPERTIES:") {
+        return (after_line, 0, vec![]);
+    }
+    let drawer_start = after_line;
+    let mut properties = Vec::new();
+    let mut end_line = drawer_start;
+    for (i, line) in all_lines[drawer_start + 1..].iter().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.eq_ignore_ascii_case(":END:") {
+            end_line = drawer_start + 1 + i;
+            break;
+        }
+        if let Some(rest) = trimmed.strip_prefix(':')
+            && let Some(colon_pos) = rest.find(':')
+        {
+            let key = rest[..colon_pos].to_string();
+            let value = rest[colon_pos + 1..].trim().to_string();
+            if !key.is_empty() {
+                properties.push((key, value));
+            }
+        }
+    }
+    let drawer_line_count = end_line - drawer_start + 1;
+    (drawer_start, drawer_line_count, properties)
+}
+
+fn find_body_last_line(content: &str, body_first_line: usize) -> usize {
+    let all_lines: Vec<&str> = content.lines().collect();
+    all_lines[body_first_line..]
+        .iter()
+        .position(|line| line.starts_with('*'))
+        .map(|pos| body_first_line + pos)
+        .unwrap_or(all_lines.len())
 }
 
 impl OrgMode {
@@ -529,6 +582,15 @@ impl OrgMode {
                     if has_id {
                         let (planning_first_line, planning_line_count, planning_values) =
                             extract_planning(h, content);
+                        let after_planning = planning_first_line + planning_line_count;
+                        let (
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                        ) = extract_property_drawer(h, content, after_planning);
+                        let body_first_line =
+                            property_drawer_first_line + property_drawer_line_count;
+                        let body_last_line = find_body_last_line(content, body_first_line);
                         matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level: h.level(),
@@ -540,6 +602,11 @@ impl OrgMode {
                             planning_first_line,
                             planning_line_count,
                             planning_values,
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                            body_first_line,
+                            body_last_line,
                         });
                         // Two matches suffice to report ambiguity; stop early.
                         if matches.len() == 2 {
@@ -571,6 +638,15 @@ impl OrgMode {
                     {
                         let (planning_first_line, planning_line_count, planning_values) =
                             extract_planning(h, content);
+                        let after_planning = planning_first_line + planning_line_count;
+                        let (
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                        ) = extract_property_drawer(h, content, after_planning);
+                        let body_first_line =
+                            property_drawer_first_line + property_drawer_line_count;
+                        let body_last_line = find_body_last_line(content, body_first_line);
                         matches.push(TargetHeadline {
                             line_idx: line_index_at(content, h.start().into()),
                             level,
@@ -582,6 +658,11 @@ impl OrgMode {
                             planning_first_line,
                             planning_line_count,
                             planning_values,
+                            property_drawer_first_line,
+                            property_drawer_line_count,
+                            existing_properties,
+                            body_first_line,
+                            body_last_line,
                         });
                     }
                 }
@@ -608,6 +689,11 @@ impl OrgMode {
                     planning_first_line: 0,
                     planning_line_count: 0,
                     planning_values: PlanningValues::default(),
+                    property_drawer_first_line: 0,
+                    property_drawer_line_count: 0,
+                    existing_properties: vec![],
+                    body_first_line: 0,
+                    body_last_line: 0,
                 }))
             }
         }
@@ -1242,6 +1328,36 @@ Body line must survive.
             "duplicate planning line:\n{content}"
         );
         assert!(content.contains("* DONE Task"));
+    }
+
+    #[test]
+    fn test_locate_headline_captures_drawer_and_body_spans() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        fs::write(
+            temp_dir.path().join("spans.org"),
+            "* TODO Task\nSCHEDULED: <2026-05-15 Fri>\n\
+             :PROPERTIES:\n:ID: span-1\n:EFFORT: 2h\n:END:\nfirst body\nsecond body\n\
+             * Other\n",
+        )
+        .unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = update_by_id("span-1");
+        e.todo_state = Some("DONE".to_string());
+        let result = org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("spans.org")).unwrap();
+        assert!(
+            content.contains("first body"),
+            "body must survive:\n{content}"
+        );
+        assert!(
+            content.contains("second body"),
+            "body must survive:\n{content}"
+        );
+        assert!(
+            content.contains(":EFFORT: 2h"),
+            "drawer must survive:\n{content}"
+        );
+        assert_eq!(result.heading_line, "* DONE Task");
     }
 
     #[test]
