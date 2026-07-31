@@ -216,6 +216,10 @@ impl OrgMode {
             && entry.scheduled.is_none()
             && entry.deadline.is_none()
             && entry.closed.is_none()
+            && entry.title.is_none()
+            && entry.body.is_none()
+            && entry.properties.is_none()
+            && entry.remove_properties.is_none()
             && entry.clear.is_empty()
         {
             return Err(OrgModeError::InvalidUpdate("nothing to update".to_string()));
@@ -287,6 +291,45 @@ impl OrgMode {
             .as_deref()
             .map(|v| Self::parse_iso_timestamp("closed", v))
             .transpose()?;
+
+        if let Some(ref t) = entry.title {
+            let trimmed = t.trim();
+            if trimmed.is_empty() || t.contains('\n') || t.contains('\r') {
+                return Err(OrgModeError::InvalidTitle(t.clone()));
+            }
+        }
+
+        if let Some(ref props) = entry.properties {
+            let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+            for p in props {
+                if !super::capture::is_valid_property_key(&p.key) {
+                    return Err(OrgModeError::InvalidPropertyKey(p.key.clone()));
+                }
+                if p.value.contains('\n') || p.value.contains('\r') {
+                    return Err(OrgModeError::InvalidPropertyValue {
+                        key: p.key.clone(),
+                        reason: "value must not contain newline or carriage return".to_string(),
+                    });
+                }
+                if !seen.insert(p.key.to_uppercase()) {
+                    return Err(OrgModeError::DuplicatePropertyKey(p.key.clone()));
+                }
+            }
+        }
+
+        // Conflict: same key in both properties and remove_properties
+        if let (Some(props), Some(removes)) = (&entry.properties, &entry.remove_properties) {
+            let remove_upper: std::collections::HashSet<String> =
+                removes.iter().map(|k| k.to_uppercase()).collect();
+            for p in props {
+                if remove_upper.contains(&p.key.to_uppercase()) {
+                    return Err(OrgModeError::InvalidUpdate(format!(
+                        "property key '{}' appears in both properties and remove_properties",
+                        p.key
+                    )));
+                }
+            }
+        }
 
         if let Some(ref f) = entry.file {
             Self::validate_relative_file_path(f)?;
@@ -1401,5 +1444,94 @@ Body line must survive.
             content.contains("body"),
             "body line must survive:\n{content}"
         );
+    }
+
+    #[test]
+    fn test_validate_rejects_empty_title() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.title = Some("  ".to_string());
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidTitle(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_title_with_newline() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.title = Some("bad\ntitle".to_string());
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidTitle(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_body_and_clear_body_together() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.body = Some("some text".to_string());
+        e.clear = vec![ClearField::Body];
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidUpdate(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_property_key_conflict() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "EFFORT".to_string(),
+            value: "1h".to_string(),
+        }]);
+        e.remove_properties = Some(vec!["EFFORT".to_string()]);
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidUpdate(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_invalid_property_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "bad key".to_string(),
+            value: "v".to_string(),
+        }]);
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidPropertyKey(_)
+        ));
+    }
+
+    #[test]
+    fn test_validate_rejects_property_value_with_newline() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let org_mode = make_org_mode(&temp_dir);
+        let mut e = entry_by_path();
+        e.todo_state = None;
+        e.properties = Some(vec![crate::PropertyPair {
+            key: "NOTE".to_string(),
+            value: "line1\nline2".to_string(),
+        }]);
+        assert!(matches!(
+            org_mode.validate_update(&e).unwrap_err(),
+            OrgModeError::InvalidPropertyValue { .. }
+        ));
     }
 }
