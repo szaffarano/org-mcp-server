@@ -9,7 +9,7 @@
     {
       "name": "org-mcp-server",
       "description": "Org-mode skills for agenda, task management, and document search",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./",
       "author": {
         "name": "Sebastián Zaffarano",

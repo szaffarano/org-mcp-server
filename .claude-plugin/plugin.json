@@ -1,7 +1,7 @@
 {
   "name": "org-mcp-server",
   "description": "Org-mode skills for Claude Code: agenda, capture, task updates, and document search",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Sebastián Zaffarano",
     "email": "sebas@zaffarano.com.ar"

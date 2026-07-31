@@ -2,7 +2,7 @@
   "name": "org-mcp-server",
   "displayName": "Org MCP Server",
   "description": "Org-mode skills for Cursor: agenda, task management, and document search",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Sebastián Zaffarano",
     "email": "sebas@zaffarano.com.ar"
