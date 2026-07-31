@@ -49,16 +49,13 @@ struct TargetHeadline {
     planning_first_line: usize,
     planning_line_count: usize,
     planning_values: PlanningValues,
-    // new fields — consumed by Task 3; suppress dead_code until then
     #[allow(dead_code)]
     property_drawer_first_line: usize,
     #[allow(dead_code)]
     property_drawer_line_count: usize,
     #[allow(dead_code)]
     existing_properties: Vec<(String, String)>,
-    #[allow(dead_code)]
     body_first_line: usize,
-    #[allow(dead_code)]
     body_last_line: usize,
 }
 
@@ -513,11 +510,12 @@ impl OrgMode {
             target.planning_values.closed.clone()
         };
 
+        let new_title = entry.title.as_deref().unwrap_or(&target.title);
         let new_headline = Self::format_heading(
             target.level,
             new_keyword.as_deref(),
             new_priority.as_deref(),
-            &target.title,
+            new_title,
             Some(&new_tags),
         );
         let new_planning = render_planning_line(&PlanningValues {
@@ -529,6 +527,7 @@ impl OrgMode {
         // Splice: headline line replaced; planning block (0..n lines) replaced by 0..1 lines.
         lines[target.line_idx] = new_headline.clone();
         let replacement: Vec<String> = new_planning.into_iter().collect();
+        let replacement_len = replacement.len();
         lines.splice(
             target.planning_first_line..target.planning_first_line + target.planning_line_count,
             replacement,
@@ -539,6 +538,32 @@ impl OrgMode {
         } else {
             "\n"
         };
+
+        let plan_delta: isize = replacement_len as isize - target.planning_line_count as isize;
+        let body_first = (target.body_first_line as isize + plan_delta) as usize;
+        let body_last = (target.body_last_line as isize + plan_delta) as usize;
+
+        let new_body: Option<Vec<String>> = if entry.clear.contains(&ClearField::Body) {
+            Some(vec![])
+        } else if let Some(ref b) = entry.body {
+            if b.is_empty() {
+                Some(vec![])
+            } else {
+                Some(b.lines().map(String::from).collect())
+            }
+        } else {
+            None
+        };
+
+        let body_diff: Option<(String, String)> = if let Some(new_body_lines) = new_body {
+            let old_body_text = lines[body_first..body_last].join(newline);
+            let new_body_text = new_body_lines.join(newline);
+            lines.splice(body_first..body_last, new_body_lines);
+            Some((old_body_text, new_body_text))
+        } else {
+            None
+        };
+
         let mut out = lines.join(newline);
         if content.ends_with('\n') {
             out.push_str(newline);
@@ -584,6 +609,28 @@ impl OrgMode {
             target.planning_values.closed.as_deref(),
             new_closed.as_deref(),
         );
+        Self::push_change(
+            &mut changes,
+            "title",
+            Some(target.title.as_str()),
+            Some(new_title),
+        );
+        if let Some((ref old_body, ref new_body_text)) = body_diff {
+            Self::push_change(
+                &mut changes,
+                "body",
+                if old_body.is_empty() {
+                    None
+                } else {
+                    Some(old_body.as_str())
+                },
+                if new_body_text.is_empty() {
+                    None
+                } else {
+                    Some(new_body_text.as_str())
+                },
+            );
+        }
 
         Ok(UpdateResult {
             file_path: file_rel.to_string(),
@@ -1533,5 +1580,73 @@ Body line must survive.
             org_mode.validate_update(&e).unwrap_err(),
             OrgModeError::InvalidPropertyValue { .. }
         ));
+    }
+
+    #[test]
+    fn test_update_title_rename() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.title = Some("Buy organic groceries".to_string());
+        let result = org_mode.update_todo(e).unwrap();
+
+        assert_eq!(result.heading_line, "** TODO Buy organic groceries");
+        assert!(
+            result.changes.iter().any(|c| c.starts_with("title:")),
+            "expected title change entry, got {:?}",
+            result.changes
+        );
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("** TODO Buy organic groceries"));
+        assert!(!content.contains("** TODO Buy groceries\n"));
+    }
+
+    #[test]
+    fn test_update_body_replace() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = UpdateEntry {
+            id: None,
+            file: Some("notes.org".to_string()),
+            heading_path: Some("Projects/Work/Refactor API".to_string()),
+            todo_state: None,
+            priority: None,
+            tags: None,
+            scheduled: None,
+            deadline: None,
+            closed: None,
+            clear: vec![],
+            title: None,
+            body: Some("New body content.\nSecond line.".to_string()),
+            properties: None,
+            remove_properties: None,
+        };
+        org_mode.update_todo(e.clone()).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("New body content.\nSecond line."));
+        assert!(!content.contains("Body line must survive."));
+
+        e.body = None;
+        e.clear = vec![ClearField::Body];
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(!content.contains("New body content."));
+    }
+
+    #[test]
+    fn test_update_body_heading_without_body() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        setup_fixture(&temp_dir);
+        let org_mode = make_org_mode(&temp_dir);
+
+        let mut e = update_by_id("task-groceries-456");
+        e.body = Some("Remember the milk.".to_string());
+        org_mode.update_todo(e).unwrap();
+        let content = fs::read_to_string(temp_dir.path().join("notes.org")).unwrap();
+        assert!(content.contains("Remember the milk."));
     }
 }
