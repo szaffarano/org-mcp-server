@@ -48,7 +48,7 @@ enum Commands {
     /// Search for text content across all org files using fuzzy matching
     Search(SearchCommand),
     /// Update TODO state and planning metadata of an existing heading
-    UpdateTodo(UpdateTodoCommand),
+    UpdateTodo(Box<UpdateTodoCommand>),
 }
 
 fn main() {

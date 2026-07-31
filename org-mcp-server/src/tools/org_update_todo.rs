@@ -9,6 +9,21 @@ use rmcp::{
 use crate::core::OrgModeRouter;
 
 #[derive(Debug, schemars::JsonSchema, serde::Deserialize)]
+pub struct PropertyPairRequest {
+    pub key: String,
+    pub value: String,
+}
+
+impl From<PropertyPairRequest> for org_core::PropertyPair {
+    fn from(p: PropertyPairRequest) -> Self {
+        org_core::PropertyPair {
+            key: p.key,
+            value: p.value,
+        }
+    }
+}
+
+#[derive(Debug, schemars::JsonSchema, serde::Deserialize)]
 pub struct UpdateTodoRequest {
     #[schemars(
         description = "Org ID property of the target heading. Wins when file/heading_path are also given."
@@ -43,9 +58,21 @@ pub struct UpdateTodoRequest {
     )]
     pub closed: Option<String>,
     #[schemars(
-        description = "Fields to remove: 'todo_state', 'priority', 'tags', 'scheduled', 'deadline', 'closed'."
+        description = "Fields to remove: 'todo_state', 'priority', 'tags', 'scheduled', 'deadline', 'closed', 'body'."
     )]
     pub clear: Option<Vec<String>>,
+    #[schemars(description = "Replace the heading title. Non-empty, no newlines.")]
+    pub title: Option<String>,
+    #[schemars(description = "Replace the entire body text beneath the heading. \
+        Pass an empty string or use clear: [\"body\"] to remove body text.")]
+    pub body: Option<String>,
+    #[schemars(description = "Upsert individual property drawer entries. \
+        Each {key, value} adds a new key or replaces an existing one.")]
+    pub properties: Option<Vec<PropertyPairRequest>>,
+    #[schemars(description = "Property keys to remove from the drawer. \
+        Removing a non-existent key is a no-op. \
+        A key must not appear in both properties and remove_properties.")]
+    pub remove_properties: Option<Vec<String>>,
 }
 
 #[tool_router(router = "tool_router_update_todo", vis = "pub(crate)")]
@@ -68,6 +95,10 @@ impl OrgModeRouter {
             deadline,
             closed,
             clear,
+            title,
+            body,
+            properties,
+            remove_properties,
         }): Parameters<UpdateTodoRequest>,
     ) -> Result<CallToolResult, McpError> {
         let clear: Vec<ClearField> = match clear {
@@ -94,10 +125,10 @@ impl OrgModeRouter {
             deadline,
             closed,
             clear,
-            title: None,
-            body: None,
-            properties: None,
-            remove_properties: None,
+            title,
+            body,
+            properties: properties.map(|v| v.into_iter().map(Into::into).collect()),
+            remove_properties,
         };
 
         let org_mode = self.org_mode.lock().await;
@@ -116,6 +147,7 @@ impl OrgModeRouter {
                     OrgModeError::InvalidTodoKeyword(_)
                     | OrgModeError::InvalidPriority(_)
                     | OrgModeError::InvalidHeadingPath(_)
+                    | OrgModeError::InvalidTitle(_)
                     | OrgModeError::InvalidTag(_)
                     | OrgModeError::InvalidDirectory(_)
                     | OrgModeError::InvalidTimestamp { .. }
