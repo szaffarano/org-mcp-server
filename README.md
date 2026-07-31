@@ -40,9 +40,9 @@ linking capabilities for your org-mode files through the MCP protocol.
   and warning suffixes), property drawer entries, and Year/Month/Day datetree expansion.
   Can target a specific heading or append to end of file.
 - `org-update-todo` — Update the TODO state and planning metadata of an existing
-  heading (target by org ID or file + heading path). Set or clear todo_state, priority,
-  tags, and SCHEDULED/DEADLINE/CLOSED timestamps. CLOSED is auto-managed on done/active
-  transitions (disable with `org_auto_closed_timestamp = false`).
+  heading (target by org ID or file + heading path). Set or clear todo_state,
+  priority, tags, SCHEDULED/DEADLINE/CLOSED timestamps, heading title, body text,
+  and property drawer entries (per-key upsert/remove).
 
 ### CLI Tool
 
@@ -480,7 +480,12 @@ cargo run --example <name>
 - [x] Content creation via `org-capture` (heading + planning + properties + datetree)
 - [x] Content modification: TODO state, priority, tags, and planning updates via
       `org-update-todo` / `org-cli update-todo`
-- [ ] Content modification: property drawer updates and CLOCK / LOGBOOK entries
+- [x] Content modification: property drawer updates (upsert/remove individual keys)
+- [ ] Content modification: CLOCK / LOGBOOK entries
+- [ ] `org-promote` / `org-demote` — relative heading level change
+- [ ] `org-clock` — clock in / clock out / cancel clock
+- [ ] `org-refile` — move heading to different file or location
+- [ ] `org-archive` — archive heading to archive file or toggle ARCHIVE tag
 - [ ] Media file reference handling
 - [ ] Integration with org-roam databases
 - [ ] Real-time file watching and updates

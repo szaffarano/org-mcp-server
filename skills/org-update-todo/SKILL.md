@@ -39,10 +39,19 @@ Wins over file/heading_path when both are given.
 - Repeater syntax: `+N`, `++N`, or `.+N` followed by `h|d|w|m|y`.
 - Warning syntax: `-N` followed by `h|d|w|m|y`.
 
+- `title`: Replace the heading title. Non-empty, no newlines.
+- `body`: Replace the entire body text. Pass empty string or
+  `clear: ["body"]` to remove. Setting and clearing in the same call is an error.
+- `properties`: List of `{key, value}` pairs to upsert into the property drawer.
+  Keys are case-insensitive; new keys are appended, existing keys are updated.
+- `remove_properties`: List of property keys to delete from the drawer.
+  Removing a non-existent key is a no-op. A key must not appear in both
+  `properties` and `remove_properties`.
+
 **Clearing fields:**
 - `clear`: List of field names to remove entirely.
   Valid values: `"todo_state"`, `"priority"`, `"tags"`, `"scheduled"`, `"deadline"`,
-  `"closed"`.
+  `"closed"`, `"body"`.
 
 ## Common patterns
 
@@ -57,6 +66,12 @@ Wins over file/heading_path when both are given.
 | Remove deadline | `clear: ["deadline"]` |
 | Retag | `tags: ["new_tag1", "new_tag2"]` |
 | Remove all tags | `tags: []` |
+| Rename a task | `title: "New name"` |
+| Replace body text | `body: "Updated description."` |
+| Remove body text | `clear: ["body"]` |
+| Set effort estimate | `properties: [{"key": "EFFORT", "value": "2h"}]` |
+| Set category | `properties: [{"key": "CATEGORY", "value": "work"}]` |
+| Remove a property | `remove_properties: ["EFFORT"]` |
 
 ## Workflow
 
