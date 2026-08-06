@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.1...org-mcp-server-v0.1.2)
+
+### ✨ Features
+
+
+- Extend org-update-todo with title, body, and property drawer support ([#216](https://github.com/szaffarano/org-mcp-server/pull/216)) - ([89524c0](https://github.com/szaffarano/org-mcp-server/commit/89524c065666bd39b25ff8d2e5dda346442fc741))
+- Add agent skills plugin for Claude Code, Codex, Cursor, and OpenCode ([#214](https://github.com/szaffarano/org-mcp-server/pull/214)) - ([ca88d64](https://github.com/szaffarano/org-mcp-server/commit/ca88d6418ba9958ebe75423968f4a4d4b815dbbb))
+
+### Other changes
+
+
+- *(readme)* Simplify ([#217](https://github.com/szaffarano/org-mcp-server/pull/217)) - ([d0dd797](https://github.com/szaffarano/org-mcp-server/commit/d0dd7978cafe9e91c96877915f13c12e5bf29b2c))
+
+
 ## [0.1.1](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.0...org-mcp-server-v0.1.1)
 
 ### ✨ Features
