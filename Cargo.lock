@@ -1008,7 +1008,7 @@ dependencies = [
 
 [[package]]
 name = "org-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1028,7 +1028,7 @@ dependencies = [
 
 [[package]]
 name = "org-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "chrono",
  "config",
@@ -1053,7 +1053,7 @@ dependencies = [
 
 [[package]]
 name = "org-mcp-server"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "clap",
