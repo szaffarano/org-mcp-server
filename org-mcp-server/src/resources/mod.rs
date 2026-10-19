@@ -18,7 +18,7 @@ use rmcp::model::{
 use rmcp::service::RequestContext;
 use rmcp::{
     ErrorData as McpError,
-    model::{ServerCapabilities, ServerInfo},
+    model::{ServerCapabilities, ServerConfig},
     tool_handler,
 };
 
@@ -38,7 +38,7 @@ pub enum OrgResource {
 
 #[tool_handler]
 impl ServerHandler for OrgModeRouter {
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         const INSTRUCTIONS: &str = concat!(
             "This server provides org-mode tools and resources.\n\n",
             "Tools:\n",
@@ -57,7 +57,7 @@ impl ServerHandler for OrgModeRouter {
             "- org-agenda://week (This week's scheduled tasks)\n",
         );
 
-        ServerInfo::new(
+        ServerConfig::new(
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
