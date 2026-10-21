@@ -11,9 +11,9 @@ mod resource_tests;
 
 use org_core::org_mode::AgendaViewType;
 use rmcp::model::{
-    Implementation, InitializeRequestParams, InitializeResult, ListResourceTemplatesResult,
-    ListResourcesResult, PaginatedRequestParams, ReadResourceRequestParams, ReadResourceResponse,
-    Resource, ResourceTemplate,
+    CacheScope, Implementation, InitializeRequestParams, InitializeResult,
+    ListResourceTemplatesResult, ListResourcesResult, ListToolsResult, PaginatedRequestParams,
+    ReadResourceRequestParams, ReadResourceResponse, Resource, ResourceTemplate, ResultType,
 };
 use rmcp::service::RequestContext;
 use rmcp::{
@@ -66,6 +66,21 @@ impl ServerHandler for OrgModeRouter {
         )
         .with_instructions(INSTRUCTIONS)
         .with_server_info(Implementation::from_build_env())
+    }
+
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListToolsResult, McpError> {
+        Ok(ListToolsResult {
+            result_type: Some(ResultType::COMPLETE),
+            tools: Self::tool_router().list_all(),
+            meta: None,
+            next_cursor: None,
+            ttl_ms: Some(0),
+            cache_scope: Some(CacheScope::Public),
+        })
     }
 
     async fn list_resources(
