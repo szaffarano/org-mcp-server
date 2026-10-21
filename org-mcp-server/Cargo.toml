@@ -2,12 +2,18 @@
 name = "org-mcp-server"
 path = "src/main.rs"
 
+[features]
+http = [
+  "rmcp/transport-streamable-http-server",
+  "dep:axum",
+  "dep:tokio-util",
+]
+
 [dependencies]
 org-core = { version = "0.3.0", path = "../org-core" }
 rmcp = { version = "3.0.0", features = [
   "transport-io",
   "transport-child-process",
-  "transport-streamable-http-server",
   "transport-worker",
   "client",
 ] }
@@ -19,6 +25,8 @@ tokio = { workspace = true, features = [
   "rt-multi-thread",
   "signal",
 ] }
+axum = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = [

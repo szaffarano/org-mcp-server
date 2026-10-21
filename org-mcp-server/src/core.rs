@@ -4,6 +4,7 @@ use tokio::sync::Mutex;
 use org_core::{OrgMode, config::OrgConfig};
 use rmcp::handler::server::tool::ToolRouter;
 
+#[derive(Clone)]
 pub struct OrgModeRouter {
     pub(crate) org_mode: Arc<Mutex<OrgMode>>,
 }

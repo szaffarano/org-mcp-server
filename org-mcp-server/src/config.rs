@@ -11,12 +11,27 @@ use std::path::PathBuf;
 pub struct ServerConfig {
     #[serde(default = "default_max_connections")]
     pub max_connections: usize,
+    #[serde(default)]
+    pub transport: Transport,
+    #[serde(default = "default_bind_address")]
+    pub bind_address: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "lowercase")]
+#[value(rename_all = "lowercase")]
+pub enum Transport {
+    #[default]
+    Stdio,
+    Http,
 }
 
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             max_connections: default_max_connections(),
+            transport: Transport::default(),
+            bind_address: default_bind_address(),
         }
     }
 }
@@ -48,10 +63,13 @@ impl ServerAppConfig {
     }
 
     fn load_server_config(config_file: Option<&str>) -> Result<ServerConfig, OrgModeError> {
-        let builder = ConfigRs::builder().set_default(
-            "server.max_connections",
-            default_max_connections().to_string(),
-        )?;
+        let builder = ConfigRs::builder()
+            .set_default(
+                "server.max_connections",
+                default_max_connections().to_string(),
+            )?
+            .set_default("server.transport", "stdio")?
+            .set_default("server.bind_address", default_bind_address())?;
 
         let config = build_config_with_file_and_env(config_file, builder)?;
 
@@ -97,6 +115,10 @@ fn default_max_connections() -> usize {
     10
 }
 
+fn default_bind_address() -> String {
+    "127.0.0.1:8000".to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,6 +128,35 @@ mod tests {
     fn test_default_server_config() {
         let config = ServerConfig::default();
         assert_eq!(config.max_connections, 10);
+        assert_eq!(config.transport, Transport::Stdio);
+        assert_eq!(config.bind_address, "127.0.0.1:8000");
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_load_http_transport_from_file() {
+        let temp_dir = tempdir().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+
+        let test_config = format!(
+            r#"
+[org]
+org_directory = "{}"
+
+[server]
+transport = "http"
+bind_address = "0.0.0.0:9000"
+"#,
+            temp_dir.path().to_str().unwrap().replace('\\', "/")
+        );
+        std::fs::write(&config_path, test_config).unwrap();
+
+        let config =
+            ServerAppConfig::load(Some(config_path.to_str().unwrap().to_string()), None, None)
+                .unwrap();
+
+        assert_eq!(config.server.transport, Transport::Http);
+        assert_eq!(config.server.bind_address, "0.0.0.0:9000");
     }
 
     #[test]
@@ -191,6 +242,7 @@ max_connections = 5
             },
             server: ServerConfig {
                 max_connections: 25,
+                ..ServerConfig::default()
             },
             logging: LoggingConfig {
                 level: "warn".to_string(),
