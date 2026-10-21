@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.2...org-mcp-server-v0.1.3)
+
+### 🐛 Bug Fixes
+
+
+- *(server)* Always send ttlMs and cacheScope in tools/list ([#238](https://github.com/szaffarano/org-mcp-server/pull/238)) - ([2d0aaf0](https://github.com/szaffarano/org-mcp-server/commit/2d0aaf0d7129e68b570b71479f2fa7c0405b8be6))
+- *(tools)* Use anyOf instead of type arrays for nullable tool parameters ([#235](https://github.com/szaffarano/org-mcp-server/pull/235)) - ([7d53be7](https://github.com/szaffarano/org-mcp-server/commit/7d53be715b5884b0c5df80c4bcbc8de57886c993))
+
+
 ## [0.1.2](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.1...org-mcp-server-v0.1.2)
 
 ### ✨ Features
