@@ -154,3 +154,70 @@ level = "debug"
 
     Ok(())
 }
+
+#[cfg(feature = "http")]
+mod http_transport {
+    use std::{process::Stdio, time::Duration};
+
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpStream,
+        process::Command,
+    };
+
+    use crate::{get_binary_path, setup_test_org_files};
+
+    async fn post_mcp(addr: &str, body: &str) -> std::io::Result<String> {
+        let mut stream = TcpStream::connect(addr).await?;
+        let request = format!(
+            "POST /mcp HTTP/1.1\r\nHost: {addr}\r\nContent-Type: application/json\r\n\
+             Accept: application/json, text/event-stream\r\nConnection: close\r\n\
+             Content-Length: {}\r\n\r\n{body}",
+            body.len()
+        );
+        stream.write_all(request.as_bytes()).await?;
+        let mut response = String::new();
+        stream.read_to_string(&mut response).await?;
+        Ok(response)
+    }
+
+    /// Verifies the http transport serves an MCP `initialize` handshake on `/mcp`.
+    #[tokio::test]
+    async fn test_http_transport_initialize() -> Result<(), Box<dyn std::error::Error>> {
+        let org_dir = setup_test_org_files()?;
+        let port = std::net::TcpListener::bind("127.0.0.1:0")?
+            .local_addr()?
+            .port();
+        let addr = format!("127.0.0.1:{port}");
+
+        let mut child = Command::new(get_binary_path("org-mcp-server"))
+            .args([
+                "--root-directory",
+                org_dir.path().to_str().unwrap(),
+                "--transport",
+                "http",
+                "--bind",
+                &addr,
+            ])
+            .stdin(Stdio::null())
+            .kill_on_drop(true)
+            .spawn()?;
+
+        let body = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"0.0.0"}}}"#;
+
+        let mut response = None;
+        for _ in 0..50 {
+            if let Ok(r) = post_mcp(&addr, body).await {
+                response = Some(r);
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        child.kill().await?;
+
+        let response = response.ok_or("http server never accepted connections")?;
+        assert!(response.starts_with("HTTP/1.1 200"), "{response}");
+        assert!(response.contains("serverInfo"), "{response}");
+        Ok(())
+    }
+}
