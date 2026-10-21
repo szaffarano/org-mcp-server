@@ -148,6 +148,29 @@ Or via Nix:
 }
 ```
 
+### HTTP Transport
+
+By default the server talks over stdio, so each agent launches its own process. To run a
+single shared server instead, build with the `http` feature and serve MCP over streamable HTTP:
+
+```bash
+cargo install org-mcp-server --locked --features http
+org-mcp-server --transport http --bind 127.0.0.1:8000
+```
+
+The endpoint is `http://127.0.0.1:8000/mcp`, e.g. for Claude Code:
+
+```bash
+claude mcp add --transport http org-mode http://127.0.0.1:8000/mcp
+```
+
+`transport` and `bind_address` can also be set under `[server]` in the config file or through
+`ORG_SERVER__TRANSPORT` / `ORG_SERVER__BIND_ADDRESS`.
+
+> [!WARNING]
+> The HTTP transport has no authentication. Keep it bound to loopback unless the network
+> is trusted, since anyone who can reach the port can read and modify your org files.
+
 ## Configuration
 
 Config file: `~/.config/org-mcp/config.toml` (or `$XDG_CONFIG_HOME/org-mcp/config.toml`).
@@ -162,6 +185,10 @@ org_todo_keywords = ["TODO", "|", "DONE"]
 org_auto_created_property = true
 # Auto-stamp CLOSED on done transitions (default: true)
 org_auto_closed_timestamp = true
+
+[server]
+transport = "stdio"  # stdio | http (http requires building with `--features http`)
+bind_address = "127.0.0.1:8000"  # used by the http transport
 
 [logging]
 level = "info"
