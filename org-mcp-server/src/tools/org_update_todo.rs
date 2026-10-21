@@ -24,6 +24,7 @@ impl From<PropertyPairRequest> for org_core::PropertyPair {
 }
 
 #[derive(Debug, schemars::JsonSchema, serde::Deserialize)]
+#[schemars(transform = crate::tools::nullable_as_any_of)]
 pub struct UpdateTodoRequest {
     #[schemars(
         description = "Org ID property of the target heading. Wins when file/heading_path are also given."

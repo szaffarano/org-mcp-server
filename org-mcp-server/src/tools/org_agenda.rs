@@ -10,6 +10,7 @@ use rmcp::{
 use crate::core::OrgModeRouter;
 
 #[derive(Debug, schemars::JsonSchema, serde::Deserialize)]
+#[schemars(transform = crate::tools::nullable_as_any_of)]
 pub struct AgendaRequest {
     #[schemars(
         description = "Start date for agenda view in ISO 8601 format (YYYY-MM-DD, optional)"

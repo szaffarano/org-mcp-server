@@ -24,6 +24,7 @@ impl From<PropertyPairRequest> for org_core::PropertyPair {
 }
 
 #[derive(Debug, schemars::JsonSchema, serde::Deserialize)]
+#[schemars(transform = crate::tools::nullable_as_any_of)]
 pub struct CaptureRequest {
     #[schemars(
         description = "Title for the new heading (required). Must be non-empty after trimming and contain no newline or carriage return characters."

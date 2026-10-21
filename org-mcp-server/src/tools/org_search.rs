@@ -9,6 +9,7 @@ use rmcp::{
 use crate::core::OrgModeRouter;
 
 #[derive(Debug, schemars::JsonSchema, serde::Deserialize)]
+#[schemars(transform = crate::tools::nullable_as_any_of)]
 pub struct SearchRequest {
     #[schemars(description = "Search query string to find in org file content")]
     pub query: String,
