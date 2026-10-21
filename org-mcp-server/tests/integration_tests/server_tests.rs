@@ -154,3 +154,45 @@ level = "debug"
 
     Ok(())
 }
+
+#[tokio::test]
+async fn test_tools_list_has_cache_hints_for_legacy_protocol()
+-> Result<(), Box<dyn std::error::Error>> {
+    use std::process::Stdio;
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+    let org_dir = setup_test_org_files()?;
+    let mut child = Command::new(get_binary_path("org-mcp-server"))
+        .args(["--root-directory", org_dir.path().to_str().unwrap()])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()?;
+
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap()).lines();
+
+    let messages = [
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.0.0"}}}"#,
+        r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#,
+    ];
+    for message in messages {
+        stdin.write_all(format!("{message}\n").as_bytes()).await?;
+    }
+
+    let mut result = None;
+    while let Some(line) = stdout.next_line().await? {
+        let value: serde_json::Value = serde_json::from_str(&line)?;
+        if value["id"] == 2 {
+            result = Some(value["result"].clone());
+            break;
+        }
+    }
+    let result = result.ok_or("no tools/list response")?;
+
+    assert_eq!(result["ttlMs"], 0);
+    assert_eq!(result["cacheScope"], "public");
+    assert_eq!(result["tools"].as_array().map(Vec::len), Some(5));
+    Ok(())
+}
