@@ -213,6 +213,16 @@ mod http_transport {
             }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
+
+        #[cfg(unix)]
+        {
+            let pid = child.id().ok_or("server already exited")?.to_string();
+            let signalled = Command::new("kill").args(["-INT", &pid]).status().await?;
+            assert!(signalled.success());
+            let status = child.wait().await?;
+            assert!(status.success(), "server did not shut down cleanly");
+        }
+        #[cfg(not(unix))]
         child.kill().await?;
 
         let response = response.ok_or("http server never accepted connections")?;
