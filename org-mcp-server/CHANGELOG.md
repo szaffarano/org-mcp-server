@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.3...org-mcp-server-v0.1.4)
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Update Cargo.lock dependencies - ([0000000](https://github.com/szaffarano/org-mcp-server/commit/0000000))
+
+
 ## [0.1.3](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.2...org-mcp-server-v0.1.3)
 
 ### 🐛 Bug Fixes
