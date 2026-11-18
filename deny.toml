@@ -1,0 +1,3 @@
+[advisories]
+# Time-boxed ignore for RUSTSEC-2026-0543 (chrono is unmaintained).
+ignore = ["RUSTSEC-2026-0543"]
