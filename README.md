@@ -71,6 +71,12 @@ Or add to `.claude/settings.json`:
 Add to your plugin configuration using `.codex-plugin/plugin.json` or
 `.cursor-plugin/plugin.json` from this repository.
 
+### Pi
+
+```bash
+pi install git:github.com/szaffarano/org-mcp-server
+```
+
 ### OpenCode
 
 ```json

@@ -5,6 +5,7 @@
   "type": "module",
   "main": ".opencode/plugins/org-mcp-server.js",
   "keywords": [
+    "pi-package",
     "org-mode",
     "agenda",
     "tasks",
@@ -13,6 +14,11 @@
     "knowledge-management",
     "skills"
   ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
   "author": {
     "name": "Sebastián Zaffarano",
     "email": "sebas@zaffarano.com.ar"
