@@ -1113,9 +1113,9 @@ dependencies = [
 
 [[package]]
 name = "orgize-ng"
-version = "0.10.0-alpha.11"
+version = "0.10.0-alpha.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7db40c3cacdacb0d8b6fccec6e0cc4ebb0993a7b47a00ac9389551c8531b4763"
+checksum = "91f06453eb3ecb4693b5a597ee0bc28485131d3db6e7f38029f30c1dfeac2d81"
 dependencies = [
  "bytecount",
  "cfg-if",
