@@ -3,7 +3,15 @@
   "extends": [
     "config:recommended"
   ],
-  "nix": {
+  "lockFileMaintenance": {
     "enabled": true
-  }
+  },
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "github-actions"
+    }
+  ]
 }
