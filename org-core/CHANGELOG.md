@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.3.0...org-core-v0.3.1)
+
+### ✨ Features
+
+
+- *(skills)* Add pi support ([#259](https://github.com/szaffarano/org-mcp-server/pull/259)) - ([a81666b](https://github.com/szaffarano/org-mcp-server/commit/a81666b93dd4f9e16b64197d18f3780e509afd1c))
+
+### ⚙️ Miscellaneous Tasks
+
+
+- Migrate to orgize-ng and unpin rowan ([#258](https://github.com/szaffarano/org-mcp-server/pull/258)) - ([7cbe82c](https://github.com/szaffarano/org-mcp-server/commit/7cbe82cbb42c9f66fad5d0722a4e3998055150cb))
+
+
 ## [0.3.0](https://github.com/szaffarano/org-mcp-server/compare/org-core-v0.2.0...org-core-v0.3.0)
 
 ### ✨ Features

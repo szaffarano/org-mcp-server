@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.5...org-mcp-server-v0.1.6)
+
+### ✨ Features
+
+
+- *(skills)* Add pi support ([#259](https://github.com/szaffarano/org-mcp-server/pull/259)) - ([a81666b](https://github.com/szaffarano/org-mcp-server/commit/a81666b93dd4f9e16b64197d18f3780e509afd1c))
+
+
 ## [0.1.5](https://github.com/szaffarano/org-mcp-server/compare/org-mcp-server-v0.1.4...org-mcp-server-v0.1.5)
 
 ### ⚙️ Miscellaneous Tasks
